@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>数据校验 — FundLens</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="js/sample-data.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html"><span class="brand-dot"></span> FundLens</a>
+  <ul class="nav-links">
+    <li><a href="overview.html">首页概览</a></li>
+    <li><a href="allocation.html">资产配置</a></li>
+    <li><a href="profit-analysis.html">收益分析</a></li>
+    <li><a href="detail-table.html">产品明细</a></li>
+    <li><a href="import.html">数据导入</a></li>
+    <li><a href="validation.html" class="active">数据校验</a></li>
+    <li><a href="settings.html">设置</a></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <select class="snapshot-select"><option>2026Q1 资产快照 (2026-03-31)</option></select>
+    <a href="overview.html" class="nav-item"><span class="nav-icon">&#127968;</span> 首页概览</a>
+    <a href="allocation.html" class="nav-item"><span class="nav-icon">&#128202;</span> 资产配置</a>
+    <a href="profit-analysis.html" class="nav-item"><span class="nav-icon">&#128200;</span> 收益分析</a>
+    <a href="detail-table.html" class="nav-item"><span class="nav-icon">&#128203;</span> 产品明细</a>
+    <a href="import.html" class="nav-item"><span class="nav-icon">&#128229;</span> 数据导入</a>
+    <a href="validation.html" class="nav-item active"><span class="nav-icon">&#128269;</span> 数据校验</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">&#9881;</span> 设置</a>
+    <div class="sidebar-footer">所有数据仅在本地处理<br>不上传至任何外部服务器</div>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-header">
+      <h2>数据校验</h2>
+      <p class="subtitle">当前快照的校验结果 — 三级分层：阻断错误、警告提示、自动修复</p>
+    </div>
+
+    <!-- Summary -->
+    <div class="validation-summary" style="margin-bottom:var(--space-8);">
+      <div class="validation-stat v-error">
+        <div class="stat-num">0</div><div class="stat-label">🔴 阻断错误</div>
+      </div>
+      <div class="validation-stat v-warn">
+        <div class="stat-num">3</div><div class="stat-label">🟡 警告提示</div>
+      </div>
+      <div class="validation-stat v-fix">
+        <div class="stat-num">6</div><div class="stat-label">🟢 自动修复</div>
+      </div>
+    </div>
+
+    <!-- Block errors -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h4 style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);">
+        <span class="badge badge-error">🔴 阻断错误</span> 必须修复，否则无法导入
+      </h4>
+      <table class="data-table">
+        <thead><tr><th>规则</th><th>状态</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>当前金额不能为空</td><td><span class="badge badge-success">✓ 通过</span></td><td>所有 8 条记录当前金额均有效</td></tr>
+          <tr><td>当前金额不能为负</td><td><span class="badge badge-success">✓ 通过</span></td><td>无负金额</td></tr>
+          <tr><td>持有成本不能为负</td><td><span class="badge badge-success">✓ 通过</span></td><td>所有成本字段 ≥ 0</td></tr>
+          <tr><td>产品名称不能为空</td><td><span class="badge badge-success">✓ 通过</span></td><td>8/8 条记录均已填写产品名称</td></tr>
+          <tr><td>平台不能为空</td><td><span class="badge badge-success">✓ 通过</span></td><td>8/8 条记录均已填写平台</td></tr>
+          <tr><td>统计日期不能为空</td><td><span class="badge badge-success">✓ 通过</span></td><td>统一统计日期 2026-03-31</td></tr>
+          <tr><td>日期格式正确</td><td><span class="badge badge-success">✓ 通过</span></td><td>所有日期均为 YYYY-MM-DD 格式</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Warnings -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h4 style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);">
+        <span class="badge badge-warn">🟡 警告提示</span> 可以导入，但建议确认
+      </h4>
+      <table class="data-table">
+        <thead><tr><th>规则</th><th>详情</th><th>建议操作</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>缺少持有成本</td>
+            <td>第 5 行：余利宝 — 无成本数据</td>
+            <td><span class="badge badge-muted">该产品不参与收益率统计</span></td>
+          </tr>
+          <tr>
+            <td>收益率异常 (&lt; -10%)</td>
+            <td>第 4 行：XX新能源基金 — 收益率 -14.29%</td>
+            <td><span class="badge badge-warn">请确认收益数据是否准确</span></td>
+          </tr>
+          <tr>
+            <td>收益率异常 (&gt; 10%)</td>
+            <td>第 8 行：纳指ETF — 收益率 +12.50%</td>
+            <td><span class="badge badge-warn">请确认收益数据是否准确</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Auto-fixes -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h4 style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);">
+        <span class="badge badge-success">🟢 自动修复</span> 系统已自动处理
+      </h4>
+      <table class="data-table">
+        <thead><tr><th>规则</th><th>处理记录</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>自动计算持有收益</td><td>7 条记录：根据"当前金额 - 持有成本"自动计算</td><td><span class="badge badge-success">✓ 完成</span></td></tr>
+          <tr><td>自动计算持有收益率</td><td>7 条记录：根据"持有收益 / 持有成本"自动计算</td><td><span class="badge badge-success">✓ 完成</span></td></tr>
+          <tr><td>产品代码文本格式检查</td><td>检测 6 条有代码的记录，均已按文本格式处理</td><td><span class="badge badge-success">✓ 完成</span></td></tr>
+          <tr><td>金额千分位逗号清洗</td><td>未检测到千分位逗号</td><td><span class="badge badge-success">无需处理</span></td></tr>
+          <tr><td>百分号格式转换</td><td>未检测到百分号格式的费率字段</td><td><span class="badge badge-success">无需处理</span></td></tr>
+          <tr><td>重复记录检测</td><td>未发现重复记录（日期+平台+产品名称）</td><td><span class="badge badge-success">✓ 通过</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Benchmark + Target validation -->
+    <div class="card">
+      <h4 style="margin-bottom:var(--space-4);">配置校验</h4>
+      <table class="data-table">
+        <thead><tr><th>规则</th><th>状态</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>基准指数配置</td><td><span class="badge badge-success">✓ 已配置</span></td><td>沪深300，期初 3500，期末 3850，基准收益率 +10.00%</td></tr>
+          <tr><td>目标配置比例总和</td><td><span class="badge badge-success">✓ 通过</span></td><td>总和 = 100%，校验一致</td></tr>
+          <tr><td>目标配置大类引用</td><td><span class="badge badge-success">✓ 通过</span></td><td>所有目标大类均存在于当前数据中</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

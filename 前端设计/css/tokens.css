@@ -1,0 +1,109 @@
+/* ============================================================
+   FundLens Design Tokens
+   Based on Claude (Anthropic) Design System
+   Extended with financial dashboard tokens
+   ============================================================ */
+
+:root {
+  /* ─── Surface (Claude) ──────────────────────────────────── */
+  --bg: #f5f4ed;
+  --surface: #faf9f5;
+  --surface-warm: #e8e6dc;
+
+  /* ─── Foreground (Claude) ───────────────────────────────── */
+  --fg: #141413;
+  --fg-2: #3d3d3a;
+  --muted: #5e5d59;
+  --meta: #87867f;
+
+  /* ─── Border (Claude) ───────────────────────────────────── */
+  --border: #f0eee6;
+  --border-soft: #e8e6dc;
+
+  /* ─── Accent (Claude terracotta) ────────────────────────── */
+  --accent: #c96442;
+  --accent-on: #faf9f5;
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --accent-active: color-mix(in oklab, var(--accent), black 14%);
+
+  /* ─── Semantic ──────────────────────────────────────────── */
+  --success: #17a34a;
+  --warn: #ff9800;
+  --danger: #b53333;
+
+  /* ─── FundLens financial colors ─────────────────────────── */
+  --profit: #c43d3d;        /* 盈利 — warm red (Chinese convention: red = up) */
+  --loss: #3d8c40;          /* 亏损 — green */
+  --profit-bg: rgba(196, 61, 61, 0.08);
+  --loss-bg: rgba(61, 140, 64, 0.08);
+  --warn-bg: rgba(255, 152, 0, 0.1);
+  --warn-border: #ff9800;
+
+  /* Chart palette — soft, harmonious with Claude parchment */
+  --chart-1: #c96442;       /* terracotta */
+  --chart-2: #5e5d59;       /* olive gray */
+  --chart-3: #d4a574;       /* warm sand */
+  --chart-4: #8b9a8b;       /* muted sage */
+  --chart-5: #b8a9a0;       /* warm stone */
+  --chart-6: #6b7b6b;       /* deep sage */
+  --chart-7: #d4c5bc;       /* warm blush */
+  --chart-8: #4d4c48;       /* charcoal warm */
+  --chart-9: #c4b5a5;       /* warm tan */
+  --chart-10: #3d3d3a;      /* dark warm */
+
+  /* ─── Typography (Claude) ────────────────────────────────── */
+  --font-display: "Anthropic Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Anthropic Sans", "Arial", system-ui, -apple-system, sans-serif;
+  --font-mono: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+
+  --text-xs: 10px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 25px;
+  --text-2xl: 32px;
+  --text-3xl: 52px;
+  --text-4xl: 64px;
+
+  --leading-body: 1.6;
+  --leading-tight: 1.1;
+  --tracking-display: 0em;
+
+  /* ─── Spacing ────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --section-y-desktop: 96px;
+  --section-y-tablet: 64px;
+  --section-y-phone: 48px;
+
+  /* ─── Radius ─────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* ─── Elevation ──────────────────────────────────────────── */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: rgba(0,0,0,0.05) 0px 4px 24px;
+
+  /* ─── Focus ──────────────────────────────────────────────── */
+  --focus-ring: 0 0 0 3px rgba(56, 152, 236, 0.3);
+
+  /* ─── Motion ─────────────────────────────────────────────── */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ─── Layout ─────────────────────────────────────────────── */
+  --container-max: 1200px;
+  --container-gutter-desktop: 24px;
+  --container-gutter-tablet: 16px;
+  --container-gutter-phone: 12px;
+}

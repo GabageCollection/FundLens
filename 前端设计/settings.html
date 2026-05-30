@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>设置 — FundLens</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="js/sample-data.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html"><span class="brand-dot"></span> FundLens</a>
+  <ul class="nav-links">
+    <li><a href="overview.html">首页概览</a></li>
+    <li><a href="allocation.html">资产配置</a></li>
+    <li><a href="profit-analysis.html">收益分析</a></li>
+    <li><a href="detail-table.html">产品明细</a></li>
+    <li><a href="import.html">数据导入</a></li>
+    <li><a href="validation.html">数据校验</a></li>
+    <li><a href="settings.html" class="active">设置</a></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <select class="snapshot-select"><option>2026Q1 资产快照 (2026-03-31)</option></select>
+    <a href="overview.html" class="nav-item"><span class="nav-icon">&#127968;</span> 首页概览</a>
+    <a href="allocation.html" class="nav-item"><span class="nav-icon">&#128202;</span> 资产配置</a>
+    <a href="profit-analysis.html" class="nav-item"><span class="nav-icon">&#128200;</span> 收益分析</a>
+    <a href="detail-table.html" class="nav-item"><span class="nav-icon">&#128203;</span> 产品明细</a>
+    <a href="import.html" class="nav-item"><span class="nav-icon">&#128229;</span> 数据导入</a>
+    <a href="validation.html" class="nav-item"><span class="nav-icon">&#128269;</span> 数据校验</a>
+    <a href="settings.html" class="nav-item active"><span class="nav-icon">&#9881;</span> 设置</a>
+    <div class="sidebar-footer">所有数据仅在本地处理<br>不上传至任何外部服务器</div>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-header">
+      <h2>设置</h2>
+      <p class="subtitle">基准指数、目标配置比例、图表偏好与隐私设置</p>
+    </div>
+
+    <div class="grid-2" style="align-items:start;">
+      <div>
+
+        <!-- Benchmark config -->
+        <div class="card settings-section">
+          <h4>基准指数配置</h4>
+          <p style="color:var(--meta);font-size:var(--text-sm);margin-bottom:var(--space-4);">设定对标基准指数，系统自动计算基准收益率并对比总收益率。</p>
+          <div class="form-group">
+            <label>基准名称</label>
+            <input type="text" class="form-input" value="沪深300" id="benchName">
+          </div>
+          <div class="form-group">
+            <label>期初值（对应统计日期的指数点位）</label>
+            <input type="number" class="form-input" value="3500" id="benchStart" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>期末值（当前指数点位）</label>
+            <input type="number" class="form-input" value="3850" id="benchEnd" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>基准收益率（自动计算）</label>
+            <input type="text" class="form-input" value="+10.00%" disabled style="background:var(--bg);color:var(--muted);">
+            <div class="hint">(3850 - 3500) / 3500 × 100% = 10.00%</div>
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings('benchmark')">保存基准设置</button>
+        </div>
+
+        <!-- Target allocation -->
+        <div class="card settings-section">
+          <h4>目标配置比例</h4>
+          <p style="color:var(--meta);font-size:var(--text-sm);margin-bottom:var(--space-4);">设定各资产大类的目标比例，总和应为 100%。偏离超过 ±5% 将橙色提醒。</p>
+          <div id="targetAllocFields"></div>
+          <div style="margin-bottom:var(--space-4);">
+            <span style="font-size:var(--text-sm);" id="targetSum">总和: 100%</span>
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings('target')">保存目标配置</button>
+        </div>
+
+      </div>
+      <div>
+
+        <!-- Chart preferences -->
+        <div class="card settings-section">
+          <h4>图表偏好</h4>
+          <div class="form-group">
+            <label>涨跌颜色方案</label>
+            <div style="display:flex;gap:var(--space-4);margin-top:var(--space-2);">
+              <label class="toggle-switch" style="flex-direction:column;align-items:flex-start;gap:var(--space-2);">
+                <span style="font-size:var(--text-sm);">红涨绿跌（国内习惯）</span>
+                <span style="display:flex;align-items:center;gap:var(--space-2);">
+                  <span style="color:var(--profit);">上涨 ●</span> /
+                  <span style="color:var(--loss);">下跌 ●</span>
+                </span>
+              </label>
+            </div>
+            <div class="hint">当前默认使用红涨绿跌，符合国内投资软件习惯</div>
+          </div>
+        </div>
+
+        <!-- Privacy -->
+        <div class="card settings-section">
+          <h4>隐私与安全</h4>
+          <div class="form-group">
+            <label class="toggle-switch">
+              <input type="checkbox" id="blurMode" onchange="toggleBlurMode()">
+              <span class="toggle-track"></span>
+              <span>模糊模式</span>
+            </label>
+            <div class="hint">开启后所有金额数字模糊显示，方便截图分享或演示</div>
+          </div>
+          <div class="form-group" style="margin-top:var(--space-4);">
+            <label>数据安全说明</label>
+            <p style="font-size:var(--text-sm);color:var(--muted);line-height:1.6;">
+              所有资产数据仅在本地浏览器中处理，不上传至任何外部服务器。上传的 Excel 文件自动保存至本地 <code style="background:var(--bg);padding:1px 6px;border-radius:3px;font-size:12px;">data/uploaded/</code> 目录。FundLens 不会要求您输入支付宝或同花顺的账号密码。
+            </p>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="card settings-section">
+          <h4>关于 FundLens</h4>
+          <div style="font-size:var(--text-sm);color:var(--muted);line-height:1.8;">
+            <p>版本: v1.0</p>
+            <p>定位: 个人资产季度快照分析工具</p>
+            <p>数据来源: 支付宝 + 同花顺 Excel 导出</p>
+            <p>收益率算法: 简单持有期收益率</p>
+            <p>技术栈: HTML / CSS / JavaScript（原型）</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── Populate target allocation fields ──────────────────
+(function(){
+  var targetMap = {'现金类':10,'固收类':40,'固收增强类':10,'权益类':30,'跨境类':10};
+  var container = document.getElementById('targetAllocFields');
+  Object.keys(targetMap).forEach(function(cls){
+    var div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML =
+      '<label>'+cls+'</label>'+
+      '<div style="display:flex;align-items:center;gap:var(--space-2);">'+
+        '<input type="range" min="0" max="100" value="'+targetMap[cls]+'" class="target-slider" data-class="'+cls+'" style="flex:1;" oninput="updateTargetSum()">'+
+        '<input type="number" class="form-input" value="'+targetMap[cls]+'" data-class="'+cls+'" style="width:70px;text-align:right;" min="0" max="100" oninput="updateTargetSum()">'+
+        '<span style="font-size:var(--text-sm);width:20px;">%</span>'+
+      '</div>';
+    container.appendChild(div);
+  });
+})();
+
+function updateTargetSum(){
+  var sum = 0;
+  document.querySelectorAll('.target-slider').forEach(function(s){
+    var v = parseInt(s.nextElementSibling.value) || 0;
+    s.value = v;
+    sum += v;
+  });
+  var el = document.getElementById('targetSum');
+  el.textContent = '总和: '+sum+'%';
+  el.style.color = sum===100?'var(--success)':'var(--warn)';
+}
+
+function saveSettings(type){
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = type==='benchmark'?'基准指数配置已保存':'目标配置比例已保存';
+  document.body.appendChild(toast);
+  setTimeout(function(){ toast.remove(); }, 2500);
+}
+
+function toggleBlurMode(){
+  // Visual feedback only — actual blur is applied per-page
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = document.getElementById('blurMode').checked?'模糊模式已开启（需在首页应用）':'模糊模式已关闭';
+  document.body.appendChild(toast);
+  setTimeout(function(){ toast.remove(); }, 2500);
+}
+</script>
+</body>
+</html>

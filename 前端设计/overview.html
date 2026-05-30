@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>首页概览 — FundLens</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="js/sample-data.js"></script>
+  <style>
+    .blur-toggle { display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--muted);cursor:pointer; }
+    .section-title { font-size:var(--text-xl);font-weight:500;font-family:var(--font-display);margin-bottom:var(--space-4); }
+    .chart-row { display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);margin-bottom:var(--space-6); }
+    @media(max-width:768px){ .chart-row{grid-template-columns:1fr;} }
+
+    svg text { font-family:var(--font-body); }
+    svg .chart-title { font-family:var(--font-display);font-size:14px;font-weight:500;fill:var(--fg); }
+    svg .axis-label { font-size:11px;fill:var(--meta); }
+    svg .data-label { font-size:12px;fill:var(--fg);font-weight:500; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html"><span class="brand-dot"></span> FundLens</a>
+  <ul class="nav-links">
+    <li><a href="overview.html" class="active">首页概览</a></li>
+    <li><a href="allocation.html">资产配置</a></li>
+    <li><a href="profit-analysis.html">收益分析</a></li>
+    <li><a href="detail-table.html">产品明细</a></li>
+    <li><a href="import.html">数据导入</a></li>
+    <li><a href="validation.html">数据校验</a></li>
+    <li><a href="settings.html">设置</a></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <select class="snapshot-select"><option>2026Q1 资产快照 (2026-03-31)</option></select>
+    <a href="overview.html" class="nav-item active"><span class="nav-icon">&#127968;</span> 首页概览</a>
+    <a href="allocation.html" class="nav-item"><span class="nav-icon">&#128202;</span> 资产配置</a>
+    <a href="profit-analysis.html" class="nav-item"><span class="nav-icon">&#128200;</span> 收益分析</a>
+    <a href="detail-table.html" class="nav-item"><span class="nav-icon">&#128203;</span> 产品明细</a>
+    <a href="import.html" class="nav-item"><span class="nav-icon">&#128229;</span> 数据导入</a>
+    <a href="validation.html" class="nav-item"><span class="nav-icon">&#128269;</span> 数据校验</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">&#9881;</span> 设置</a>
+    <div class="sidebar-footer">所有数据仅在本地处理<br>不上传至任何外部服务器</div>
+  </aside>
+
+  <main class="app-main">
+    <div class="row-between" style="margin-bottom:var(--space-6);">
+      <div>
+        <h2 style="font-size:var(--text-3xl);margin-bottom:var(--space-1);">当前资产总览</h2>
+        <p style="color:var(--meta);font-size:var(--text-sm);">统计日期: 2026-03-31 · 快照: 2026Q1</p>
+      </div>
+      <label class="blur-toggle" id="blurToggle" title="切换模糊模式以保护隐私">
+        <input type="checkbox" id="blurCheck" onchange="toggleBlur()"> <span>模糊模式</span>
+      </label>
+    </div>
+
+    <!-- KPI Row 1 — Core -->
+    <div class="grid-4" style="margin-bottom:var(--space-6);" id="kpiRow1"></div>
+
+    <!-- KPI Row 2 — Reference -->
+    <div class="grid-4" style="margin-bottom:var(--space-6);" id="kpiRow2"></div>
+
+    <!-- KPI Row 3 — Benchmark + Target -->
+    <div class="grid-2" style="margin-bottom:var(--space-6);" id="kpiRow3"></div>
+
+    <!-- Charts Row 1: Platform + Asset Class donuts -->
+    <div class="chart-row">
+      <div class="chart-card"><h4>平台资产占比</h4><div class="chart-container" id="chartPlatform"></div></div>
+      <div class="chart-card"><h4>资产大类占比</h4><div class="chart-container" id="chartAssetClass"></div></div>
+    </div>
+
+    <!-- Current vs Target -->
+    <div class="chart-card" style="margin-bottom:var(--space-6);">
+      <h4>当前 vs 目标配置对比</h4>
+      <div class="chart-container" id="chartTarget"></div>
+    </div>
+
+    <!-- Charts Row 2: Waterfall + Benchmark -->
+    <div class="chart-row">
+      <div class="chart-card"><h4>收益贡献瀑布图</h4><div class="chart-container" id="chartWaterfall"></div></div>
+      <div class="chart-card"><h4>基准对比</h4><div class="chart-container" id="chartBenchmark"></div></div>
+    </div>
+
+    <!-- Charts Row 3: Top holdings + Top losses -->
+    <div class="chart-row">
+      <div class="chart-card"><h4>产品持仓 Top 10</h4><div class="chart-container" id="chartTopHoldings"></div></div>
+      <div class="chart-card"><h4>亏损产品 Top 10</h4><div class="chart-container" id="chartTopLosses"></div></div>
+    </div>
+
+    <!-- Data quality card -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h4 style="margin-bottom:var(--space-3);">数据质量提示</h4>
+      <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;font-size:var(--text-sm);">
+        <span class="badge badge-success">收益覆盖率: 85.9%</span>
+        <span class="badge badge-warn">1 个产品缺少成本数据（余利宝），不参与收益率统计</span>
+        <span class="badge badge-muted">收益率类型: 简单持有期收益率</span>
+        <span class="badge badge-warn">1 个产品亏损率超过 10%（XX新能源基金 -14.3%）</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── Metrics ────────────────────────────────────────────
+var M = (function() {
+  var d = SAMPLE_DATA;
+  var totalAssets = d.reduce(function(s,r){return s+r.current_value;},0);
+  var withCost = d.filter(function(r){return r.cost_amount!=null && r.cost_amount>0;});
+  var totalCost = withCost.reduce(function(s,r){return s+r.cost_amount;},0);
+  var totalProfit = withCost.reduce(function(s,r){return s+(r.holding_profit||0);},0);
+  var totalReturn = totalCost>0 ? totalProfit/totalCost : 0;
+  var coveredAmount = withCost.reduce(function(s,r){return s+r.current_value;},0);
+  var coverage = totalAssets>0 ? coveredAmount/totalAssets : 0;
+  var platforms = d.filter(function(r,i,a){return a.findIndex(function(x){return x.platform===r.platform;})===i;});
+  var maxSingle = 0, maxName = '';
+  d.forEach(function(r){var p=r.current_value/totalAssets;if(p>maxSingle){maxSingle=p;maxName=r.product_name;}});
+  var byClass = {}; d.forEach(function(r){byClass[r.asset_class]=(byClass[r.asset_class]||0)+r.current_value;});
+  var equityRatio = (byClass['权益类']||0)/totalAssets;
+
+  var benchmarkReturn = (3850-3500)/3500;
+  var relativeReturn = totalReturn - benchmarkReturn;
+
+  var targetMap = {'现金类':0.10,'固收类':0.40,'固收增强类':0.10,'权益类':0.30,'跨境类':0.10};
+  var deviations = [];
+  var classOrder = ['现金类','固收类','固收增强类','权益类','跨境类'];
+  classOrder.forEach(function(cls){
+    var cur = (byClass[cls]||0)/totalAssets;
+    var tgt = targetMap[cls]||0;
+    var dev = cur - tgt;
+    deviations.push({cls:cls, current:cur, target:tgt, dev:dev, over:Math.abs(dev)>0.05});
+  });
+  var overCount = deviations.filter(function(x){return x.over;}).length;
+
+  return {
+    totalAssets:totalAssets, totalCost:totalCost, totalProfit:totalProfit, totalReturn:totalReturn,
+    coverage:coverage, platformCount:platforms.length, productCount:d.length,
+    maxSingle:maxSingle, maxSingleName:maxName, equityRatio:equityRatio,
+    benchmarkReturn:benchmarkReturn, relativeReturn:relativeReturn,
+    deviations:deviations, overCount:overCount, withCost:withCost
+  };
+})();
+
+// ─── Render KPI cards ───────────────────────────────────
+function kpiCard(label, value, sub, cls) {
+  return '<div class="kpi-card'+(cls?' '+cls:'')+'"><div class="kpi-label">'+label+'</div><div class="kpi-value sensitive'+(cls?' '+cls:'')+'">'+value+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
+}
+
+document.getElementById('kpiRow1').innerHTML =
+  kpiCard('总资产','¥'+M.totalAssets.toLocaleString(),'全部 8 个产品') +
+  kpiCard('总持有收益',(M.totalProfit>=0?'+':'')+'¥'+M.totalProfit.toLocaleString(),'基于有成本数据的产品','profit') +
+  kpiCard('总收益率',(M.totalReturn>=0?'+':'')+(M.totalReturn*100).toFixed(2)+'%','简单持有期收益率','profit') +
+  kpiCard('收益统计覆盖率',(M.coverage*100).toFixed(1)+'%','有成本资产 / 总资产');
+
+document.getElementById('kpiRow2').innerHTML =
+  kpiCard('产品数量',M.productCount+' 个','') +
+  kpiCard('平台数量',M.platformCount+' 个','支付宝 · 同花顺') +
+  kpiCard('最大单品占比',(M.maxSingle*100).toFixed(1)+'%',M.maxSingleName,(M.maxSingle>0.2?'warn-card':'')) +
+  kpiCard('权益类占比',(M.equityRatio*100).toFixed(1)+'%','权益类资产 / 总资产');
+
+document.getElementById('kpiRow3').innerHTML =
+  '<div class="kpi-card'+(M.relativeReturn<0?' warn-card':'')+'"><div class="kpi-label">基准对比 (沪深300)</div><div class="kpi-value '+(M.relativeReturn>=0?'profit':'loss')+'">'+(M.relativeReturn>=0?'跑赢 ':'跑输 ')+Math.abs(M.relativeReturn*100).toFixed(2)+'%</div><div class="kpi-sub">总收益率 '+(M.totalReturn>=0?'+':'')+(M.totalReturn*100).toFixed(2)+'% vs 基准 '+(M.benchmarkReturn*100).toFixed(2)+'%</div></div>' +
+  '<div class="kpi-card'+(M.overCount>0?' warn-card':'')+'"><div class="kpi-label">目标配置偏离</div><div class="kpi-value warn">'+M.overCount+' 个大类偏离</div><div class="kpi-sub">偏离超过 ±5% 的资产大类数量</div></div>';
+
+// ─── Donut chart helper ──────────────────────────────────
+function drawDonut(containerId, groups, total, colors) {
+  var W=300,H=260,R=90,ir=55,cx=140,cy=130;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  var angle= -Math.PI/2;
+  groups.forEach(function(g,i){
+    var slice = g.value/total;
+    var a2 = angle + slice*2*Math.PI;
+    var x1=cx+R*Math.cos(angle),y1=cy+R*Math.sin(angle);
+    var x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+    var large = slice>0.5?1:0;
+    svg+='<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+R+','+R+' 0 '+large+',1 '+x2+','+y2+' Z" fill="'+colors[i%colors.length]+'" opacity="0.85"/>';
+    angle=a2;
+  });
+  svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+ir+'" fill="var(--surface)"/>';
+  var ta= -Math.PI/2;
+  groups.forEach(function(g,i){
+    var slice=g.value/total;
+    var ma=ta+slice*Math.PI;
+    var lx=cx+(R+18)*Math.cos(ma),ly=cy+(R+18)*Math.sin(ma);
+    var pct=(slice*100).toFixed(1)+'%';
+    var align='start';
+    if(lx>cx+100)align='start';else if(lx<cx-100)align='end';else align='middle';
+    svg+='<text x="'+lx+'" y="'+(ly-6)+'" text-anchor="'+align+'" font-size="11" fill="var(--fg)">'+g.name+'</text>';
+    svg+='<text x="'+lx+'" y="'+(ly+8)+'" text-anchor="'+align+'" font-size="10" fill="var(--meta)">'+pct+'</text>';
+    ta+=slice*2*Math.PI;
+  });
+  svg+='</svg>';
+  return svg;
+}
+
+// ─── Platform donut ─────────────────────────────────────
+(function(){
+  var byPlat=groupBy(SAMPLE_DATA,'platform');
+  var groups=sortGroups(byPlat).map(function(g){return {name:g.name,value:g.current_value};});
+  var colors=['#c96442','#5e5d59','#d4a574','#8b9a8b'];
+  document.getElementById('chartPlatform').innerHTML=drawDonut('chartPlatform',groups,M.totalAssets,colors);
+})();
+
+// ─── Asset class donut ──────────────────────────────────
+(function(){
+  var byClass=groupBy(SAMPLE_DATA,'asset_class');
+  var order=['现金类','固收类','固收增强类','权益类','跨境类'];
+  var groups=order.map(function(cls){
+    var g=byClass[cls];
+    return g?{name:cls,value:g.current_value}:{name:cls,value:0};
+  }).filter(function(g){return g.value>0;});
+  var colors=['#8b9a8b','#5e5d59','#b8a9a0','#c96442','#d4a574','#6b7b6b'];
+  document.getElementById('chartAssetClass').innerHTML=drawDonut('chartAssetClass',groups,M.totalAssets,colors);
+})();
+
+// ─── Target comparison bars ─────────────────────────────
+(function(){
+  var devs=M.deviations;
+  var barH=36,gap=12,padL=100,padR=60,W=700,H=devs.length*(barH+gap)+20;
+  var maxW=W-padL-padR-100;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  devs.forEach(function(d,i){
+    var y=10+i*(barH+gap);
+    svg+='<text x="'+(padL-8)+'" y="'+(y+barH/2+5)+'" text-anchor="end" font-size="13" fill="var(--fg)">'+d.cls+'</text>';
+    svg+='<rect x="'+padL+'" y="'+y+'" width="'+maxW+'" height="'+barH+'" fill="var(--border)" rx="4"/>';
+    var cw=Math.max(d.current*maxW,4);
+    svg+='<rect x="'+padL+'" y="'+y+'" width="'+cw+'" height="'+barH+'" fill="'+(d.over?'var(--warn)':'var(--chart-1)')+'" rx="4" opacity="0.8"/>';
+    var mx=padL+d.target*maxW;
+    svg+='<line x1="'+mx+'" y1="'+(y-4)+'" x2="'+mx+'" y2="'+(y+barH+4)+'" stroke="var(--fg)" stroke-width="2" stroke-dasharray="3,2"/>';
+    svg+='<text x="'+(padL+cw+6)+'" y="'+(y+barH/2+5)+'" font-size="12" fill="'+(d.over?'var(--warn)':'var(--meta))+'">'+(d.current*100).toFixed(1)+'%</text>';
+    var devSign=d.dev>=0?'+':'';
+    svg+='<text x="'+(W-padR+8)+'" y="'+(y+barH/2+5)+'" font-size="11" fill="'+(d.over?'var(--warn)':'var(--meta))+'">'+(d.over?'⚠ ':'')+devSign+(d.dev*100).toFixed(1)+'%</text>';
+  });
+  svg+='</svg>';
+  document.getElementById('chartTarget').innerHTML=svg;
+})();
+
+// ─── Waterfall chart ────────────────────────────────────
+(function(){
+  var byClass=groupBy(SAMPLE_DATA,'asset_class');
+  var order=['固收类','固收增强类','权益类','跨境类','现金类'];
+  var items=[];
+  order.forEach(function(cls){
+    var g=byClass[cls];
+    var profit=g?g.holding_profit:0;
+    items.push({name:cls,value:profit});
+  });
+  var totalProfit = items.reduce(function(s,i){return s+i.value;},0);
+  var W=600,H=280,barW=50,gap=30,baseY=200,padL=80;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  svg+='<line x1="'+padL+'" y1="'+baseY+'" x2="'+(W-20)+'" y2="'+baseY+'" stroke="var(--border-soft)" stroke-width="1"/>';
+  var running=0;
+  var maxAbs=Math.max.apply(null,items.map(function(i){return Math.abs(i.value);}).concat([Math.abs(totalProfit)]));
+  var scale = 100 / (maxAbs||1);
+  items.forEach(function(item,i){
+    var x=padL+10+i*(barW+gap);
+    var bottom=baseY-(running*scale);
+    var h=Math.abs(item.value*scale);
+    var y=item.value>=0?bottom-h:bottom;
+    var fill=item.value>=0?'var(--chart-1)':'var(--chart-4)';
+    svg+='<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+Math.max(h,2)+'" fill="'+fill+'" rx="3" opacity="0.85"/>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="10" fill="var(--fg)">'+(item.value>=0?'+':'')+item.value+'</text>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="var(--meta)">'+item.name+'</text>';
+    running+=item.value;
+  });
+  var tx=padL+10+items.length*(barW+gap)+20;
+  var totalH=Math.abs(totalProfit*scale);
+  var totalY=totalProfit>=0?baseY-totalH:baseY;
+  svg+='<rect x="'+tx+'" y="'+totalY+'" width="'+barW+'" height="'+Math.max(totalH,2)+'" fill="var(--accent)" rx="3"/>';
+  svg+='<text x="'+(tx+barW/2)+'" y="'+(totalY-6)+'" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">'+(totalProfit>=0?'+':'')+totalProfit+'</text>';
+  svg+='<text x="'+(tx+barW/2)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="var(--fg)">总收益</text>';
+  svg+='</svg>';
+  document.getElementById('chartWaterfall').innerHTML=svg;
+})();
+
+// ─── Benchmark comparison ───────────────────────────────
+(function(){
+  var W=400,H=240,barW=80,gap=80,cx=W/2,baseY=H-40;
+  var vals=[{label:'总收益率',value:M.totalReturn,color:'var(--accent)'},{label:'沪深300',value:M.benchmarkReturn,color:'var(--chart-2)'}];
+  var maxV=Math.max(Math.abs(vals[0].value),Math.abs(vals[1].value),0.15);
+  var scale=120/maxV;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  svg+='<line x1="60" y1="'+baseY+'" x2="'+(W-20)+'" y2="'+baseY+'" stroke="var(--border-soft)" stroke-width="1"/>';
+  vals.forEach(function(v,i){
+    var x=cx-(barW+gap/2)+i*(barW+gap);
+    var h=v.value*scale;
+    var y=baseY-Math.abs(h);
+    svg+='<rect x="'+x+'" y="'+(h>=0?baseY-h:baseY)+'" width="'+barW+'" height="'+Math.abs(h)+'" fill="'+v.color+'" rx="4" opacity="0.85"/>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(h>=0?baseY-h-8:baseY+Math.abs(h)+16)+'" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">'+(v.value>=0?'+':'')+(v.value*100).toFixed(2)+'%</text>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="12" fill="var(--meta)">'+v.label+'</text>';
+  });
+  svg+='<text x="'+(W/2)+'" y="20" text-anchor="middle" font-size="13" fill="'+(M.relativeReturn>=0?'var(--profit)':'var(--loss))+'">相对收益: '+(M.relativeReturn>=0?'+':'')+(M.relativeReturn*100).toFixed(2)+'% '+(M.relativeReturn>=0?'(跑赢)':'(跑输)')+'</text>';
+  svg+='</svg>';
+  document.getElementById('chartBenchmark').innerHTML=svg;
+})();
+
+// ─── Top holdings horizontal bars ───────────────────────
+(function(){
+  var sorted=SAMPLE_DATA.slice().sort(function(a,b){return b.current_value-a.current_value;});
+  var W=500,H=Math.min(sorted.length*36+30,300),barH=22,gap=8,padL=130;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  var maxV=sorted[0].current_value;
+  sorted.forEach(function(r,i){
+    var y=10+i*(barH+gap);
+    var w=(r.current_value/maxV)*(W-padL-80);
+    var colors=['#c96442','#d4a574','#b8a9a0','#8b9a8b','#5e5d59','#6b7b6b','#d4c5bc','#c4b5a5'];
+    svg+='<text x="'+(padL-6)+'" y="'+(y+barH/2+4)+'" text-anchor="end" font-size="11" fill="var(--fg)" style="white-space:nowrap;">'+r.product_name.substring(0,10)+'</text>';
+    svg+='<rect x="'+padL+'" y="'+y+'" width="'+w+'" height="'+barH+'" fill="'+colors[i%colors.length]+'" rx="3" opacity="0.8"/>';
+    svg+='<text x="'+(padL+w+6)+'" y="'+(y+barH/2+4)+'" font-size="11" fill="var(--muted)">¥'+r.current_value.toLocaleString()+'</text>';
+  });
+  svg+='</svg>';
+  document.getElementById('chartTopHoldings').innerHTML=svg;
+})();
+
+// ─── Top losses horizontal bars ─────────────────────────
+(function(){
+  var losses=SAMPLE_DATA.filter(function(r){return r.holding_profit!=null && r.holding_profit<0;}).sort(function(a,b){return a.holding_profit-b.holding_profit;});
+  var W=500,H=Math.max(losses.length*36+30,120),barH=22,gap=8,padL=130;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  if(losses.length===0){
+    svg+='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" font-size="14" fill="var(--meta)">暂无亏损产品</text>';
+  } else {
+    var maxAbs=Math.max.apply(null,losses.map(function(r){return Math.abs(r.holding_profit);}));
+    losses.forEach(function(r,i){
+      var y=10+i*(barH+gap);
+      var w=(Math.abs(r.holding_profit)/maxAbs)*(W-padL-80);
+      svg+='<text x="'+(padL-6)+'" y="'+(y+barH/2+4)+'" text-anchor="end" font-size="11" fill="var(--fg)">'+r.product_name.substring(0,10)+'</text>';
+      svg+='<rect x="'+padL+'" y="'+y+'" width="'+w+'" height="'+barH+'" fill="var(--chart-4)" rx="3" opacity="0.8"/>';
+      svg+='<text x="'+(padL+w+6)+'" y="'+(y+barH/2+4)+'" font-size="11" fill="var(--loss)">-¥'+Math.abs(r.holding_profit).toLocaleString()+'</text>';
+    });
+  }
+  svg+='</svg>';
+  document.getElementById('chartTopLosses').innerHTML=svg;
+})();
+
+// ─── Blur toggle ────────────────────────────────────────
+function toggleBlur(){
+  var on=document.getElementById('blurCheck').checked;
+  document.querySelectorAll('.sensitive').forEach(function(el){
+    el.style.filter=on?'blur(6px)':'none';
+    el.style.userSelect=on?'none':'auto';
+  });
+}
+</script>
+</body>
+</html>

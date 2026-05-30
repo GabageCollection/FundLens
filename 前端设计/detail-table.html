@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>产品明细 — FundLens</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="js/sample-data.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html"><span class="brand-dot"></span> FundLens</a>
+  <ul class="nav-links">
+    <li><a href="overview.html">首页概览</a></li>
+    <li><a href="allocation.html">资产配置</a></li>
+    <li><a href="profit-analysis.html">收益分析</a></li>
+    <li><a href="detail-table.html" class="active">产品明细</a></li>
+    <li><a href="import.html">数据导入</a></li>
+    <li><a href="validation.html">数据校验</a></li>
+    <li><a href="settings.html">设置</a></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <select class="snapshot-select"><option>2026Q1 资产快照 (2026-03-31)</option></select>
+    <a href="overview.html" class="nav-item"><span class="nav-icon">&#127968;</span> 首页概览</a>
+    <a href="allocation.html" class="nav-item"><span class="nav-icon">&#128202;</span> 资产配置</a>
+    <a href="profit-analysis.html" class="nav-item"><span class="nav-icon">&#128200;</span> 收益分析</a>
+    <a href="detail-table.html" class="nav-item active"><span class="nav-icon">&#128203;</span> 产品明细</a>
+    <a href="import.html" class="nav-item"><span class="nav-icon">&#128229;</span> 数据导入</a>
+    <a href="validation.html" class="nav-item"><span class="nav-icon">&#128269;</span> 数据校验</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">&#9881;</span> 设置</a>
+    <div class="sidebar-footer">所有数据仅在本地处理<br>不上传至任何外部服务器</div>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-header">
+      <div class="row-between">
+        <div>
+          <h2>产品明细</h2>
+          <p class="subtitle">完整资产列表，支持筛选、搜索与排序</p>
+        </div>
+        <button class="btn" onclick="exportTable()">导出 CSV</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar" style="margin-bottom:var(--space-4);">
+      <select class="filter-select" id="filterPlatform" onchange="applyFilters()">
+        <option value="">全部平台</option>
+        <option>支付宝</option><option>同花顺</option>
+      </select>
+      <select class="filter-select" id="filterClass" onchange="applyFilters()">
+        <option value="">全部资产大类</option>
+        <option>现金类</option><option>固收类</option><option>固收增强类</option><option>权益类</option><option>跨境类</option>
+      </select>
+      <select class="filter-select" id="filterType" onchange="applyFilters()">
+        <option value="">全部产品类型</option>
+      </select>
+      <select class="filter-select" id="filterRegion" onchange="applyFilters()">
+        <option value="">全部市场区域</option>
+        <option>中国内地</option><option>美国</option><option>港股</option><option>全球</option>
+      </select>
+      <select class="filter-select" id="filterPurpose" onchange="applyFilters()">
+        <option value="">全部资金用途</option>
+        <option>活钱</option><option>稳健</option><option>长期</option><option>保障</option>
+      </select>
+      <select class="filter-select" id="filterProfit" onchange="applyFilters()">
+        <option value="">全部收益状态</option>
+        <option value="profit">盈利</option><option value="loss">亏损</option><option value="none">无收益数据</option>
+      </select>
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索产品名称或代码..." oninput="applyFilters()">
+      <span style="font-size:var(--text-sm);color:var(--meta);" id="resultCount"></span>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table" id="productTable">
+        <thead>
+          <tr>
+            <th data-sort="platform" onclick="sortBy('platform')">平台 <span class="sort-arrow">▾</span></th>
+            <th data-sort="asset_class" onclick="sortBy('asset_class')">资产大类 <span class="sort-arrow">▾</span></th>
+            <th data-sort="product_type" onclick="sortBy('product_type')">产品类型 <span class="sort-arrow">▾</span></th>
+            <th data-sort="market_region" onclick="sortBy('market_region')">市场区域 <span class="sort-arrow">▾</span></th>
+            <th data-sort="product_name" onclick="sortBy('product_name')">产品名称 <span class="sort-arrow">▾</span></th>
+            <th data-sort="product_code" onclick="sortBy('product_code')">代码 <span class="sort-arrow">▾</span></th>
+            <th class="num" data-sort="current_value" onclick="sortBy('current_value')">当前金额 <span class="sort-arrow">▾</span></th>
+            <th class="num" data-sort="cost_amount" onclick="sortBy('cost_amount')">持有成本 <span class="sort-arrow">▾</span></th>
+            <th class="num" data-sort="holding_profit" onclick="sortBy('holding_profit')">持有收益 <span class="sort-arrow">▾</span></th>
+            <th class="num" data-sort="holding_return" onclick="sortBy('holding_return')">收益率 <span class="sort-arrow">▾</span></th>
+            <th data-sort="usage_purpose" onclick="sortBy('usage_purpose')">资金用途 <span class="sort-arrow">▾</span></th>
+            <th data-sort="risk_level" onclick="sortBy('risk_level')">风险等级 <span class="sort-arrow">▾</span></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Populate product type filter
+(function(){
+  var types = [...new Set(SAMPLE_DATA.map(function(r){return r.product_type;}))];
+  var sel = document.getElementById('filterType');
+  types.forEach(function(t){ var o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o); });
+})();
+
+var sortField = null;
+var sortAsc = true;
+
+function fmt(n, isPct){
+  if(n==null) return '—';
+  if(isPct) return (n>=0?'+':'')+(n*100).toFixed(2)+'%';
+  return '¥'+n.toLocaleString();
+}
+
+function profitClass(v){
+  if(v==null) return '';
+  return v>0?'profit-cell':v<0?'loss-cell':'';
+}
+
+function renderTable(data){
+  var tbody = document.querySelector('#productTable tbody');
+  tbody.innerHTML = '';
+  data.forEach(function(r){
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>'+r.platform+'</td>'+
+      '<td><span class="badge badge-muted">'+r.asset_class+'</span></td>'+
+      '<td>'+r.product_type+'</td>'+
+      '<td>'+r.market_region+'</td>'+
+      '<td>'+r.product_name+'</td>'+
+      '<td style="font-family:var(--font-mono);font-size:12px;">'+(r.product_code||'—')+'</td>'+
+      '<td class="num">'+fmt(r.current_value)+'</td>'+
+      '<td class="num">'+(r.cost_amount!=null?fmt(r.cost_amount):'—')+'</td>'+
+      '<td class="num '+profitClass(r.holding_profit)+'">'+(r.holding_profit!=null?(r.holding_profit>=0?'+':'')+fmt(Math.abs(r.holding_profit)):'—')+'</td>'+
+      '<td class="num '+profitClass(r.holding_return)+'">'+fmt(r.holding_return, true)+'</td>'+
+      '<td>'+r.usage_purpose+'</td>'+
+      '<td>'+r.risk_level+'</td>';
+    tbody.appendChild(tr);
+  });
+  document.getElementById('resultCount').textContent = '共 '+data.length+' 条';
+}
+
+function applyFilters(){
+  var fp = document.getElementById('filterPlatform').value;
+  var fc = document.getElementById('filterClass').value;
+  var ft = document.getElementById('filterType').value;
+  var fr = document.getElementById('filterRegion').value;
+  var fu = document.getElementById('filterPurpose').value;
+  var fpr = document.getElementById('filterProfit').value;
+  var q = document.getElementById('searchInput').value.toLowerCase();
+
+  var data = SAMPLE_DATA.slice();
+  if(fp) data = data.filter(function(r){return r.platform===fp;});
+  if(fc) data = data.filter(function(r){return r.asset_class===fc;});
+  if(ft) data = data.filter(function(r){return r.product_type===ft;});
+  if(fr) data = data.filter(function(r){return r.market_region===fr;});
+  if(fu) data = data.filter(function(r){return r.usage_purpose===fu;});
+  if(fpr==='profit') data = data.filter(function(r){return r.holding_profit!=null && r.holding_profit>0;});
+  if(fpr==='loss') data = data.filter(function(r){return r.holding_profit!=null && r.holding_profit<0;});
+  if(fpr==='none') data = data.filter(function(r){return r.holding_profit==null;});
+  if(q) data = data.filter(function(r){return r.product_name.toLowerCase().indexOf(q)>=0 || (r.product_code||'').indexOf(q)>=0;});
+
+  if(sortField){
+    data.sort(function(a,b){
+      var va=a[sortField], vb=b[sortField];
+      if(va==null) return 1; if(vb==null) return -1;
+      if(typeof va==='string') va=va.toLowerCase(),vb=vb.toLowerCase();
+      return sortAsc?(va>vb?1:va<vb?-1:0):(va<vb?1:va>vb?-1:0);
+    });
+  }
+  renderTable(data);
+}
+
+function sortBy(field){
+  if(sortField===field){ sortAsc=!sortAsc; }
+  else { sortField=field; sortAsc=true; }
+  document.querySelectorAll('#productTable th').forEach(function(th){th.classList.remove('sorted');});
+  document.querySelector('#productTable th[data-sort="'+field+'"]').classList.add('sorted');
+  applyFilters();
+}
+
+function exportTable(){
+  var rows = document.querySelectorAll('#productTable tbody tr');
+  var csv = '平台,资产大类,产品类型,市场区域,产品名称,代码,当前金额,持有成本,持有收益,收益率,资金用途,风险等级\n';
+  rows.forEach(function(tr){
+    var cells = tr.querySelectorAll('td');
+    var row = [];
+    cells.forEach(function(td){ row.push('"'+td.textContent.replace(/"/g,'""')+'"'); });
+    csv += row.join(',') + '\n';
+  });
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'FundLens_products_2026Q1.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// Initial render
+applyFilters();
+</script>
+</body>
+</html>

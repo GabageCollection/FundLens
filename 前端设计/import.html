@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>数据导入 — FundLens</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="js/sample-data.js"></script>
+  <style>
+    .import-steps { display: flex; gap: var(--space-2); margin-bottom: var(--space-8); }
+    .import-step {
+      flex: 1;
+      text-align: center;
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      color: var(--meta);
+      background: var(--border);
+    }
+    .import-step.active { background: var(--accent); color: var(--accent-on); }
+    .import-step.done { background: var(--border-soft); color: var(--fg); }
+
+    .preview-table-wrap {
+      max-height: 400px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html"><span class="brand-dot"></span> FundLens</a>
+  <ul class="nav-links">
+    <li><a href="overview.html">首页概览</a></li>
+    <li><a href="allocation.html">资产配置</a></li>
+    <li><a href="profit-analysis.html">收益分析</a></li>
+    <li><a href="detail-table.html">产品明细</a></li>
+    <li><a href="import.html" class="active">数据导入</a></li>
+    <li><a href="validation.html">数据校验</a></li>
+    <li><a href="settings.html">设置</a></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <select class="snapshot-select" id="snapshotSelect">
+      <option>2026Q1 资产快照 (2026-03-31)</option>
+      <option disabled>— 暂无其他快照 —</option>
+    </select>
+    <a href="overview.html" class="nav-item"><span class="nav-icon">&#127968;</span> 首页概览</a>
+    <a href="allocation.html" class="nav-item"><span class="nav-icon">&#128202;</span> 资产配置</a>
+    <a href="profit-analysis.html" class="nav-item"><span class="nav-icon">&#128200;</span> 收益分析</a>
+    <a href="detail-table.html" class="nav-item"><span class="nav-icon">&#128203;</span> 产品明细</a>
+    <a href="import.html" class="nav-item active"><span class="nav-icon">&#128229;</span> 数据导入</a>
+    <a href="validation.html" class="nav-item"><span class="nav-icon">&#128269;</span> 数据校验</a>
+    <a href="settings.html" class="nav-item"><span class="nav-icon">&#9881;</span> 设置</a>
+    <div class="sidebar-footer">
+      所有数据仅在本地处理<br>不上传至任何外部服务器
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-header">
+      <h2>数据导入</h2>
+      <p class="subtitle">上传 Excel 资产快照，系统自动清洗、校验并生成分析看板</p>
+    </div>
+
+    <!-- Steps -->
+    <div class="import-steps">
+      <div class="import-step done">1. 上传 Excel</div>
+      <div class="import-step active">2. 预览与校验</div>
+      <div class="import-step">3. 导入确认</div>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <div class="row-between" style="margin-bottom:var(--space-4);">
+        <h4 style="margin:0;">上传资产快照</h4>
+        <span class="badge badge-success">已加载示例数据</span>
+      </div>
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">&#128229;</div>
+        <h3>拖拽 Excel 文件到此处，或点击上传</h3>
+        <p>支持 .xlsx 格式，需包含 asset_snapshot Sheet。也可下载标准模板进行填写。</p>
+        <div style="margin-top:var(--space-4);">
+          <button class="btn" onclick="handleDownloadTemplate()">下载标准模板</button>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx" style="display:none;" onchange="handleFileSelect(event)" />
+      <script>
+        document.getElementById('uploadZone').addEventListener('click', function() {
+          document.getElementById('fileInput').click();
+        });
+        document.getElementById('uploadZone').addEventListener('dragover', function(e) {
+          e.preventDefault();
+          this.classList.add('drag-over');
+        });
+        document.getElementById('uploadZone').addEventListener('dragleave', function() {
+          this.classList.remove('drag-over');
+        });
+        document.getElementById('uploadZone').addEventListener('drop', function(e) {
+          e.preventDefault();
+          this.classList.remove('drag-over');
+          showToast('示例模式：文件上传功能将在完整版中可用');
+        });
+        function handleFileSelect(e) {
+          showToast('示例模式：已加载设计文档中的 8 条示例数据');
+        }
+        function handleDownloadTemplate() {
+          showToast('模板下载功能将在完整版中可用');
+        }
+        function showToast(msg) {
+          var t = document.createElement('div');
+          t.className = 'toast';
+          t.textContent = msg;
+          document.body.appendChild(t);
+          setTimeout(function(){ t.remove(); }, 3000);
+        }
+      </script>
+    </div>
+
+    <!-- Import summary -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <h4 style="margin-bottom:var(--space-4);">导入摘要</h4>
+      <div class="validation-summary">
+        <div class="validation-stat v-fix">
+          <div class="stat-num">8</div><div class="stat-label">成功读取</div>
+        </div>
+        <div class="validation-stat v-error">
+          <div class="stat-num">0</div><div class="stat-label">阻断错误</div>
+        </div>
+        <div class="validation-stat v-warn">
+          <div class="stat-num">3</div><div class="stat-label">警告提示</div>
+        </div>
+        <div class="validation-stat v-fix">
+          <div class="stat-num">6</div><div class="stat-label">自动修复</div>
+        </div>
+      </div>
+      <div style="margin-top:var(--space-4);display:flex;gap:var(--space-6);flex-wrap:wrap;font-size:var(--text-sm);color:var(--muted);">
+        <span>收益统计覆盖率: <strong>86.5%</strong></span>
+        <span>费用统计覆盖率: <strong>87.5%</strong></span>
+        <span>基准配置: <strong>已配置 (沪深300)</strong></span>
+        <span>目标配置: <strong>已设定</strong></span>
+      </div>
+    </div>
+
+    <!-- Data preview -->
+    <div class="card" style="margin-bottom:var(--space-6);">
+      <div class="row-between" style="margin-bottom:var(--space-4);">
+        <h4 style="margin:0;">数据预览</h4>
+        <span style="font-size:var(--text-sm);color:var(--meta);">共 8 条记录</span>
+      </div>
+      <div class="preview-table-wrap">
+        <table class="data-table" id="previewTable">
+          <thead>
+            <tr>
+              <th>平台</th><th>资产大类</th><th>产品类型</th><th>产品名称</th><th class="num">当前金额</th><th class="num">持有成本</th><th class="num">持有收益</th><th class="num">收益率</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:var(--space-3);">
+      <a href="overview.html" class="btn btn-primary btn-lg">确认导入，进入看板</a>
+      <a href="validation.html" class="btn btn-lg">查看校验详情</a>
+    </div>
+
+    <script>
+      (function() {
+        var tbody = document.querySelector('#previewTable tbody');
+        SAMPLE_DATA.forEach(function(row) {
+          var tr = document.createElement('tr');
+          var profit = row.holding_profit;
+          var ret = row.holding_return;
+          tr.innerHTML =
+            '<td>' + row.platform + '</td>' +
+            '<td>' + row.asset_class + '</td>' +
+            '<td>' + row.product_type + '</td>' +
+            '<td>' + row.product_name + '</td>' +
+            '<td class="num">¥' + row.current_value.toLocaleString() + '</td>' +
+            '<td class="num">' + (row.cost_amount ? '¥' + row.cost_amount.toLocaleString() : '—') + '</td>' +
+            '<td class="num ' + (profit > 0 ? 'profit-cell' : profit < 0 ? 'loss-cell' : '') + '">' + (profit != null ? (profit >= 0 ? '+' : '') + '¥' + Math.abs(profit).toLocaleString() : '—') + '</td>' +
+            '<td class="num ' + (ret > 0 ? 'profit-cell' : ret < 0 ? 'loss-cell' : '') + '">' + (ret != null ? (ret >= 0 ? '+' : '') + (ret * 100).toFixed(2) + '%' : '—') + '</td>';
+          tbody.appendChild(tr);
+        });
+      })();
+    </script>
+
+  </main>
+</div>
+</body>
+</html>

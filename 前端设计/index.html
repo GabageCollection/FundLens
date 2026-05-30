@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FundLens — 应用导航</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <style>
+    .launcher {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .launcher-header {
+      padding: var(--space-8) 0 var(--space-4);
+      text-align: center;
+    }
+    .launcher-header h1 {
+      font-size: clamp(32px, 5vw, var(--text-4xl));
+      margin-bottom: var(--space-2);
+    }
+    .launcher-header .sub {
+      color: var(--muted);
+      font-size: var(--text-lg);
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-6);
+      padding: var(--space-8) 0;
+    }
+
+    .screen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-6);
+      text-decoration: none;
+      transition: all var(--motion-base) var(--ease-standard);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .screen-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--elev-raised);
+      transform: translateY(-2px);
+    }
+    .screen-card .card-icon {
+      font-size: 32px;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+    }
+    .screen-card h4 {
+      font-size: var(--text-lg);
+      color: var(--fg);
+    }
+    .screen-card p {
+      font-size: var(--text-sm);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .screen-card .card-badge {
+      align-self: flex-start;
+    }
+
+    .launcher-footer {
+      margin-top: auto;
+      padding: var(--space-6) 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      font-size: var(--text-xs);
+      color: var(--meta);
+    }
+
+    .meta-bar {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: var(--space-4) 0;
+    }
+    .meta-chip {
+      font-size: var(--text-xs);
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+    }
+  </style>
+</head>
+<body>
+<div class="launcher">
+
+  <nav class="navbar">
+    <a class="nav-brand" href="landing.html">
+      <span class="brand-dot"></span> FundLens
+    </a>
+    <ul class="nav-links">
+      <li><a href="landing.html">产品页</a></li>
+      <li><a href="overview.html">首页概览</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <header class="launcher-header">
+      <h1>FundLens</h1>
+      <p class="sub">个人资产快照分析系统 — 选择要查看的页面</p>
+      <div class="meta-bar">
+        <span class="meta-chip">快照: 2026Q1</span>
+        <span class="meta-chip">8 个产品</span>
+        <span class="meta-chip">2 个平台</span>
+        <span class="meta-chip">数据已加载</span>
+      </div>
+    </header>
+
+    <div class="screen-grid">
+      <a href="overview.html" class="screen-card">
+        <div class="card-icon">&#127968;</div>
+        <h4>首页概览</h4>
+        <p>总资产、总收益、收益率、覆盖率等核心 KPI 卡片，平台/资产大类分布图，持仓 Top 10，收益瀑布图</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="allocation.html" class="screen-card">
+        <div class="card-icon">&#128202;</div>
+        <h4>资产配置</h4>
+        <p>多维度资产结构分析：平台、大类、产品类型、市场区域、资金用途，含当前 vs 目标配置对比</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="profit-analysis.html" class="screen-card">
+        <div class="card-icon">&#128200;</div>
+        <h4>收益分析</h4>
+        <p>平台/大类收益对比、收益贡献瀑布图、基准对比图、盈利/亏损 Top 10、收益率排行</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="detail-table.html" class="screen-card">
+        <div class="card-icon">&#128203;</div>
+        <h4>产品明细</h4>
+        <p>完整资产表格，多维度筛选、模糊搜索、多字段排序，支持导出为 Excel/CSV</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="import.html" class="screen-card">
+        <div class="card-icon">&#128229;</div>
+        <h4>数据导入</h4>
+        <p>上传 Excel 资产快照，自动清洗数据、计算收益、生成校验报告，确认后进入分析看板</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="validation.html" class="screen-card">
+        <div class="card-icon">&#128269;</div>
+        <h4>数据校验</h4>
+        <p>三级分层校验结果：阻断错误、警告提示、自动修复，含详细规则说明和具体行号</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+
+      <a href="settings.html" class="screen-card">
+        <div class="card-icon">&#9881;</div>
+        <h4>设置</h4>
+        <p>基准指数配置、目标配置比例设定、红绿颜色偏好切换、模糊模式开关</p>
+        <span class="badge badge-muted">P0</span>
+      </a>
+    </div>
+  </div>
+
+  <footer class="launcher-footer">
+    <div class="container">
+      FundLens v1.0 · 所有数据仅在本地处理，不上传至任何外部服务器
+    </div>
+  </footer>
+</div>
+</body>
+</html>

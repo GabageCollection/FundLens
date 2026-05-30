@@ -1,0 +1,353 @@
+/* ============================================================
+   FundLens Custom Styles
+   Visual baseline: 前端设计/css/components.css + tokens.css
+   ============================================================ */
+
+/* ─── Design Tokens (from tokens.css) ───────────────────── */
+:root {
+  --bg: #f5f4ed;
+  --surface: #faf9f5;
+  --surface-warm: #e8e6dc;
+  --fg: #141413;
+  --fg-2: #3d3d3a;
+  --muted: #5e5d59;
+  --meta: #87867f;
+  --border: #f0eee6;
+  --border-soft: #e8e6dc;
+  --accent: #c96442;
+  --accent-hover: #b55a3b;
+  --accent-active: #a45034;
+  --success: #17a34a;
+  --warn: #ff9800;
+  --danger: #b53333;
+  --profit: #c43d3d;
+  --loss: #3d8c40;
+  --profit-bg: rgba(196, 61, 61, 0.08);
+  --loss-bg: rgba(61, 140, 64, 0.08);
+  --warn-bg: rgba(255, 152, 0, 0.1);
+  --warn-border: #ff9800;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: rgba(0,0,0,0.05) 0px 4px 24px;
+  --font-display: "Georgia", "Times New Roman", serif;
+  --font-body: "Arial", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", monospace;
+}
+
+/* ─── Global overrides ──────────────────────────────────── */
+.stApp {
+  background-color: var(--bg);
+}
+
+/* ─── KPI Cards ─────────────────────────────────────────── */
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  box-shadow: var(--elev-flat);
+}
+
+.kpi-card.warn-card {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--meta);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.2;
+}
+
+.kpi-value.profit {
+  color: var(--profit);
+}
+
+.kpi-value.loss {
+  color: var(--loss);
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ─── Chart Cards ───────────────────────────────────────── */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  box-shadow: var(--elev-flat);
+}
+
+.chart-container {
+  width: 100%;
+}
+
+/* ─── Data Table ────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--meta);
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+}
+
+.data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.data-table tr:hover td {
+  background: var(--surface-warm);
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.profit-cell {
+  color: var(--profit);
+}
+
+.loss-cell {
+  color: var(--loss);
+}
+
+/* ─── Filters Bar ───────────────────────────────────────── */
+.filters-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+/* ─── Badges ────────────────────────────────────────────── */
+.badge-error {
+  background: rgba(181, 51, 51, 0.1);
+  color: var(--danger);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-warn {
+  background: rgba(255, 152, 0, 0.1);
+  color: var(--warn);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: rgba(23, 163, 74, 0.1);
+  color: var(--success);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-muted {
+  background: rgba(135, 134, 127, 0.1);
+  color: var(--meta);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Upload Zone ───────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent);
+  background: var(--surface-warm);
+}
+
+/* ─── Validation Summary ────────────────────────────────── */
+.validation-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.validation-stat {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  padding: 16px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.validation-stat.v-error {
+  background: rgba(181, 51, 51, 0.08);
+}
+
+.validation-stat.v-warn {
+  background: rgba(255, 152, 0, 0.08);
+}
+
+.validation-stat.v-fix {
+  background: rgba(23, 163, 74, 0.08);
+}
+
+.validation-stat .stat-num {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.validation-stat .stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ─── Step Indicator ────────────────────────────────────── */
+.import-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.import-step {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--meta);
+  background: var(--border);
+}
+
+.import-step.active {
+  background: var(--accent);
+  color: #faf9f5;
+}
+
+.import-step.done {
+  background: var(--border-soft);
+  color: var(--fg);
+}
+
+/* ─── Empty State ───────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--meta);
+}
+
+.empty-state h3 {
+  font-family: var(--font-display);
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* ─── Buttons ───────────────────────────────────────────── */
+.btn-primary {
+  background: var(--accent) !important;
+  color: #faf9f5 !important;
+  border: none !important;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover) !important;
+}
+
+/* ─── Sidebar ───────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-footer {
+  font-size: 11px;
+  color: var(--meta);
+  text-align: center;
+  padding: 16px;
+  border-top: 1px solid var(--border-soft);
+  margin-top: auto;
+}
+
+/* ─── Target Bar ─────────────────────────────────────────── */
+.target-bar-row {
+  margin-bottom: 12px;
+}
+
+.target-bar-track {
+  background: var(--border-soft);
+  border-radius: 4px;
+  height: 8px;
+  position: relative;
+}
+
+.target-bar-marker {
+  background: var(--accent);
+  border-radius: 4px;
+  height: 8px;
+  transition: width 0.3s;
+}
+
+/* ─── Tabs ──────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
