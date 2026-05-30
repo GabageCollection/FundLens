@@ -137,3 +137,37 @@ def plot_dual_bar(labels: list[str], values1: list[float], values2: list[float],
     ])
     fig.update_layout(title=title, title_font_size=16, barmode="group")
     return apply_fundlens_theme(fig)
+
+
+def plot_treemap(labels: list[str], values: list[float], parents: list[str] = None,
+                 title: str = "") -> go.Figure:
+    """树图 — 用于资产层级展示。parents 为空时所有节点为顶层。"""
+    if not labels or not values or sum(values) == 0:
+        return _empty_figure()
+    if parents is None:
+        parents = [""] * len(labels)
+    df = pd.DataFrame({"label": labels, "value": values, "parent": parents})
+    fig = px.treemap(df, path=["parent", "label"], values="value", title=title,
+                     color_discrete_sequence=CHART_COLORS)
+    return apply_fundlens_theme(fig)
+
+
+def plot_grouped_bar(categories: list[str], groups: list[dict], title: str) -> go.Figure:
+    """分组柱状图 — 适合多维度收益对比（如平台收益对比、大类收益对比）。
+
+    参数:
+        categories: X 轴类别标签列表（如 ["平台A", "平台B"]，每个 group 应有同名 key）
+        groups: 每个 group 为 dict {name: str, values: list[float], color: str}
+        title: 图表标题
+    """
+    if not categories or not groups:
+        return _empty_figure()
+    fig = go.Figure()
+    for g in groups:
+        fig.add_trace(go.Bar(
+            name=g["name"], x=categories, y=g["values"],
+            marker_color=g.get("color", CHART_COLORS[0]),
+            text=[f"¥{v:,.0f}" for v in g["values"]], textposition="outside",
+        ))
+    fig.update_layout(title=title, title_font_size=16, barmode="group")
+    return apply_fundlens_theme(fig)
