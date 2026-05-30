@@ -6,7 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 from utils.constants import KEY_BENCHMARK_CONFIG, KEY_BLUR_MODE, KEY_CURRENT_SNAPSHOT, KEY_SNAPSHOT_DATA, KEY_TARGET_ALLOCATION
-from utils.design_tokens import COLOR_META
+from utils.design_tokens import COLOR_ACCENT, COLOR_META
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,12 +37,12 @@ def _render_sidebar() -> None:
     from utils.file_manager import get_snapshot_list
 
     st.sidebar.markdown(
-        '<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#c96442;'
+        f'<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:{COLOR_ACCENT};'
         'margin-bottom:8px;">FundLens</div>',
         unsafe_allow_html=True,
     )
     st.sidebar.markdown(
-        '<div style="font-size:12px;color:#87867f;margin-bottom:16px;">多平台资产快照分析</div>',
+        f'<div style="font-size:12px;color:{COLOR_META};margin-bottom:16px;">多平台资产快照分析</div>',
         unsafe_allow_html=True,
     )
 

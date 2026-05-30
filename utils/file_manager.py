@@ -23,13 +23,19 @@ def extract_snapshot_info(filepath: Path) -> dict[str, str | None]:
     """Read statistic_date from an Excel snapshot and derive a display name.
 
     Returns dict with keys: name (display label), date (YYYY-MM-DD string or None).
+    Handles both Chinese (统计日期) and English (statistic_date) column headers.
     """
     try:
         df = pd.read_excel(filepath, sheet_name="asset_snapshot", nrows=2)
-        if "statistic_date" in df.columns and len(df) > 0:
-            date_val = df.iloc[0]["statistic_date"]
+        date_col = None
+        if "statistic_date" in df.columns:
+            date_col = "statistic_date"
+        elif "统计日期" in df.columns:
+            date_col = "统计日期"
+        if date_col and len(df) > 0:
+            date_val = df.iloc[0][date_col]
             date_str = str(pd.Timestamp(date_val).date()) if pd.notna(date_val) else None
-            name = f"{Path(filepath).stem}"
+            name = Path(filepath).stem
             if date_str:
                 name = f"{date_str} {name}"
             return {"name": name, "date": date_str}
@@ -39,20 +45,18 @@ def extract_snapshot_info(filepath: Path) -> dict[str, str | None]:
 
 
 def save_uploaded_file(uploaded_file) -> Path:
-    """Save a Streamlit UploadedFile to data/uploaded/ and return the saved path."""
+    """Save a Streamlit UploadedFile to data/uploaded/ and return the saved path.
+
+    The filename is sanitized to prevent path traversal via '..' or absolute paths.
+    """
     UPLOADED_DIR.mkdir(parents=True, exist_ok=True)
-    dest = UPLOADED_DIR / uploaded_file.name
+    safe_name = Path(uploaded_file.name).name  # strips directory components
+    dest = UPLOADED_DIR / safe_name
     with open(dest, "wb") as f:
         f.write(uploaded_file.getbuffer())
     logger.info("Saved uploaded file to %s", dest)
     return dest
 
-
-def load_snapshot(filepath: Path) -> pd.DataFrame:
-    """Read the asset_snapshot sheet from an Excel file and return a DataFrame."""
-    df = pd.read_excel(filepath, sheet_name="asset_snapshot")
-    logger.info("Loaded snapshot %s: %d rows", filepath, len(df))
-    return df
 
 
 def get_snapshot_list() -> list[dict]:

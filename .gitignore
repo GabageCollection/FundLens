@@ -21,3 +21,6 @@ Thumbs.db
 # Env
 .env
 .env.local
+chrome-win64.zip
+data/uploaded/
+tests/screenshots/

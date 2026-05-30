@@ -6,16 +6,12 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 
+from utils.data_loader import COLUMN_MAP
+
 logger = logging.getLogger(__name__)
 
-# Standard columns with Chinese headers
-TEMPLATE_COLUMNS = [
-    "统计日期", "平台", "账户名称", "资产大类", "产品类型", "市场区域",
-    "产品名称", "产品代码", "币种",
-    "当前金额", "持有成本", "持有份额", "当前价格", "成本价格",
-    "风险等级", "资金用途", "年化管理费率", "底层权益占比",
-    "重仓行业（前3）", "流动性", "备注",
-]
+# Template columns derived from authoritative COLUMN_MAP (keeps ordering)
+TEMPLATE_COLUMNS = list(COLUMN_MAP.keys())
 
 # Example data row for guidance
 EXAMPLE_ROW = [

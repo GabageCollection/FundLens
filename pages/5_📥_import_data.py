@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.data_loader import read_asset_snapshot
+from utils.design_tokens import COLOR_META, COLOR_MUTED
 from utils.file_manager import get_snapshot_list, save_uploaded_file
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ def _format_profit(val) -> str:
     if pd.isna(val) or val is None:
         return "—"
     val = float(val)
-    sign = "+" if val >= 0 else ""
+    sign = "+" if val >= 0 else "-"
     return f"{sign}¥{abs(val):,.2f}"
 
 
@@ -52,7 +53,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p style="color:#87867f;">上传 Excel 资产快照，系统自动清洗、校验并生成分析看板</p>',
+    f'<p style="color:{COLOR_META};">上传 Excel 资产快照，系统自动清洗、校验并生成分析看板</p>',
     unsafe_allow_html=True,
 )
 
@@ -107,7 +108,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 # ─── Process uploaded file ──────────────────────────────────
 if uploaded_file is not None and (
-    "import_uploaded_file" not in st.session_state
+    not st.session_state.get("import_uploaded_file")
     or st.session_state.get("import_uploaded_name") != uploaded_file.name
 ):
     try:
@@ -120,7 +121,7 @@ if uploaded_file is not None and (
         st.error(f"文件保存失败: {e}")
 
 # ─── Preview & summary (shown after upload) ─────────────────
-if "import_uploaded_file" in st.session_state:
+if st.session_state.get("import_uploaded_file"):
     filepath = st.session_state["import_uploaded_file"]
 
     try:
@@ -135,15 +136,21 @@ if "import_uploaded_file" in st.session_state:
         st.markdown("#### 导入摘要")
 
         total_rows = len(df)
-        # Coverage calculations
-        has_cost = df["cost_amount"].notna() & (df["cost_amount"] > 0)
-        profit_coverage = (
-            df.loc[has_cost, "current_value"].sum() / df["current_value"].sum() * 100
-            if df["current_value"].sum() > 0
-            else 0
-        )
-        has_fee = df["annual_fee_rate"].notna()
-        fee_coverage = has_fee.sum() / total_rows * 100 if total_rows > 0 else 0
+        # Coverage calculations (columns may be missing)
+        if "cost_amount" in df.columns:
+            has_cost = df["cost_amount"].notna() & (df["cost_amount"] > 0)
+            profit_coverage = (
+                df.loc[has_cost, "current_value"].sum() / df["current_value"].sum() * 100
+                if df["current_value"].sum() > 0
+                else 0
+            )
+        else:
+            profit_coverage = 0.0
+        if "annual_fee_rate" in df.columns:
+            has_fee = df["annual_fee_rate"].notna()
+            fee_coverage = has_fee.sum() / total_rows * 100 if total_rows > 0 else 0
+        else:
+            fee_coverage = 0.0
 
         summary_cols = st.columns(4)
         summary_cols[0].markdown(
@@ -152,24 +159,24 @@ if "import_uploaded_file" in st.session_state:
             unsafe_allow_html=True,
         )
         summary_cols[1].markdown(
-            '<div class="validation-stat v-error"><div class="stat-num">—</div>'
-            '<div class="stat-label">阻断错误</div></div>',
+            '<div class="validation-stat v-error"><div class="stat-num" style="font-size:14px;">'
+            '待校验</div><div class="stat-label">阻断错误</div></div>',
             unsafe_allow_html=True,
         )
         summary_cols[2].markdown(
-            '<div class="validation-stat v-warn"><div class="stat-num">—</div>'
-            '<div class="stat-label">警告提示</div></div>',
+            '<div class="validation-stat v-warn"><div class="stat-num" style="font-size:14px;">'
+            '待校验</div><div class="stat-label">警告提示</div></div>',
             unsafe_allow_html=True,
         )
         summary_cols[3].markdown(
-            '<div class="validation-stat v-fix"><div class="stat-num">—</div>'
-            '<div class="stat-label">自动修复</div></div>',
+            '<div class="validation-stat v-fix"><div class="stat-num" style="font-size:14px;">'
+            '待校验</div><div class="stat-label">自动修复</div></div>',
             unsafe_allow_html=True,
         )
 
         # Coverage info row
         coverage_html = (
-            f'<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14px;color:#5e5d59;margin-top:16px;">'
+            f'<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14px;color:{COLOR_MUTED};margin-top:16px;">'
             f'<span>收益统计覆盖率: <strong>{profit_coverage:.1f}%</strong></span>'
             f'<span>费用统计覆盖率: <strong>{fee_coverage:.1f}%</strong></span>'
             f'<span>基准配置: <strong>待配置</strong></span>'
@@ -184,7 +191,7 @@ if "import_uploaded_file" in st.session_state:
         st.markdown(
             f'<div style="display:flex;justify-content:space-between;align-items:center;'
             f'margin-bottom:16px;"><h4 style="margin:0;">数据预览</h4>'
-            f'<span style="font-size:14px;color:#87867f;">共 {total_rows} 条记录</span></div>',
+            f'<span style="font-size:14px;color:{COLOR_META};">共 {total_rows} 条记录</span></div>',
             unsafe_allow_html=True,
         )
 
@@ -251,15 +258,31 @@ if "import_uploaded_file" in st.session_state:
         # ─── Action buttons ───
         col1, col2, _ = st.columns([1, 1, 4])
         if col1.button("✅ 确认导入，进入看板", type="primary", use_container_width=True):
-            # Set as current snapshot
             from utils.constants import KEY_CURRENT_SNAPSHOT, KEY_SNAPSHOT_DATA
+            from utils.data_cleaner import clean_dataframe
+            from utils.validator import generate_validation_report
 
-            st.session_state[KEY_CURRENT_SNAPSHOT] = filepath
-            st.session_state[KEY_SNAPSHOT_DATA] = df.drop(columns=["_holding_profit", "_holding_return"], errors="ignore")
-            st.session_state["import_uploaded_file"] = None
-            st.session_state["import_step"] = 0
-            st.success("导入成功！请前往首页概览查看分析看板。")
-            st.rerun()
+            cleaned_df = clean_dataframe(df)
+            report = generate_validation_report(cleaned_df)
+
+            if report["summary"]["error_count"] > 0:
+                st.error(f"❌ 存在 {report['summary']['error_count']} 个阻断错误，请先修复后重新导入。")
+                st.markdown(f"发现 {report['summary']['warning_count']} 个警告、{report['summary']['fix_count']} 个自动修复。")
+                st.info("👉 请前往 [数据校验](/validation) 页面查看详情")
+            else:
+                st.session_state[KEY_CURRENT_SNAPSHOT] = filepath
+                st.session_state[KEY_SNAPSHOT_DATA] = cleaned_df.drop(
+                    columns=["_holding_profit", "_holding_return"], errors="ignore"
+                )
+                st.session_state.pop("import_uploaded_file", None)
+                st.session_state.pop("import_uploaded_name", None)
+                st.session_state["import_step"] = 0
+                st.success(
+                    f"✅ 导入成功！共 {report['summary']['total_rows']} 条记录，"
+                    f"{report['summary']['warning_count']} 个警告，"
+                    f"{report['summary']['fix_count']} 个自动修复"
+                )
+                st.rerun()
 
         if col2.button("🔍 查看校验详情", use_container_width=True):
             st.switch_page("pages/6_🔍_validation.py")
