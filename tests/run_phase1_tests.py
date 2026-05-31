@@ -66,9 +66,9 @@ def run_tests() -> None:
         # ──────────────────────────────────────────────
         # Section 2: Import Data Page
         # ──────────────────────────────────────────────
-        print("\n=== 2. Import Page (5_📥_import_data.py) ===")
+        print("\n=== 2. Import Page (5_📥_数据导入.py) ===")
 
-        page.goto(f"{BASE_URL}/import_data")
+        page.goto(f"{BASE_URL}/数据导入")
         page.wait_for_load_state("networkidle", timeout=15000)
         page.wait_for_timeout(3000)
 

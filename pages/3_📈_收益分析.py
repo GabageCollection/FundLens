@@ -101,7 +101,7 @@ if bm_return is not None:
     st.markdown("### 基准对比")
     fig = plot_dual_bar(
         ["投资组合"], [total_return], [bm_return],
-        f"组合收益 vs {benchmark_config['name']}",
+        f"组合收益对比 {benchmark_config['name']}",
         name1="投资组合", name2=benchmark_config.get("name", "基准"),
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -186,26 +186,26 @@ st.markdown("---")
 profit_col, loss_col = st.columns(2)
 
 with profit_col:
-    st.markdown("### 产品盈利 Top 10")
+    st.markdown("### 产品盈利前十")
     top_profit = calc_top10_profit(df)
     if not top_profit.empty:
         fig = plot_horizontal_bar(
             top_profit["product_name"].tolist(),
             top_profit["holding_profit"].tolist(),
-            "盈利 Top 10", COLOR_PROFIT,
+            "盈利 前十", COLOR_PROFIT,
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("无盈利产品")
 
 with loss_col:
-    st.markdown("### 产品亏损 Top 10")
+    st.markdown("### 产品亏损 前十")
     top_loss = calc_top10_loss(df)
     if not top_loss.empty:
         fig = plot_horizontal_bar(
             top_loss["product_name"].tolist(),
             [abs(v) for v in top_loss["holding_profit"].tolist()],
-            "亏损 Top 10", COLOR_LOSS,
+            "亏损 前十", COLOR_LOSS,
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -221,7 +221,7 @@ if "holding_return" in df.columns:
     df_ret = df[mask].copy()
 
     with ret_col1:
-        st.markdown("### 收益率 Top 10")
+        st.markdown("### 收益率 前十")
         top_ret = df_ret.nlargest(10, "holding_return")[["product_name", "holding_return"]]
         if not top_ret.empty:
             top_ret["收益率"] = top_ret["holding_return"].apply(lambda x: f"{x*100:+.2f}%")
@@ -230,7 +230,7 @@ if "holding_return" in df.columns:
             st.info("无数据")
 
     with ret_col2:
-        st.markdown("### 亏损率 Top 10")
+        st.markdown("### 亏损率 前十")
         bottom_ret = df_ret.nsmallest(10, "holding_return")[["product_name", "holding_return"]]
         if not bottom_ret.empty:
             bottom_ret["收益率"] = bottom_ret["holding_return"].apply(lambda x: f"{x*100:+.2f}%")
