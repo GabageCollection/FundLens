@@ -351,3 +351,34 @@ section[data-testid="stSidebar"] {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
+
+/* ─── Streamlit 内置 UI 中文化 ───────────────────────────── */
+/* 隐藏 Deploy 按钮 */
+header [data-testid="stBaseButton-header"] {
+  display: none !important;
+}
+
+/* 汉堡菜单项中文翻译（使用 visibility 方案绕过 emotion CSS 优先级问题） */
+[data-testid="stMainMenuItem-rerun"]       span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-autoRerun"]   span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-clearCache"]  span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-print"]       span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-recordScreen"] span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-settings"]    span[data-testid="stMainMenuItemLabel"],
+[data-testid="stMainMenuItem-about"]       span[data-testid="stMainMenuItemLabel"] {
+  visibility: hidden;
+  position: relative;
+}
+/* 中文覆盖: 用绝对定位的 after 伪元素显示中文 */
+[data-testid="stMainMenuItem-rerun"]       span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "重新运行" !important; }
+[data-testid="stMainMenuItem-autoRerun"]   span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "自动刷新" !important; }
+[data-testid="stMainMenuItem-clearCache"]  span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "清除缓存" !important; }
+[data-testid="stMainMenuItem-print"]       span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "打印"    !important; }
+[data-testid="stMainMenuItem-recordScreen"] span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "录屏"    !important; }
+[data-testid="stMainMenuItem-settings"]    span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "设置"    !important; }
+[data-testid="stMainMenuItem-about"]       span[data-testid="stMainMenuItemLabel"]::after { visibility: visible; position: absolute; left: 0; content: "关于"    !important; }
+
+/* 隐藏 Streamlit 推广链接 */
+a[href*="streamlit.io/deploy"], a[href*="streamlit.io/cloud"] {
+  display: none !important;
+}

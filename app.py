@@ -25,11 +25,48 @@ def _init_session_state() -> None:
             st.session_state[key] = default
 
 
-def _inject_css() -> None:
+def _inject_css_and_js() -> None:
     css_path = Path(__file__).resolve().parent / "assets" / "style.css"
     if css_path.exists():
         with open(css_path, encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+    # 注入 JS 翻译 Streamlit 内置英文 UI（用 components.html 确保脚本执行）
+    st.components.v1.html("""
+<script>
+(function() {
+    var parentDoc = window.parent.document;
+    function t() {
+        parentDoc.querySelectorAll('[role=\"menuitem\"], [role=\"menuitemcheckbox\"]').forEach(function(el) {
+            var label = el.querySelector('[data-testid=\"stMainMenuItemLabel\"]');
+            if (label) {
+                var txt = label.textContent.trim();
+                if (txt.indexOf(\"Rerun\")===0) label.textContent=\"重新运行\";
+                else if (txt.indexOf(\"Clear cache\")===0) label.textContent=\"清除缓存\";
+                else if (txt.indexOf(\"Print\")===0) label.textContent=\"打印\";
+                else if (txt.indexOf(\"Record\")===0) label.textContent=\"录屏\";
+                else if (txt.indexOf(\"Settings\")===0) label.textContent=\"设置\";
+                else if (txt.indexOf(\"About\")===0) label.textContent=\"关于\";
+                var k=el.querySelector('kbd'); if(k) k.style.display='none';
+            } else if (el.firstChild&&el.firstChild.nodeType===3) {
+                if (el.firstChild.textContent.trim()===\"Auto rerun\") el.firstChild.textContent=\"自动刷新\";
+            }
+        });
+        parentDoc.querySelectorAll('a[href*=\"streamlit.io\"]').forEach(function(a){a.style.display='none';});
+    }
+    // 监听主文档中的菜单按钮
+    var obs = new parentDoc.defaultView.MutationObserver(function() {
+        var btn = parentDoc.querySelector('[data-testid=\"stMainMenuButton\"]');
+        if (btn && !btn._zhHooked) {
+            btn._zhHooked = true;
+            btn.addEventListener('click', function(){setTimeout(t,80);});
+        }
+    });
+    obs.observe(parentDoc.body, {childList:true,subtree:true});
+    setInterval(t, 1500);
+})();
+</script>
+    """, height=0)
 
 
 def _render_sidebar() -> None:
@@ -108,7 +145,7 @@ if __name__ == "__main__":
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    _inject_css()
+    _inject_css_and_js()
     _init_session_state()
     _render_sidebar()
     _render_main()
