@@ -7,8 +7,8 @@ import pandas as pd
 import streamlit as st
 
 from utils.data_loader import read_asset_snapshot
-from utils.design_tokens import COLOR_META, COLOR_MUTED
 from utils.file_manager import get_snapshot_list, save_uploaded_file
+from utils.ui_components import render_import_step, render_validation_stat
 
 logger = logging.getLogger(__name__)
 
@@ -49,16 +49,20 @@ def _format_return(val) -> str:
 
 # ─── Page header ────────────────────────────────────────────
 st.markdown(
-    '<h2 style="font-family:Georgia,serif;">📥 数据导入</h2>',
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">📥 数据导入</h2>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    f'<p style="color:{COLOR_META};">上传 Excel 资产快照，系统自动清洗、校验并生成分析看板</p>',
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">上传 Excel 资产快照，系统自动清洗、校验并生成分析看板</p>',
     unsafe_allow_html=True,
 )
 
 # ─── Step indicator ─────────────────────────────────────────
-step_order = ["上传 Excel", "预览与校验", "导入确认"]
+step_order = [
+    {"label": "1. 上传 Excel"},
+    {"label": "2. 预览与校验"},
+    {"label": "3. 导入确认"}
+]
 # Determine current step based on state
 if "import_uploaded_file" not in st.session_state:
     current_step = 0
@@ -67,24 +71,11 @@ elif st.session_state.get("import_step", 0) < 2:
 else:
     current_step = 2
 
-step_cols = st.columns(len(step_order))
-for i, (col, label) in enumerate(zip(step_cols, step_order)):
-    if i < current_step:
-        cls = "import-step done"
-    elif i == current_step:
-        cls = "import-step active"
-    else:
-        cls = "import-step"
-    col.markdown(
-        f'<div class="{cls}">{i + 1}. {label}</div>',
-        unsafe_allow_html=True,
-    )
-
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(render_import_step(step_order, current_step), unsafe_allow_html=True)
 
 # ─── Upload section ─────────────────────────────────────────
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.markdown("#### 上传资产快照")
+st.markdown('<div class="card" style="margin-bottom:var(--space-6);">', unsafe_allow_html=True)
+st.markdown('<h4 style="margin-bottom:var(--space-4);">上传资产快照</h4>', unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader(
     "拖拽或点击上传 .xlsx 文件，需包含 asset_snapshot Sheet",
@@ -132,8 +123,8 @@ if st.session_state.get("import_uploaded_file"):
 
     if df is not None:
         # ─── Import summary ───
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown("#### 导入摘要")
+        st.markdown('<div class="card" style="margin-bottom:var(--space-6);">', unsafe_allow_html=True)
+        st.markdown('<h4 style="margin-bottom:var(--space-4);">导入摘要</h4>', unsafe_allow_html=True)
 
         total_rows = len(df)
         # Coverage calculations (columns may be missing)
@@ -152,46 +143,35 @@ if st.session_state.get("import_uploaded_file"):
         else:
             fee_coverage = 0.0
 
-        summary_cols = st.columns(4)
-        summary_cols[0].markdown(
-            f'<div class="validation-stat v-fix"><div class="stat-num">{total_rows}</div>'
-            f'<div class="stat-label">成功读取</div></div>',
+        st.markdown('<div class="validation-summary">', unsafe_allow_html=True)
+        st.markdown(
+            render_validation_stat(total_rows, "成功读取", "fix")
+            + render_validation_stat("待校验", "阻断错误", "error")
+            + render_validation_stat("待校验", "警告提示", "warn")
+            + render_validation_stat("待校验", "自动修复", "fix"),
             unsafe_allow_html=True,
         )
-        summary_cols[1].markdown(
-            '<div class="validation-stat v-error"><div class="stat-num" style="font-size:14px;">'
-            '待校验</div><div class="stat-label">阻断错误</div></div>',
-            unsafe_allow_html=True,
-        )
-        summary_cols[2].markdown(
-            '<div class="validation-stat v-warn"><div class="stat-num" style="font-size:14px;">'
-            '待校验</div><div class="stat-label">警告提示</div></div>',
-            unsafe_allow_html=True,
-        )
-        summary_cols[3].markdown(
-            '<div class="validation-stat v-fix"><div class="stat-num" style="font-size:14px;">'
-            '待校验</div><div class="stat-label">自动修复</div></div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # Coverage info row
         coverage_html = (
-            f'<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14px;color:{COLOR_MUTED};margin-top:16px;">'
+            '<div style="display:flex;gap:var(--space-6);flex-wrap:wrap;font-size:var(--text-sm);'
+            'color:var(--muted);margin-top:var(--space-4);">'
             f'<span>收益统计覆盖率: <strong>{profit_coverage:.1f}%</strong></span>'
             f'<span>费用统计覆盖率: <strong>{fee_coverage:.1f}%</strong></span>'
-            f'<span>基准配置: <strong>待配置</strong></span>'
-            f'<span>目标配置: <strong>待设定</strong></span>'
-            f"</div>"
+            '<span>基准配置: <strong>待配置</strong></span>'
+            '<span>目标配置: <strong>待设定</strong></span>'
+            '</div>'
         )
         st.markdown(coverage_html, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         # ─── Data preview ───
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+        st.markdown('<div class="card" style="margin-bottom:var(--space-6);">', unsafe_allow_html=True)
         st.markdown(
-            f'<div style="display:flex;justify-content:space-between;align-items:center;'
-            f'margin-bottom:16px;"><h4 style="margin:0;">数据预览</h4>'
-            f'<span style="font-size:14px;color:{COLOR_META};">共 {total_rows} 条记录</span></div>',
+            '<div style="display:flex;justify-content:space-between;align-items:center;'
+            'margin-bottom:var(--space-4);"><h4 style="margin:0;">数据预览</h4>'
+            f'<span style="font-size:var(--text-sm);color:var(--meta);">共 {total_rows} 条记录</span></div>',
             unsafe_allow_html=True,
         )
 
@@ -257,7 +237,7 @@ if st.session_state.get("import_uploaded_file"):
 
         # ─── Action buttons ───
         col1, col2, _ = st.columns([1, 1, 4])
-        if col1.button("✅ 确认导入，进入看板", type="primary", use_container_width=True):
+        if col1.button("✅ 确认导入，进入看板", type="primary", width='stretch'):
             from utils.constants import KEY_CURRENT_SNAPSHOT, KEY_SNAPSHOT_DATA
             from utils.data_cleaner import clean_dataframe
             from utils.validator import generate_validation_report
@@ -284,5 +264,5 @@ if st.session_state.get("import_uploaded_file"):
                 )
                 st.rerun()
 
-        if col2.button("🔍 查看校验详情", use_container_width=True):
-            st.switch_page("pages/6_🔍_validation.py")
+        if col2.button("🔍 查看校验详情", width='stretch'):
+            st.switch_page("pages/6_🔍_数据校验.py")

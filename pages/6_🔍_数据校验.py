@@ -3,7 +3,7 @@
 import streamlit as st
 
 from utils.constants import KEY_SNAPSHOT_DATA
-from utils.design_tokens import COLOR_META
+from utils.ui_components import render_validation_stat
 from utils.validator import generate_validation_report
 
 st.set_page_config(
@@ -14,11 +14,11 @@ st.set_page_config(
 
 # ─── Page header ────────────────────────────────────────────
 st.markdown(
-    '<h2 style="font-family:Georgia,serif;">🔍 数据校验</h2>',
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">🔍 数据校验</h2>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    f'<p style="color:{COLOR_META};">当前快照的校验结果 — 三级分层：阻断错误、警告提示、自动修复</p>',
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">当前快照的校验结果 — 三级分层：阻断错误、警告提示、自动修复</p>',
     unsafe_allow_html=True,
 )
 
@@ -33,25 +33,14 @@ report = generate_validation_report(df)
 summary = report["summary"]
 
 # ─── Summary cards ─────────────────────────────────────────
-cols = st.columns(3)
-cols[0].markdown(
-    f'<div class="validation-stat v-error">'
-    f'<div class="stat-num">{summary["error_count"]}</div>'
-    f'<div class="stat-label">🔴 阻断错误</div></div>',
+st.markdown('<div class="validation-summary">', unsafe_allow_html=True)
+st.markdown(
+    render_validation_stat(summary["error_count"], "🔴 阻断错误", "error")
+    + render_validation_stat(summary["warning_count"], "🟡 警告提示", "warn")
+    + render_validation_stat(summary["fix_count"], "🟢 自动修复", "fix"),
     unsafe_allow_html=True,
 )
-cols[1].markdown(
-    f'<div class="validation-stat v-warn">'
-    f'<div class="stat-num">{summary["warning_count"]}</div>'
-    f'<div class="stat-label">🟡 警告提示</div></div>',
-    unsafe_allow_html=True,
-)
-cols[2].markdown(
-    f'<div class="validation-stat v-fix">'
-    f'<div class="stat-num">{summary["fix_count"]}</div>'
-    f'<div class="stat-label">🟢 自动修复</div></div>',
-    unsafe_allow_html=True,
-)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── Coverage info ─────────────────────────────────────────
 if "current_value" in df.columns and "cost_amount" in df.columns:
@@ -62,7 +51,7 @@ if "current_value" in df.columns and "cost_amount" in df.columns:
         else 0.0
     )
     st.markdown(
-        f'<div style="color:{COLOR_META};font-size:14px;margin-bottom:24px;">'
+        '<div style="color:var(--meta);font-size:var(--text-sm);margin-bottom:var(--space-6);">'
         f'收益统计覆盖率: <strong>{coverage:.1f}%</strong></div>',
         unsafe_allow_html=True,
     )
@@ -77,9 +66,9 @@ filter_level = st.radio(
 
 # ─── Blocking Errors Table ─────────────────────────────────
 if filter_level in ("全部", "🔴 阻断错误"):
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.markdown('<div class="card" style="margin-bottom:var(--space-6);">', unsafe_allow_html=True)
     st.markdown(
-        '<h4 style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">'
+        '<h4 style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);">'
         '<span class="badge badge-error">🔴 阻断错误</span> 必须修复，否则无法导入</h4>',
         unsafe_allow_html=True,
     )
@@ -94,7 +83,7 @@ if filter_level in ("全部", "🔴 阻断错误"):
         html += "</tbody></table>"
         st.markdown(html, unsafe_allow_html=True)
     else:
-        st.success("所有阻断校验已通过，无错误")
+        st.success("✅ 所有阻断校验已通过，无错误")
 
     st.markdown("</div>", unsafe_allow_html=True)
 

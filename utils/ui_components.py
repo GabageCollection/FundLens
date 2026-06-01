@@ -1,9 +1,13 @@
-"""UI 组件 — KPI 指标卡片，配合 assets/style.css 中的 .kpi-card 样式。
+"""UI 组件 — 通用组件渲染函数，配合 assets/style.css 样式。
 
 所有函数返回 HTML 字符串，由调用方通过 st.markdown(html, unsafe_allow_html=True) 渲染。
 """
 
-from utils.design_tokens import COLOR_LOSS, COLOR_PROFIT, COLOR_WARNING
+from utils.design_tokens import (
+    COLOR_LOSS,
+    COLOR_PROFIT,
+    COLOR_WARNING,
+)
 
 
 def render_kpi_card(
@@ -48,17 +52,71 @@ def render_kpi_card(
     return html
 
 
-def render_kpi_row(cards: list[str]) -> str:
-    """单行排列多个 KPI 卡片（4 列网格布局）。
+def render_badge(text: str, variant: str = "muted") -> str:
+    """渲染徽章组件。
 
     参数:
-        cards: KPI 卡片 HTML 字符串列表，最多 4 个
+        text: 徽章文本
+        variant: success | warn | error | muted
 
     返回:
-        包裹在 grid-4 容器中的 HTML 字符串
+        徽章 HTML 字符串
     """
-    grid_html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">'
-    for card in cards:
-        grid_html += card
-    grid_html += "</div>"
-    return grid_html
+    return f'<span class="badge badge-{variant}">{text}</span>'
+
+
+def render_validation_stat(num: "int | str", label: str, variant: str) -> str:
+    """渲染校验统计卡片。
+
+    参数:
+        num: 统计数字
+        label: 标签文字
+        variant: error | warn | fix
+
+    返回:
+        校验统计卡片 HTML 字符串
+    """
+    return (
+        f'<div class="validation-stat v-{variant}">'
+        f'<div class="stat-num">{num}</div>'
+        f'<div class="stat-label">{label}</div>'
+        '</div>'
+    )
+
+
+def render_import_step(steps: list[dict[str, str]], current: int) -> str:
+    """渲染步骤指示器。
+
+    参数:
+        steps: 步骤列表，每个步骤为 {"label": "步骤名称"}
+        current: 当前步骤索引（从0开始）
+
+    返回:
+        步骤指示器 HTML 字符串
+    """
+    html = '<div class="import-steps">'
+    for i, step in enumerate(steps):
+        step_class = "import-step"
+        if i == current:
+            step_class += " active"
+        elif i < current:
+            step_class += " done"
+        html += f'<div class="{step_class}">{step["label"]}</div>'
+    html += '</div>'
+    return html
+
+
+def render_data_quality_badges(badges: list[dict[str, str]]) -> str:
+    """渲染数据质量徽章组。
+
+    参数:
+        badges: 徽章列表，每个徽章为 {"text": "徽章文本", "variant": "success|warn|error|muted"}
+
+    返回:
+        徽章组 HTML 字符串
+    """
+    html = '<div style="display:flex;gap:var(--space-4);flex-wrap:wrap;font-size:var(--text-sm);">'
+    for badge in badges:
+        html += render_badge(badge["text"], badge["variant"])
+    html += '</div>'
+    return html

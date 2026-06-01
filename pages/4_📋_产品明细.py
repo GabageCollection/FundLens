@@ -16,60 +16,66 @@ if df is None:
     st.info("👈 请先通过侧边栏选择快照")
     st.stop()
 
-st.markdown('<h2 style="font-family:Georgia,serif;">📋 产品明细</h2>', unsafe_allow_html=True)
+st.markdown(
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">📋 产品明细</h2>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">完整资产列表，支持多维度筛选和导出</p>',
+    unsafe_allow_html=True,
+)
 
 # ─── 筛选器 ────────────────────────────────────────
 
-with st.container():
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    filter_cols = st.columns(6)
+st.markdown('<div class="filters-bar">', unsafe_allow_html=True)
+filter_cols = st.columns(6)
 
-    # 平台筛选
-    if "platform" in df.columns:
-        platforms = ["全部"] + sorted(df["platform"].dropna().unique().tolist())
-        selected_platform = filter_cols[0].selectbox("平台", platforms, key="filter_platform")
-    else:
-        selected_platform = "全部"
+# 平台筛选
+if "platform" in df.columns:
+    platforms = ["全部"] + sorted(df["platform"].dropna().unique().tolist())
+    selected_platform = filter_cols[0].selectbox("平台", platforms, key="filter_platform")
+else:
+    selected_platform = "全部"
 
-    # 资产大类筛选
-    if "asset_class" in df.columns:
-        classes = ["全部"] + sorted(df["asset_class"].dropna().unique().tolist())
-        selected_class = filter_cols[1].selectbox("资产大类", classes, key="filter_class")
-    else:
-        selected_class = "全部"
+# 资产大类筛选
+if "asset_class" in df.columns:
+    classes = ["全部"] + sorted(df["asset_class"].dropna().unique().tolist())
+    selected_class = filter_cols[1].selectbox("资产大类", classes, key="filter_class")
+else:
+    selected_class = "全部"
 
-    # 产品类型筛选
-    if "product_type" in df.columns:
-        types = ["全部"] + sorted(df["product_type"].dropna().unique().tolist())
-        selected_type = filter_cols[2].selectbox("产品类型", types, key="filter_type")
-    else:
-        selected_type = "全部"
+# 产品类型筛选
+if "product_type" in df.columns:
+    types = ["全部"] + sorted(df["product_type"].dropna().unique().tolist())
+    selected_type = filter_cols[2].selectbox("产品类型", types, key="filter_type")
+else:
+    selected_type = "全部"
 
-    # 市场区域筛选
-    if "market_region" in df.columns:
-        regions = ["全部"] + sorted(df["market_region"].dropna().unique().tolist())
-        selected_region = filter_cols[3].selectbox("市场区域", regions, key="filter_region")
-    else:
-        selected_region = "全部"
+# 市场区域筛选
+if "market_region" in df.columns:
+    regions = ["全部"] + sorted(df["market_region"].dropna().unique().tolist())
+    selected_region = filter_cols[3].selectbox("市场区域", regions, key="filter_region")
+else:
+    selected_region = "全部"
 
-    # 资金用途筛选
-    if "usage_purpose" in df.columns:
-        purposes = ["全部"] + sorted(df["usage_purpose"].dropna().unique().tolist())
-        selected_purpose = filter_cols[4].selectbox("资金用途", purposes, key="filter_purpose")
-    else:
-        selected_purpose = "全部"
+# 资金用途筛选
+if "usage_purpose" in df.columns:
+    purposes = ["全部"] + sorted(df["usage_purpose"].dropna().unique().tolist())
+    selected_purpose = filter_cols[4].selectbox("资金用途", purposes, key="filter_purpose")
+else:
+    selected_purpose = "全部"
 
-    # 收益状态筛选
-    if "holding_profit" in df.columns:
-        profit_status = ["全部", "盈利 (收益 > 0)", "亏损 (收益 < 0)", "无成本数据"]
-        selected_profit = filter_cols[5].selectbox("收益状态", profit_status, key="filter_profit")
-    else:
-        selected_profit = "全部"
+# 收益状态筛选
+if "holding_profit" in df.columns:
+    profit_status = ["全部", "盈利 (收益 > 0)", "亏损 (收益 < 0)", "无成本数据"]
+    selected_profit = filter_cols[5].selectbox("收益状态", profit_status, key="filter_profit")
+else:
+    selected_profit = "全部"
 
-    # 搜索框
-    search = st.text_input("🔍 搜索产品名称或代码", placeholder="输入关键词...", key="search_detail")
+st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+# 搜索框
+search = st.text_input("🔍 搜索产品名称或代码", placeholder="输入关键词...", key="search_detail")
 
 # ─── 筛选逻辑 ───────────────────────────────────────
 
@@ -147,7 +153,7 @@ if "收益率" in display_df.columns:
         lambda x: f"{x*100:+.2f}%" if pd.notna(x) else "—"
     )
 
-st.dataframe(display_df, use_container_width=True, hide_index=True, height=600)
+st.dataframe(display_df, width='stretch', hide_index=True, height=600)
 
 # ─── 导出按钮 ───────────────────────────────────────
 
@@ -156,7 +162,7 @@ col1, col2, _ = st.columns([1, 1, 4])
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-if col1.button("📥 导出 Excel", use_container_width=True):
+if col1.button("📥 导出 Excel", width='stretch'):
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         display_df.to_excel(writer, index=False, sheet_name="产品明细")
@@ -167,7 +173,7 @@ if col1.button("📥 导出 Excel", use_container_width=True):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-if col2.button("📥 导出 CSV", use_container_width=True):
+if col2.button("📥 导出 CSV", width='stretch'):
     csv_data = display_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
     st.download_button(
         label="📥 下载 CSV 文件",

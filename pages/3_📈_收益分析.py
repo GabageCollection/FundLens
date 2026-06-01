@@ -11,7 +11,8 @@ from utils.analyzer import (
 from utils.benchmarks import calc_benchmark_return, calc_relative_return, load_benchmark_config
 from utils.charts import plot_bar, plot_dual_bar, plot_grouped_bar, plot_horizontal_bar, plot_waterfall
 from utils.constants import KEY_SNAPSHOT_DATA
-from utils.design_tokens import CHART_COLORS, COLOR_ACCENT, COLOR_LOSS, COLOR_PROFIT, COLOR_WARNING
+from utils.design_tokens import CHART_COLORS, COLOR_ACCENT, COLOR_LOSS, COLOR_PROFIT
+from utils.ui_components import render_kpi_card
 
 st.set_page_config(page_title="FundLens - 收益分析", page_icon="📈", layout="wide")
 
@@ -46,54 +47,50 @@ def _fmt_money(val: float) -> str:
 
 # ─── 页面标题 ─────────────────────────────────────
 
-st.markdown('<h2 style="font-family:Georgia,serif;">📈 收益分析</h2>', unsafe_allow_html=True)
+st.markdown(
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">📈 收益分析</h2>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">收益摘要、基准对比、分类分解和盈亏排行</p>',
+    unsafe_allow_html=True,
+)
 
 # ─── 摘要统计条 ───────────────────────────────────
 
-col1, col2, col3, col4 = st.columns(4)
-profit_color = COLOR_PROFIT if total_profit >= 0 else COLOR_LOSS
-col1.markdown(
-    f'<div class="kpi-card"><div class="kpi-label">总持有收益</div>'
-    f'<div class="kpi-value" style="color:{profit_color};">{_fmt_money(total_profit)}</div></div>',
-    unsafe_allow_html=True,
+profit_level = "profit" if total_profit >= 0 else "loss"
+kpi_row = (
+    render_kpi_card("总持有收益", _fmt_money(total_profit), alert_level=profit_level)
+    + render_kpi_card("总收益率", _fmt_pct(total_return), alert_level=profit_level)
+    + render_kpi_card("收益统计覆盖率", f"{coverage*100:.1f}%")
 )
-col2.markdown(
-    f'<div class="kpi-card"><div class="kpi-label">总收益率</div>'
-    f'<div class="kpi-value" style="color:{profit_color};">{_fmt_pct(total_return)}</div></div>',
-    unsafe_allow_html=True,
-)
-col3.markdown(
-    f'<div class="kpi-card"><div class="kpi-label">收益统计覆盖率</div>'
-    f'<div class="kpi-value">{coverage*100:.1f}%</div></div>',
-    unsafe_allow_html=True,
-)
+
 if relative is not None:
-    rel_color = COLOR_PROFIT if relative >= 0 else COLOR_LOSS
-    col4.markdown(
-        f'<div class="kpi-card"><div class="kpi-label">相对收益（vs {benchmark_config["name"]}）</div>'
-        f'<div class="kpi-value" style="color:{rel_color};">{_fmt_pct(relative)}</div></div>',
-        unsafe_allow_html=True,
+    rel_level = "profit" if relative >= 0 else "loss"
+    kpi_row += render_kpi_card(
+        f"相对收益（vs {benchmark_config['name']}）",
+        _fmt_pct(relative),
+        alert_level=rel_level
     )
 else:
-    col4.markdown(
-        f'<div class="kpi-card"><div class="kpi-label">相对收益</div>'
-        f'<div class="kpi-value" style="color:#87867f;">未配置基准</div></div>',
-        unsafe_allow_html=True,
-    )
+    kpi_row += render_kpi_card("相对收益", "未配置基准", alert_level="normal")
+
+st.markdown(
+    f'<div class="grid-4" style="margin-bottom:var(--space-6);">{kpi_row}</div>',
+    unsafe_allow_html=True,
+)
 
 # ─── 算法说明 ──────────────────────────────────────
 
 st.markdown(
-    f'<div style="background:rgba(255,152,0,0.08);border:1px solid {COLOR_WARNING};'
-    f'border-radius:8px;padding:12px 16px;margin:16px 0;font-size:13px;color:#5e5d59;">'
-    f'<strong>ⓘ 收益率算法说明</strong><br>'
-    f'当前使用<b>简单持有期收益率</b> = 持有收益 / 持有成本。不反映资金投入的时间差异（如定投分散投入）。'
-    f'如需精确考虑时间因素，应使用时间加权收益率（TWR）或内部收益率（IRR）。'
-    f'</div>',
+    '<div class="card" style="background:var(--warn-bg);border-color:var(--warn);margin-bottom:var(--space-6);">'
+    '<h4 style="margin-bottom:var(--space-2);">ⓘ 收益率算法说明</h4>'
+    '<p style="font-size:var(--text-sm);color:var(--muted);line-height:var(--leading-body);">'
+    '当前使用<strong>简单持有期收益率</strong> = 持有收益 / 持有成本。不反映资金投入的时间差异（如定投分散投入）。'
+    '如需精确考虑时间因素，应使用时间加权收益率（TWR）或内部收益率（IRR）。'
+    '</p></div>',
     unsafe_allow_html=True,
 )
-
-st.markdown("---")
 
 # ─── 基准对比图 ───────────────────────────────────
 
@@ -104,7 +101,7 @@ if bm_return is not None:
         f"组合收益对比 {benchmark_config['name']}",
         name1="投资组合", name2=benchmark_config.get("name", "基准"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     if relative is not None:
         rel_text = f"{'跑赢' if relative >= 0 else '跑输'}基准 {abs(relative)*100:.2f}%"
         st.markdown(f"组合收益率 {_fmt_pct(total_return)}，基准收益率 {_fmt_pct(bm_return)}，{rel_text}")
@@ -133,7 +130,7 @@ if platforms and "holding_profit" in df.columns:
             ],
             "平台收益对比",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 # ─── 资产大类收益对比 ─────────────────────────────
 
@@ -157,7 +154,7 @@ if classes and "holding_profit" in df.columns:
             ],
             "资产大类收益对比",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 st.markdown("---")
 
@@ -175,7 +172,7 @@ cats = list(profit_by_class.keys())
 vals = list(profit_by_class.values())
 if any(abs(v) > 0.01 for v in vals):
     fig = plot_waterfall(cats, vals, "收益贡献度分解（按资产大类）")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 else:
     st.info("暂无收益数据，无法生成瀑布图")
 
@@ -194,7 +191,7 @@ with profit_col:
             top_profit["holding_profit"].tolist(),
             "盈利 前十", COLOR_PROFIT,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("无盈利产品")
 
@@ -207,7 +204,7 @@ with loss_col:
             [abs(v) for v in top_loss["holding_profit"].tolist()],
             "亏损 前十", COLOR_LOSS,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("无亏损产品")
 
@@ -225,7 +222,7 @@ if "holding_return" in df.columns:
         top_ret = df_ret.nlargest(10, "holding_return")[["product_name", "holding_return"]]
         if not top_ret.empty:
             top_ret["收益率"] = top_ret["holding_return"].apply(lambda x: f"{x*100:+.2f}%")
-            st.dataframe(top_ret[["product_name", "收益率"]], use_container_width=True, hide_index=True)
+            st.dataframe(top_ret[["product_name", "收益率"]], width='stretch', hide_index=True)
         else:
             st.info("无数据")
 
@@ -234,6 +231,6 @@ if "holding_return" in df.columns:
         bottom_ret = df_ret.nsmallest(10, "holding_return")[["product_name", "holding_return"]]
         if not bottom_ret.empty:
             bottom_ret["收益率"] = bottom_ret["holding_return"].apply(lambda x: f"{x*100:+.2f}%")
-            st.dataframe(bottom_ret[["product_name", "收益率"]], use_container_width=True, hide_index=True)
+            st.dataframe(bottom_ret[["product_name", "收益率"]], width='stretch', hide_index=True)
         else:
             st.info("无数据")

@@ -12,6 +12,21 @@ FundLens 是一个面向个人投资者的**本地化多平台资产快照分析
 
 ---
 
+## 常用命令
+
+```bash
+# 启动开发服务器（默认 http://localhost:8501）
+streamlit run app.py
+
+# 运行 Playwright E2E 测试（需先启动 streamlit 服务）
+py tests/run_phase1_tests.py
+
+# 安装依赖
+pip install -r requirements.txt
+```
+
+---
+
 ## 关键文档索引
 
 | 文档 | 路径 | 用途 |
@@ -53,24 +68,26 @@ FundLens/
 │   ├── sample/               # 标准空白模板
 │   └── uploaded/             # 用户上传的快照自动保存在此
 ├── utils/
-│   ├── design_tokens.py      # 设计令牌（颜色、字体、间距常量，与 tokens.css 同步）
-│   ├── file_manager.py       # 文件扫描、保存、加载
-│   ├── data_loader.py        # Excel 读取与字段映射
-│   ├── data_cleaner.py       # 格式清洗、自动计算收益
-│   ├── validator.py          # 三级校验规则
-│   ├── analyzer.py           # 分组聚合、指标计算
-│   ├── benchmarks.py         # 基准对比
-│   ├── charts.py             # Plotly 图表工厂
-│   ├── ui_components.py      # KPI 卡片等通用组件
-│   └── exporter.py           # 导出（P1）
+│   ├── constants.py           # Session state key 常量
+│   ├── design_tokens.py       # 设计令牌（颜色常量，CSS 变量镜像）
+│   ├── file_manager.py        # 文件扫描、保存、加载
+│   ├── data_loader.py         # Excel 读取与字段映射
+│   ├── data_cleaner.py        # 格式清洗、自动计算收益
+│   ├── validator.py           # 三级校验规则
+│   ├── analyzer.py            # 分组聚合、指标计算
+│   ├── benchmarks.py          # 基准对比
+│   ├── charts.py              # Plotly 图表工厂
+│   ├── ui_components.py       # 通用 HTML 组件（KPI 卡片、徽章、校验统计、步骤指示器）
+│   ├── exporter.py            # 统计导出
+│   └── template_generator.py  # Excel 标准模板生成
 ├── pages/
-│   ├── 1_🏠_overview.py      # 首页概览
-│   ├── 2_📊_allocation.py    # 资产配置
-│   ├── 3_📈_profit_analysis.py  # 收益分析
-│   ├── 4_📋_detail_table.py  # 产品明细
-│   ├── 5_📥_import_data.py   # 数据导入
-│   ├── 6_🔍_validation.py    # 数据校验
-│   └── 7_⚙️_settings.py     # 设置
+│   ├── 1_🏠_首页概览.py           # 首页概览
+│   ├── 2_📊_资产配置.py           # 资产配置
+│   ├── 3_📈_收益分析.py           # 收益分析
+│   ├── 4_📋_产品明细.py           # 产品明细
+│   ├── 5_📥_数据导入.py           # 数据导入
+│   ├── 6_🔍_数据校验.py           # 数据校验
+│   └── 7_⚙️_设置.py              # 设置
 ├── assets/
 │   └── style.css             # 自定义样式（对标 前端设计/css/components.css）
 ├── tests/
@@ -176,6 +193,24 @@ ASSET_CLASS_COLORS = {
     "其他类": "#d4c5bc",
 }
 ```
+
+---
+
+## 双色彩系统：Python 常量 vs CSS 变量
+
+项目使用两套并行的色彩系统，各自有不同的适用场景：
+
+| 场景 | 使用 | 示例 |
+|---|---|---|
+| **Plotly 图表**（`utils/charts.py`） | Python 常量 `COLOR_*` | `COLOR_PROFIT`, `CHART_COLORS` |
+| **st.markdown 内联 HTML**（所有页面） | CSS 变量 `var(--*)` | `var(--accent)`, `var(--meta)`, `var(--warn)` |
+| **Python 条件逻辑中的颜色判断** | Python 常量 `COLOR_*` | `COLOR_PROFIT if relative >= 0 else COLOR_LOSS` |
+| **st.markdown HTML 样式** | CSS 变量 | `style="color:var(--meta);font-size:var(--text-sm);"` |
+
+CSS 变量定义在 `assets/style.css` 的 `:root` 块中，包括颜色、字号（`--text-xs` ~ `--text-4xl`）、间距（`--space-1` ~ `--space-12`）、圆角、动效等。
+Python 颜色常量定义在 `utils/design_tokens.py` 中，仅颜色常量被实际导入使用；字号/间距 Python 常量未被使用（页面直接写 CSS 变量字符串）。
+
+⚠️ **规则**：在 `st.markdown(unsafe_allow_html=True)` 的 HTML 字符串中只用 CSS 变量，不要引用 Python 颜色常量（会导致 NameError 且无法被 linter 捕获）。
 
 ---
 

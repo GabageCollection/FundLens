@@ -9,8 +9,7 @@ from utils.analyzer import (
 )
 from utils.charts import plot_pie, plot_bullet, plot_horizontal_bar, plot_grouped_bar
 from utils.constants import KEY_SNAPSHOT_DATA, KEY_TARGET_ALLOCATION
-from utils.design_tokens import ASSET_CLASS_COLORS, CHART_COLORS, COLOR_ACCENT, COLOR_META, COLOR_WARNING
-from utils.ui_components import render_kpi_card, render_kpi_row
+from utils.design_tokens import ASSET_CLASS_COLORS, CHART_COLORS, COLOR_ACCENT
 
 st.set_page_config(page_title="FundLens - 资产配置", page_icon="📊", layout="wide")
 
@@ -21,7 +20,14 @@ if df is None:
     st.info("👈 请先通过侧边栏选择快照")
     st.stop()
 
-st.markdown('<h2 style="font-family:Georgia,serif;">📊 资产配置</h2>', unsafe_allow_html=True)
+st.markdown(
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">📊 资产配置</h2>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">多维度配置分析、目标对比和集中度监控</p>',
+    unsafe_allow_html=True,
+)
 
 # ─── Tab 切换 ───────────────────────────────────────
 
@@ -30,7 +36,7 @@ tab1, tab2, tab3 = st.tabs(["配置总览", "目标 vs 当前", "详细维度"])
 # ─── Tab 1: 配置总览 ────────────────────────────────
 
 with tab1:
-    st.markdown("### 配置总览")
+    st.markdown('<h3 style="font-family:var(--font-display);font-size:var(--text-xl);margin-bottom:var(--space-4);">配置总览</h3>', unsafe_allow_html=True)
 
     # 计算多维度分布
     total = calc_total_assets(df)
@@ -62,34 +68,50 @@ with tab1:
     else:
         risk_dist = {}
 
-    row1_cols = st.columns(3)
-    with row1_cols[0]:
-        if platform_dist:
-            fig = plot_pie(list(platform_dist.keys()), list(platform_dist.values()), "按平台", CHART_COLORS)
-            st.plotly_chart(fig, use_container_width=True)
-    with row1_cols[1]:
-        if class_dist:
-            class_colors = [ASSET_CLASS_COLORS.get(c, CHART_COLORS[-1]) for c in class_dist]
-            fig = plot_pie(list(class_dist.keys()), list(class_dist.values()), "按资产大类", class_colors)
-            st.plotly_chart(fig, use_container_width=True)
-    with row1_cols[2]:
-        if type_dist:
-            fig = plot_pie(list(type_dist.keys()), list(type_dist.values()), "按产品类型", CHART_COLORS)
-            st.plotly_chart(fig, use_container_width=True)
+    st.markdown('<div class="grid-3">', unsafe_allow_html=True)
 
-    row2_cols = st.columns(3)
-    with row2_cols[0]:
-        if region_dist:
-            fig = plot_pie(list(region_dist.keys()), list(region_dist.values()), "按市场区域", CHART_COLORS)
-            st.plotly_chart(fig, use_container_width=True)
-    with row2_cols[1]:
-        if usage_dist:
-            fig = plot_pie(list(usage_dist.keys()), list(usage_dist.values()), "按资金用途", CHART_COLORS)
-            st.plotly_chart(fig, use_container_width=True)
-    with row2_cols[2]:
-        if risk_dist:
-            fig = plot_pie(list(risk_dist.keys()), list(risk_dist.values()), "按风险等级", CHART_COLORS)
-            st.plotly_chart(fig, use_container_width=True)
+    if platform_dist:
+        st.markdown('<div class="chart-card"><h4>按平台</h4><div class="chart-container">', unsafe_allow_html=True)
+        fig = plot_pie(list(platform_dist.keys()), list(platform_dist.values()), "", CHART_COLORS)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    if class_dist:
+        st.markdown('<div class="chart-card"><h4>按资产大类</h4><div class="chart-container">', unsafe_allow_html=True)
+        class_colors = [ASSET_CLASS_COLORS.get(c, CHART_COLORS[-1]) for c in class_dist]
+        fig = plot_pie(list(class_dist.keys()), list(class_dist.values()), "", class_colors)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    if type_dist:
+        st.markdown('<div class="chart-card"><h4>按产品类型</h4><div class="chart-container">', unsafe_allow_html=True)
+        fig = plot_pie(list(type_dist.keys()), list(type_dist.values()), "", CHART_COLORS)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="grid-3" style="margin-top:var(--space-6);">', unsafe_allow_html=True)
+
+    if region_dist:
+        st.markdown('<div class="chart-card"><h4>按市场区域</h4><div class="chart-container">', unsafe_allow_html=True)
+        fig = plot_pie(list(region_dist.keys()), list(region_dist.values()), "", CHART_COLORS)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    if usage_dist:
+        st.markdown('<div class="chart-card"><h4>按资金用途</h4><div class="chart-container">', unsafe_allow_html=True)
+        fig = plot_pie(list(usage_dist.keys()), list(usage_dist.values()), "", CHART_COLORS)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    if risk_dist:
+        st.markdown('<div class="chart-card"><h4>按风险等级</h4><div class="chart-container">', unsafe_allow_html=True)
+        fig = plot_pie(list(risk_dist.keys()), list(risk_dist.values()), "", CHART_COLORS)
+        st.plotly_chart(fig, width='stretch')
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── Tab 2: 目标 vs 当前 ───────────────────────────
 
@@ -102,7 +124,7 @@ with tab2:
     if target_alloc:
         current_pcts = {k: v / total_assets for k, v in class_dist.items()} if total_assets > 0 else {}
         fig = plot_bullet(current_pcts, target_alloc, "当前 vs 目标配置")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         # 偏离详情表
         st.markdown("#### 偏离详情")
@@ -115,7 +137,7 @@ with tab2:
                 "资产大类": cls_name, "目标": f"{target_pct*100:.1f}%",
                 "当前": f"{actual*100:.1f}%", "偏离": f"{deviation*100:+.1f}%", "状态": status,
             })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
     else:
         st.info("未设定目标配置。请前往设置页设定各资产大类的目标配置比例。")
 
@@ -125,7 +147,7 @@ with tab2:
     st.markdown(
         f'<div class="kpi-card{" warn-card" if max_ratio > 0.2 else ""}">'
         f'<div class="kpi-label">最大单品占比</div>'
-        f'<div class="kpi-value" style="color:{COLOR_WARNING if max_ratio > 0.2 else COLOR_META};">'
+        f'<div class="kpi-value" style="color:var(--{"warn" if max_ratio > 0.2 else "meta"});">'
         f'{max_ratio*100:.1f}%</div>'
         f'<div class="kpi-sub">{"⚠ 占比超过 20%，建议关注集中度风险" if max_ratio > 0.2 else "集中度正常"}</div></div>',
         unsafe_allow_html=True,
@@ -135,7 +157,7 @@ with tab2:
     if not top10.empty:
         fig = plot_horizontal_bar(top10["product_name"].tolist(), top10["current_value"].tolist(),
                                    "产品持仓详情", COLOR_ACCENT)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     # 集中度提示
     if max_ratio > 0.2:
@@ -153,14 +175,14 @@ with tab3:
         liq_dist = df.groupby("liquidity")["current_value"].sum().to_dict()
         if liq_dist:
             fig = plot_pie(list(liq_dist.keys()), list(liq_dist.values()), "流动性分布", CHART_COLORS[:3])
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
     # 平台 × 大类交叉分析
     if "platform" in df.columns and "asset_class" in df.columns:
         st.markdown("#### 平台 × 大类交叉分析")
         cross = df.groupby(["platform", "asset_class"])["current_value"].sum().reset_index()
         cross_pivot = cross.pivot(index="platform", columns="asset_class", values="current_value").fillna(0)
-        st.dataframe(cross_pivot.style.format("{:,.0f}"), use_container_width=True)
+        st.dataframe(cross_pivot.style.format("{:,.0f}"), width='stretch')
 
     # 年化费用估算
     if "annual_fee_rate" in df.columns:
@@ -177,7 +199,7 @@ with tab3:
 
             colors = [ASSET_CLASS_COLORS.get(c, CHART_COLORS[-1]) for c in classes]
             fig = plot_horizontal_bar(classes, values, "年化费用估算", COLOR_ACCENT)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             st.markdown(f"年化费用合计: **¥{total_fee:,.0f}**（占总资产 {fee_ratio:.2f}%）")
         else:

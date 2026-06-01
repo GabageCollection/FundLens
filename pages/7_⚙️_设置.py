@@ -5,17 +5,26 @@ import streamlit as st
 from utils.benchmarks import load_benchmark_config, save_benchmark_config
 from utils.constants import KEY_BENCHMARK_CONFIG, KEY_BLUR_MODE, KEY_TARGET_ALLOCATION, KEY_SNAPSHOT_DATA, KEY_CURRENT_SNAPSHOT
 from utils.file_manager import get_snapshot_list
-from utils.design_tokens import COLOR_META
 
 st.set_page_config(page_title="FundLens - 设置", page_icon="⚙️", layout="wide")
 
-st.markdown('<h2 style="font-family:Georgia,serif;">⚙️ 设置</h2>', unsafe_allow_html=True)
-st.markdown(f'<p style="color:{COLOR_META};">配置基准指数、目标配置比例、偏好和数据管理</p>', unsafe_allow_html=True)
+st.markdown(
+    '<h2 style="font-family:var(--font-display);font-size:var(--text-3xl);margin-bottom:var(--space-2);">⚙️ 设置</h2>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<p style="color:var(--meta);font-size:var(--text-base);margin-bottom:var(--space-6);">配置基准指数、目标配置比例、偏好和数据管理</p>',
+    unsafe_allow_html=True,
+)
 
 # ─── 基准指数配置 ────────────────────────────────
 
-st.markdown("### 📊 基准指数配置")
-st.markdown("设定一个基准指数用于对比投资组合表现。")
+st.markdown('<div class="settings-section">', unsafe_allow_html=True)
+st.markdown('<h4>📊 基准指数配置</h4>', unsafe_allow_html=True)
+st.markdown(
+    '<p style="color:var(--muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">设定一个基准指数用于对比投资组合表现。</p>',
+    unsafe_allow_html=True,
+)
 
 bm_config = load_benchmark_config(st.session_state)
 
@@ -29,21 +38,29 @@ with col3:
 
 if bm_start and bm_end and bm_start > 0:
     bm_return = (bm_end - bm_start) / bm_start * 100
-    st.markdown(f"基准收益率: **{bm_return:+.2f}%**（公式: ({bm_end:.0f} - {bm_start:.0f}) / {bm_start:.0f}）")
+    st.markdown(
+        f'<p style="color:var(--fg);font-size:var(--text-sm);">基准收益率: <strong>{bm_return:+.2f}%</strong>（公式: ({bm_end:.0f} - {bm_start:.0f}) / {bm_start:.0f}）</p>',
+        unsafe_allow_html=True,
+    )
 
 col_save, col_reset = st.columns([1, 4])
 if col_save.button("💾 保存基准配置", type="primary"):
     save_benchmark_config(st.session_state, bm_name, bm_start, bm_end)
-    st.success("基准配置已保存")
+    st.success("✅ 基准配置已保存")
 if col_reset.button("🔄 重置"):
     st.session_state[KEY_BENCHMARK_CONFIG] = {"name": "", "start_value": None, "end_value": None}
     st.rerun()
 
+st.markdown('</div>', unsafe_allow_html=True)
+
 # ─── 目标配置比例 ────────────────────────────────
 
-st.markdown("---")
-st.markdown("### 🎯 目标配置比例")
-st.markdown("设定各资产大类的目标配置比例，总和应为 100%。")
+st.markdown('<div class="settings-section">', unsafe_allow_html=True)
+st.markdown('<h4>🎯 目标配置比例</h4>', unsafe_allow_html=True)
+st.markdown(
+    '<p style="color:var(--muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">设定各资产大类的目标配置比例，总和应为 100%。</p>',
+    unsafe_allow_html=True,
+)
 
 target = st.session_state.get(KEY_TARGET_ALLOCATION, {})
 
@@ -66,18 +83,22 @@ else:
 col_t1, col_t2 = st.columns([1, 4])
 if col_t1.button("💾 保存目标配置", type="primary"):
     st.session_state[KEY_TARGET_ALLOCATION] = {k: v for k, v in new_target.items() if v > 0}
-    st.success("目标配置已保存")
+    st.success("✅ 目标配置已保存")
 if col_t2.button("🔄 重置目标配置"):
     st.session_state[KEY_TARGET_ALLOCATION] = {}
     st.rerun()
 
+st.markdown('</div>', unsafe_allow_html=True)
+
 # ─── 偏好设置 ────────────────────────────────────
 
-st.markdown("---")
-st.markdown("### ⚙️ 偏好设置")
+st.markdown('<div class="settings-section">', unsafe_allow_html=True)
+st.markdown('<h4>⚙️ 偏好设置</h4>', unsafe_allow_html=True)
 
 blur_mode = st.toggle("🔒 模糊模式（隐藏具体金额，仅显示百分比）", value=st.session_state.get(KEY_BLUR_MODE, False))
 st.session_state[KEY_BLUR_MODE] = blur_mode
+
+st.markdown('</div>', unsafe_allow_html=True)
 if blur_mode:
     st.info("模糊模式已开启：首页和分析页面的具体金额将被隐藏，仅显示百分比和比率。")
 
@@ -119,7 +140,7 @@ if snapshots and "export_all" not in st.session_state:
 
 st.markdown("---")
 st.markdown("### ℹ️ 关于 FundLens")
-st.markdown(f'<div style="color:{COLOR_META};font-size:13px;">版本: v1.0.0 (Phase 6)<br>'
+st.markdown('<div style="color:var(--meta);font-size:13px;">版本: v1.0.0 (Phase 6)<br>'
             '技术栈: Python 3.10+ / Streamlit / Pandas / Plotly / OpenPyXL<br>'
             '定位: 本地化多平台资产快照分析系统 — 客观呈现，不做决策代劳</div>',
             unsafe_allow_html=True)

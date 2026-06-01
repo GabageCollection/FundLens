@@ -57,3 +57,57 @@ ASSET_CLASS_COLORS: dict[str, str] = {
 FONT_DISPLAY = "'Georgia', 'Times New Roman', serif"
 FONT_BODY = "'Arial', system-ui, -apple-system, sans-serif"
 FONT_MONO = "'JetBrains Mono', 'Consolas', monospace"
+
+# Typography scale
+TEXT_XS = "10px"
+TEXT_SM = "14px"
+TEXT_BASE = "16px"
+TEXT_LG = "20px"
+TEXT_XL = "25px"
+TEXT_2XL = "32px"
+TEXT_3XL = "52px"
+TEXT_4XL = "64px"
+
+# Line heights
+LEADING_BODY = "1.6"
+LEADING_TIGHT = "1.1"
+
+# ─── Spacing ────────────────────────────────────────────────────
+SPACE_1 = "4px"
+SPACE_2 = "8px"
+SPACE_3 = "12px"
+SPACE_4 = "16px"
+SPACE_5 = "20px"
+SPACE_6 = "24px"
+SPACE_8 = "32px"
+SPACE_12 = "48px"
+
+# Section spacing
+SECTION_Y_DESKTOP = "96px"
+SECTION_Y_TABLET = "64px"
+SECTION_Y_PHONE = "48px"
+
+# ─── Border Radius ──────────────────────────────────────────────
+RADIUS_SM = "8px"
+RADIUS_MD = "12px"
+RADIUS_LG = "16px"
+RADIUS_PILL = "9999px"
+
+# ─── Layout ─────────────────────────────────────────────────────
+CONTAINER_MAX = "1200px"
+CONTAINER_GUTTER_DESKTOP = "24px"
+CONTAINER_GUTTER_TABLET = "16px"
+CONTAINER_GUTTER_PHONE = "12px"
+
+# ─── Motion ─────────────────────────────────────────────────────
+MOTION_FAST = "150ms"
+MOTION_BASE = "200ms"
+EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)"
+
+# ─── Elevation ──────────────────────────────────────────────────
+ELEV_FLAT = "none"
+ELEV_RING = "0 0 0 1px #f0eee6"
+ELEV_RAISED = "rgba(0,0,0,0.05) 0px 4px 24px"
+
+# ─── Focus ──────────────────────────────────────────────────────
+FOCUS_RING = "0 0 0 3px rgba(56, 152, 236, 0.3)"
