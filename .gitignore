@@ -1,0 +1,52 @@
+.DS_Store
+.vscode/
+.idea/
+
+# Dart / Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+packages/*/pubspec.lock
+apps/*/pubspec.lock
+*.g.dart
+*.freezed.dart
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+
+# Windows / IDE
+*.log
+*.swp
+*.swo
+*~
+
+# Local secrets (must never be committed)
+.env
+*.key
+*.pem
+
+# Temporary data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/tmp/
+
+# Kimi / agent runtime
+.kimi/
+.kimi-code/
+
+# Local sqlite3mc native binary used for offline testing; do not commit
+/tools/sqlite3mc/*.dll
+/tools/sqlite3mc/*.so
+/tools/sqlite3mc/*.dylib
+/apps/fundlens_windows/tools/sqlite3mc/*.dll
+/apps/fundlens_windows/tools/sqlite3mc/*.so
+/apps/fundlens_windows/tools/sqlite3mc/*.dylib

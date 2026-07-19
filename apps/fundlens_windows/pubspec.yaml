@@ -103,4 +103,9 @@ flutter:
 hooks:
   user_defines:
     sqlite3:
-      source: sqlite3mc
+      source: test-sqlite3mc
+      directory: tools/sqlite3mc/
+# For production builds, use `source: sqlite3mc` so the hook downloads the
+# precompiled sqlite3mc binary from the sqlite3.dart release assets. The
+# `test-sqlite3mc` source above is used here because this offline environment
+# cannot reach GitHub; it loads the same DLL from tools/sqlite3mc/.

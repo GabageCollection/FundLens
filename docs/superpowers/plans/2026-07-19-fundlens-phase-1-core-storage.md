@@ -51,7 +51,10 @@ foreach ($command in $commands) {
 # Locate vswhere (installed with Visual Studio).
 $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
 if (-not (Test-Path $vswhere)) {
-  $vswhere = (Get-Command vswhere -ErrorAction SilentlyContinue)?.Source
+  $vswhereCmd = Get-Command vswhere -ErrorAction SilentlyContinue
+  if ($vswhereCmd) {
+    $vswhere = $vswhereCmd.Source
+  }
 }
 if (-not $vswhere) {
   throw 'vswhere not found. Install Visual Studio 2022 with the C++ Desktop workload.'
@@ -116,6 +119,12 @@ hooks:
     sqlite3:
       source: sqlite3mc
 ```
+
+For production builds, keep `source: sqlite3mc`. In offline or CI environments
+where GitHub cannot be reached, use `source: test-sqlite3mc` and place the
+matching `sqlite3mc.x64.windows.dll` (or the appropriate platform library) in
+the directory referenced by `directory`. Do not commit the DLL to the
+repository.
 
 - [ ] **Step 4: Replace the generated counter with a deterministic shell**
 

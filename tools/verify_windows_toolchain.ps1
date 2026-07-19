@@ -9,7 +9,10 @@ foreach ($command in $commands) {
 # Locate vswhere (installed with Visual Studio).
 $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
 if (-not (Test-Path $vswhere)) {
-  $vswhere = (Get-Command vswhere -ErrorAction SilentlyContinue)?.Source
+  $vswhereCmd = Get-Command vswhere -ErrorAction SilentlyContinue
+  if ($vswhereCmd) {
+    $vswhere = $vswhereCmd.Source
+  }
 }
 if (-not $vswhere) {
   throw 'vswhere not found. Install Visual Studio 2022 with the C++ Desktop workload.'
