@@ -7,3 +7,5 @@ export 'src/analysis/portfolio_summary.dart';
 export 'src/model/decimal_value.dart';
 export 'src/model/field_provenance.dart';
 export 'src/model/holding.dart';
+export 'src/snapshot/portfolio_snapshot.dart';
+export 'src/snapshot/snapshot_diff.dart';
