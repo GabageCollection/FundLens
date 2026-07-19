@@ -1,8 +1,6 @@
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
+/// FundLens core domain models and calculations.
 library;
 
-export 'src/fundlens_core_base.dart';
-
-// TODO: Export any libraries intended for clients of this package.
+export 'src/model/decimal_value.dart';
+export 'src/model/field_provenance.dart';
+export 'src/model/holding.dart';
