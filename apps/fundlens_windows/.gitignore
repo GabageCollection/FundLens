@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Drift generated code needed for a clean build in fresh clones
+!lib/storage/app_database.g.dart
