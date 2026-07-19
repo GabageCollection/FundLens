@@ -1,0 +1,68 @@
+# FundLens — 长期架构与开发约束
+
+## 产品定位
+FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工具。它只描述资产事实，不替用户做投资决策。
+
+## 核心架构
+
+- **Flutter Windows 界面层**：负责 Windows 桌面页面、Asset Spectrum 视觉组件、表格、表单和用户反馈；不直接计算金融指标，不直接访问数据库或 Python。
+- **纯 Dart 领域层**：资产分类、估值、成本、浮动盈亏、收益覆盖率、集中度、快照差异全部在 `packages/fundlens_core` 中实现，不依赖 Flutter、数据库或网络。
+- **应用层**：用 Riverpod 组织导入、快照、行情、分析等完整用例，所有写操作通过明确事务边界执行。
+- **能力接口层 / Ports**：`HoldingRepository`、`SnapshotRepository`、`DataEngineClient` 等抽象接口，连接 Flutter 与底层实现。
+- **加密本地存储**：Drift + sqlite3mc（SQLCipher 兼容）加密 SQLite；数据库密钥由 Windows Credential Manager（flutter_secure_storage）保护。
+- **内置 Python 数据引擎**：仅负责本地 PaddleOCR 中文识别、产品名称匹配、行情获取和字段标准化。通过 stdin/stdout 逐行 JSON-RPC 2.0 通信，`schema_version = 1`。不计算总资产、收益、风险，不写入正式持仓。
+
+## 不可变数据原则
+
+- **当前持仓可变**：可通过导入、OCR、手动编辑和行情刷新更新。
+- **历史快照不可变**：保存后冻结所有字段，行情刷新和后续持仓修改均不得修改快照。
+- 快照间差额只能称为“资产金额变化”，不能称为投资收益。
+- `cumulativeProfit`（累计收益）只展示，不加入当前浮动盈亏汇总。
+
+## 计算口径
+
+- 所有金额、价格、份额、比例使用 `Decimal`（Dart）或十进制字符串（SQLite），不得用二进制浮点。
+- 浮动盈亏 = 当前金额 − 持有成本。
+- 持有收益率 = 浮动盈亏 ÷ 持有成本（成本为空或 0 时不计算）。
+- 总收益率 = 有成本资产的浮动盈亏之和 ÷ 有成本资产的成本之和。
+- 收益统计覆盖率 = 有成本资产当前金额之和 ÷ 总资产。
+- 占比和集中度由 FundLens 基于统一组合重新计算，不采信平台原始占比。
+
+## 平台与范围约束
+
+- V1 只开发、测试和交付 Windows 桌面应用；最低窗口 `1280 × 720`，重点验证 `1440 × 900` 和 `1920 × 1080`，支持 Windows 高 DPI 缩放。
+- 不实现 Android 页面、构建或平台适配；但领域层和接口不得依赖 Windows UI，以保留未来扩展能力。
+- 不实现登录、云同步、多用户、自动交易、买卖建议、再平衡建议、交易流水、VaR/最大回撤/波动率/夏普等量化指标。
+- Python 不处理正式持仓写入、快照管理、总资产、核心收益或备份加密。
+- OCR 必须在本地执行；截图导入必须预览、校验并经人工确认后才能写入；默认导入模式为“部分持仓”。
+- 行情失败时保留上次有效值，不使用零值替代；支付宝等无份额来源不反推当前金额。
+
+## 安全与隐私
+
+- 所有持仓、截图、备份本地处理，不上传云端。
+- 备份使用 Argon2id + AES-256-GCM，每份备份使用独立随机盐和 nonce。
+- 恢复备份时先解密到临时区域、验证结构版本和校验值，再原子替换当前数据库；替换前保留当前库的可恢复副本。
+- 日志和仓库中不得写入真实持仓、账户截图、密码、Token、数据库密钥或备份密码。
+- 原始用户截图不得进入代码仓库；OCR 测试只使用脱敏合成图。
+
+## 视觉约定
+
+- 颜色：Graphite `#121817`、Frost `#F2F5F3`、Paper `#FFFFFF`、Lens Indigo `#625BD4`、Profit Vermilion `#C54B40`（盈利）、Loss Jade `#2E8162`（亏损）。
+- 国内颜色习惯：红盈利、绿亏损；颜色之外必须提供符号和文字语义。
+- 字体角色：标题/快照日期用宋体，界面正文用黑体，金额比例用 IBM Plex Mono 等宽数字。
+
+## 开发工作流
+
+- 每个阶段使用 Git 工作树隔离，分支名为 `feat/phase-N-*`；不在 main/master 直接开发。
+- 每个任务遵循 TDD：先写失败测试，再最小实现，再运行完整回归，最后小而清晰的提交。
+- 阶段完成后通过独立验收门禁；未通过门禁不进入下一阶段。
+- 依赖版本在阶段 1 固定并提交 lockfile；后续阶段未经评审不得升级。
+
+## 测试与质量门禁
+
+- `dart test packages/fundlens_core`
+- `flutter test apps/fundlens_windows`
+- `flutter analyze apps/fundlens_windows`
+- `python -m pytest engine/tests -q`
+- `python -m ruff check engine` / `python -m mypy engine/src`
+- 关键场景：空成本/负收益、六类资产、行情过期/失败、OCR 低置信度、事务回滚、错误/损坏备份、Python 引擎崩溃恢复。
