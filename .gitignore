@@ -47,6 +47,3 @@ __pycache__/
 /tools/sqlite3mc/*.dll
 /tools/sqlite3mc/*.so
 /tools/sqlite3mc/*.dylib
-/apps/fundlens_windows/tools/sqlite3mc/*.dll
-/apps/fundlens_windows/tools/sqlite3mc/*.so
-/apps/fundlens_windows/tools/sqlite3mc/*.dylib

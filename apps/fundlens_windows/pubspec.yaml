@@ -47,6 +47,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -103,9 +105,9 @@ flutter:
 hooks:
   user_defines:
     sqlite3:
-      source: test-sqlite3mc
-      directory: tools/sqlite3mc/
-# For production builds, use `source: sqlite3mc` so the hook downloads the
-# precompiled sqlite3mc binary from the sqlite3.dart release assets. The
-# `test-sqlite3mc` source above is used here because this offline environment
-# cannot reach GitHub; it loads the same DLL from tools/sqlite3mc/.
+      source: sqlite3mc
+      url_pattern: http://localhost:8765/$FILENAME
+# The sqlite3 hook normally downloads sqlite3mc from the sqlite3.dart GitHub
+# release assets. In this offline environment a local Python HTTP server
+# (tools/with-sqlite3mc-server.bat) serves the same DLL from tools/sqlite3mc/.
+# For production builds, remove `url_pattern` so the default GitHub source is used.

@@ -121,10 +121,15 @@ hooks:
 ```
 
 For production builds, keep `source: sqlite3mc`. In offline or CI environments
-where GitHub cannot be reached, use `source: test-sqlite3mc` and place the
-matching `sqlite3mc.x64.windows.dll` (or the appropriate platform library) in
-the directory referenced by `directory`. Do not commit the DLL to the
-repository.
+where GitHub cannot be reached, you have two options:
+
+1. Use `source: test-sqlite3mc` and place the matching
+   `sqlite3mc.x64.windows.dll` (or the appropriate platform library) in the
+directory referenced by `directory`. Do not commit the DLL to the repository.
+2. Serve the same DLL from a local HTTP server and point `url_pattern` to it,
+   keeping `source: sqlite3mc`. This is the approach used in the FundLens
+   workspace via `tools/with-sqlite3mc-server.bat`. Do not commit the DLL to the
+   repository.
 
 - [ ] **Step 4: Replace the generated counter with a deterministic shell**
 
