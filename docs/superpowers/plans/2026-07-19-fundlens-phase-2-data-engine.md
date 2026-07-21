@@ -410,7 +410,7 @@ git commit -m "feat(import): add transactional CSV and Excel imports"
 - Consumes: absolute paths selected by the user and an explicit template hint `alipay|ths`.
 - Produces: normalized draft rows plus field-level `OcrField` values and blocking issues.
 
-- [ ] **Step 1: Generate redacted fixtures and write failing parser tests**
+- [x] **Step 1: Generate redacted fixtures and write failing parser tests**
 
 The generator must create images from blank canvases with `Pillow`, system CJK font lookup, fictional product names and fictional values. It must not read the user's reference images.
 
@@ -428,13 +428,13 @@ def test_ths_ignores_chart_and_requires_sign_confidence(fake_ocr_tokens) -> None
     assert rows[0].fields["holding_profit"].confidence >= 0.90
 ```
 
-- [ ] **Step 2: Run parser tests and confirm failure**
+- [x] **Step 2: Run parser tests and confirm failure**
 
 Run: `python -m pytest engine/tests/test_alipay_parser.py engine/tests/test_ths_parser.py -q`
 
 Expected: FAIL because OCR parsers do not exist.
 
-- [ ] **Step 3: Implement an injectable OCR backend and template parsers**
+- [x] **Step 3: Implement an injectable OCR backend and template parsers**
 
 ```python
 from dataclasses import dataclass
@@ -463,7 +463,7 @@ After parsing, the normalization service applies these exact financial checks:
 
 If the two Tonghuashun costs differ beyond tolerance, return blocking issue `import.cost_mismatch`; never silently choose one. Keep `cumulative_profit` separate from `holding_profit`.
 
-- [ ] **Step 4: Register the RPC method and run OCR acceptance**
+- [x] **Step 4: Register the RPC method and run OCR acceptance**
 
 `ocr.parse_screenshots` validates every path is a regular image chosen in the request, invokes the selected parser, returns one page index per field, and deletes no source file. Add `HANDLERS["ocr.parse_screenshots"]` in `server.py`.
 
@@ -476,7 +476,7 @@ python -m pytest engine/tests/test_alipay_parser.py engine/tests/test_ths_parser
 
 Expected: exact names, values, signs and row counts pass; status bar, account suffix, charts and navigation labels are absent from output.
 
-- [ ] **Step 5: Commit OCR without real screenshots**
+- [x] **Step 5: Commit OCR without real screenshots**
 
 Run: `git grep -n "9371\|东方添益债券" -- engine || exit 0`
 
