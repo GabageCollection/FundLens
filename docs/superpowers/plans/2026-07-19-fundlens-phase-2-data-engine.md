@@ -505,7 +505,7 @@ git commit -m "feat(ocr): parse synthetic Alipay and THS holdings"
 - Produces: ranked candidates with code/name/type/class/confidence/reason.
 - Produces: `QuoteResult` per requested code; partial provider failure does not fail the entire batch.
 
-- [ ] **Step 1: Write failing matcher and provider fallback tests**
+- [x] **Step 1: Write failing matcher and provider fallback tests**
 
 ```python
 def test_matcher_returns_candidates_without_auto_selection(catalog) -> None:
@@ -521,13 +521,13 @@ def test_quote_batch_preserves_partial_success(fake_baostock, fake_akshare) -> N
     assert result[1].value is None
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `python -m pytest engine/tests/test_product_matcher.py engine/tests/test_market_service.py -q`
 
 Expected: FAIL because matcher/providers do not exist.
 
-- [ ] **Step 3: Implement deterministic candidates and provider ports**
+- [x] **Step 3: Implement deterministic candidates and provider ports**
 
 ```python
 from typing import Protocol
@@ -542,7 +542,7 @@ Normalize whitespace, full-width punctuation, share-class suffixes and common pl
 
 BaoStock handles A-share and exchange ETF/LOF/REIT closing quotes; AKShare handles public fund NAV and metadata. Adapters convert dates to ISO `YYYY-MM-DD` and decimals to strings, impose timeouts/rate limits, and translate upstream exceptions into stable codes such as `market.provider_unavailable`.
 
-- [ ] **Step 4: Register RPC methods and test with fakes**
+- [x] **Step 4: Register RPC methods and test with fakes**
 
 Register `product.match_candidates` and `market.fetch_quotes`. No automated test may call live services. Add an opt-in `@pytest.mark.live` smoke test excluded from default runs and documented as `python -m pytest -m live`.
 
@@ -550,7 +550,7 @@ Run: `python -m pytest engine/tests -m "not live" -q && python -m ruff check eng
 
 Expected: PASS without network access.
 
-- [ ] **Step 5: Commit market adapters**
+- [x] **Step 5: Commit market adapters**
 
 ```bash
 git add engine/src/fundlens_engine/products engine/src/fundlens_engine/market engine/tests engine/src/fundlens_engine/server.py
