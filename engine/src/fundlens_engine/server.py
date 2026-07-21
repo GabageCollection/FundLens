@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from .market.service import MarketService
 from .models import RpcRequest
 from .ocr.backend import OcrBackend
 
@@ -14,12 +15,19 @@ logger = logging.getLogger("fundlens_engine")
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 _ocr_backend: OcrBackend | None = None
+_market_service: MarketService | None = None
 
 
 def set_ocr_backend(backend: OcrBackend | None) -> None:
     """Inject an OCR backend (tests pass fakes; None restores PaddleOCR)."""
     global _ocr_backend
     _ocr_backend = backend
+
+
+def set_market_service(service: MarketService | None) -> None:
+    """Inject a market service (tests pass fakes; None restores live providers)."""
+    global _market_service
+    _market_service = service
 
 
 def health(_: dict[str, Any]) -> dict[str, Any]:
@@ -34,9 +42,47 @@ def ocr_parse_screenshots(params: dict[str, Any]) -> dict[str, Any]:
     return parse_screenshots(params, backend)
 
 
+def product_match_candidates(params: dict[str, Any]) -> dict[str, Any]:
+    from .products.matcher import CatalogEntry, match_candidates
+
+    query = params.get("query")
+    raw_catalog = params.get("catalog")
+    if not isinstance(query, str) or not isinstance(raw_catalog, list):
+        raise ValueError("protocol.invalid_request")
+    try:
+        catalog = [CatalogEntry.model_validate(item) for item in raw_catalog]
+    except ValidationError as exc:
+        raise ValueError("protocol.invalid_request") from exc
+    candidates = match_candidates(query, catalog)
+    return {"candidates": [candidate.model_dump() for candidate in candidates]}
+
+
+def _default_market_service() -> MarketService:
+    from .market.akshare_provider import AkShareProvider
+    from .market.baostock_provider import BaoStockProvider
+
+    return MarketService(BaoStockProvider(), AkShareProvider())
+
+
+def market_fetch_quotes(params: dict[str, Any]) -> dict[str, Any]:
+    items = params.get("items")
+    if not isinstance(items, list) or any(
+        not isinstance(item, dict)
+        or not isinstance(item.get("code"), str)
+        or not isinstance(item.get("kind"), str)
+        for item in items
+    ):
+        raise ValueError("protocol.invalid_request")
+    service = _market_service if _market_service is not None else _default_market_service()
+    quotes = service.fetch(items)
+    return {"quotes": [quote.model_dump() for quote in quotes]}
+
+
 HANDLERS: dict[str, Handler] = {
     "health.check": health,
     "ocr.parse_screenshots": ocr_parse_screenshots,
+    "product.match_candidates": product_match_candidates,
+    "market.fetch_quotes": market_fetch_quotes,
 }
 
 
