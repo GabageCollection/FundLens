@@ -43,6 +43,8 @@ dependencies:
   uuid: ^4.6.0
   fundlens_core:
     path: ../../packages/fundlens_core
+  csv: ^8.0.0
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:

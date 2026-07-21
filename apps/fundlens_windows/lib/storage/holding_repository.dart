@@ -7,6 +7,8 @@ import 'enum_mappers.dart';
 abstract interface class HoldingRepository {
   Future<void> upsert(Holding holding);
   Future<void> replacePlatform(SourcePlatform platform, List<Holding> holdings);
+  Future<void> deleteByIds(List<String> ids);
+  Future<T> inTransaction<T>(Future<T> Function() action);
   Stream<List<Holding>> watchAll();
   Future<List<Holding>> getAll();
 }
@@ -38,6 +40,19 @@ final class DriftHoldingRepository implements HoldingRepository {
         await _db.into(_db.holdingTable).insert(_toCompanion(holding));
       }
     });
+  }
+
+  @override
+  Future<void> deleteByIds(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final deleteStatement = _db.delete(_db.holdingTable);
+    deleteStatement.where((row) => row.id.isIn(ids));
+    await deleteStatement.go();
+  }
+
+  @override
+  Future<T> inTransaction<T>(Future<T> Function() action) {
+    return _db.transaction(action);
   }
 
   @override
