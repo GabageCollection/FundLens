@@ -572,7 +572,7 @@ git commit -m "feat(engine): add product matching and free quotes"
 - Consumes: `DataEngineClient.market.fetch_quotes`, `HoldingRepository`, `quote_cache`, clock.
 - Produces: `QuoteRefreshReport(updated, retained, failed, issues)`.
 
-- [ ] **Step 1: Write failing valuation rule tests**
+- [x] **Step 1: Write failing valuation rule tests**
 
 ```dart
 test('quote updates value only when code and quantity are confirmed', () async {
@@ -594,13 +594,13 @@ test('failed quote retains last valid value and becomes stale', () async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/market`
 
 Expected: FAIL because refresh service does not exist.
 
-- [ ] **Step 3: Implement refresh and daily policy**
+- [x] **Step 3: Implement refresh and daily policy**
 
 `QuoteRefreshService` batches requests by provider, writes quote cache before applying updates, rejects zero/negative or implausibly dated quotes, and updates holdings in one transaction. Recompute `currentValue = quantity × quote` only when both are non-null and field provenance is confirmed. Preserve manual gold, deposits and cash values.
 
@@ -616,7 +616,7 @@ final class DailyRefreshPolicy {
 }
 ```
 
-- [ ] **Step 4: Run the full Phase 2 suite**
+- [x] **Step 4: Run the full Phase 2 suite**
 
 Run:
 
@@ -630,7 +630,7 @@ python -m mypy engine/src
 
 Expected: PASS. Kill the fake engine mid-request and verify the app reports degraded mode after one restart.
 
-- [ ] **Step 5: Commit quote application**
+- [x] **Step 5: Commit quote application**
 
 ```bash
 git add apps/fundlens_windows/lib/market apps/fundlens_windows/test/market
@@ -639,10 +639,10 @@ git commit -m "feat(market): refresh daily quotes with safe fallback"
 
 ## Phase 2 Completion Gate
 
-- [ ] Schema fixtures validate in both Python and Dart contract tests.
-- [ ] Engine stdout contains only line-delimited JSON-RPC.
-- [ ] Partial/full imports, ambiguous matches and transaction rollback are covered.
-- [ ] Synthetic OCR recognizes every specified field and ignores chart/account/navigation regions.
-- [ ] Live providers are isolated behind fakes in default tests.
-- [ ] Amount-only Alipay holdings never change value from NAV alone.
-- [ ] Engine crash, timeout, cancellation and stale quote behaviors are deterministic.
+- [x] Schema fixtures validate in both Python and Dart contract tests.
+- [x] Engine stdout contains only line-delimited JSON-RPC.
+- [x] Partial/full imports, ambiguous matches and transaction rollback are covered.
+- [x] Synthetic OCR recognizes every specified field and ignores chart/account/navigation regions.
+- [x] Live providers are isolated behind fakes in default tests.
+- [x] Amount-only Alipay holdings never change value from NAV alone.
+- [x] Engine crash, timeout, cancellation and stale quote behaviors are deterministic.
