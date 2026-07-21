@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fundlens.local/schema/engine-protocol-v1.json",
+  "oneOf": [
+    {"$ref": "#/$defs/request"},
+    {"$ref": "#/$defs/success"},
+    {"$ref": "#/$defs/failure"}
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["jsonrpc", "id", "schema_version"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "id": {"type": "string", "minLength": 1},
+        "schema_version": {"const": 1}
+      }
+    },
+    "request": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "required": ["method", "params"], "properties": {"method": {"type": "string", "minLength": 1}, "params": {"type": "object"}}, "not": {"anyOf": [{"required": ["result"]}, {"required": ["error"]}]}}
+      ],
+      "unevaluatedProperties": false
+    },
+    "success": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "required": ["result"], "properties": {"result": {"type": "object"}}, "not": {"required": ["error"]}}
+      ],
+      "unevaluatedProperties": false
+    },
+    "failure": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "required": ["error"], "properties": {"error": {"type": "object", "required": ["code", "message", "retryable", "details"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "retryable": {"type": "boolean"}, "details": {"type": "object"}}, "additionalProperties": false}}, "not": {"required": ["result"]}}
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

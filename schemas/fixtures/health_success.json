@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-health-1",
+  "schema_version": 1,
+  "result": {
+    "status": "ok",
+    "engine_version": "0.1.0"
+  }
+}

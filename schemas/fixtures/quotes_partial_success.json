@@ -1,0 +1,25 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-quotes-1",
+  "schema_version": 1,
+  "result": {
+    "quotes": [
+      {
+        "product_code": "000001",
+        "value": "1.2345",
+        "valuation_date": "2026-07-20",
+        "provider": "akshare",
+        "status": "fresh",
+        "error_code": null
+      },
+      {
+        "product_code": "F0002",
+        "value": null,
+        "valuation_date": null,
+        "provider": "akshare",
+        "status": "failed",
+        "error_code": "market.provider_unavailable"
+      }
+    ]
+  }
+}

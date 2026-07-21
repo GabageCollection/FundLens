@@ -1,0 +1,44 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-ocr-1",
+  "schema_version": 1,
+  "result": {
+    "template": "alipay",
+    "rows": [
+      {
+        "product_name": "脱敏纯债基金A",
+        "fields": {
+          "product_name": {
+            "name": "product_name",
+            "raw_text": "脱敏纯债基金A",
+            "confidence": 0.97,
+            "page_index": 0,
+            "crop": [120, 340, 460, 372]
+          },
+          "current_value": {
+            "name": "current_value",
+            "raw_text": "78,347.87",
+            "confidence": 0.95,
+            "page_index": 0,
+            "crop": [520, 340, 700, 372]
+          },
+          "holding_profit": {
+            "name": "holding_profit",
+            "raw_text": "+428.96",
+            "confidence": 0.93,
+            "page_index": 0,
+            "crop": [520, 380, 700, 412]
+          },
+          "cumulative_profit": {
+            "name": "cumulative_profit",
+            "raw_text": "+888.88",
+            "confidence": 0.92,
+            "page_index": 0,
+            "crop": [520, 420, 700, 452]
+          }
+        },
+        "issues": []
+      }
+    ]
+  }
+}
