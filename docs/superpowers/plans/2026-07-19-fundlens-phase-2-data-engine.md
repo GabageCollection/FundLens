@@ -322,7 +322,7 @@ git commit -m "feat(engine): supervise JSON-RPC child process"
 - Produces: `ImportDraft`, `DraftHolding`, `DataIssue`, `ImportMode.partial/full`, `ImportPlan`.
 - Consumes: `HoldingRepository.replacePlatform` and `upsert` from Phase 1.
 
-- [ ] **Step 1: Add parsers and write failing mapping tests**
+- [x] **Step 1: Add parsers and write failing mapping tests**
 
 Run: `cd apps/fundlens_windows && flutter pub add csv excel`
 
@@ -340,13 +340,13 @@ test('full import proposes removals only for the same platform', () {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/importing`
 
 Expected: FAIL because import types do not exist.
 
-- [ ] **Step 3: Implement draft and issue contracts**
+- [x] **Step 3: Implement draft and issue contracts**
 
 ```dart
 enum ImportMode { partial, full }
@@ -374,7 +374,7 @@ final class ImportPlan {
 
 `TabularImportParser` must accept Chinese and canonical English headings, reject duplicate columns, parse comma/space currency formats without `double`, preserve unknown columns in draft metadata, and create blocking issues for missing product name/current amount or invalid signs.
 
-- [ ] **Step 4: Implement planning and atomic commit**
+- [x] **Step 4: Implement planning and atomic commit**
 
 Matching order is: same platform + exact product code; otherwise same platform + normalized name + instrument type; otherwise insert. Name-only ambiguity creates a blocking issue. `ImportCommitService.commit(plan)` rejects `!canCommit`, then performs all inserts/updates/removals in one repository transaction. Default constructors and UI state must select `ImportMode.partial`.
 
@@ -382,7 +382,7 @@ Run: `flutter test apps/fundlens_windows/test/importing && flutter test apps/fun
 
 Expected: PASS, including an injected mid-commit failure leaving current holdings unchanged.
 
-- [ ] **Step 5: Commit tabular import**
+- [x] **Step 5: Commit tabular import**
 
 ```bash
 git add apps/fundlens_windows docs/import-template
