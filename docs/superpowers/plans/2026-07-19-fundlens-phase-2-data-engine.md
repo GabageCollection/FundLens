@@ -216,7 +216,7 @@ git commit -m "feat(engine): define versioned data engine protocol"
 - Produces: `python -m fundlens_engine` line server.
 - Produces: `DataEngineClient.call<T>()`, `cancel()`, `close()`.
 
-- [ ] **Step 1: Write server failure and protocol tests**
+- [x] **Step 1: Write server failure and protocol tests**
 
 ```python
 def test_health_check_returns_version_one(run_rpc) -> None:
@@ -232,13 +232,13 @@ def test_unknown_version_is_structured_error(run_rpc) -> None:
 
 Write a Dart test with a fake `ProcessAdapter` that emits one success line, malformed JSON, then exits. Assert success correlation by id, malformed-line isolation, pending-request failure on exit, and at most one restart.
 
-- [ ] **Step 2: Run both tests and confirm failure**
+- [x] **Step 2: Run both tests and confirm failure**
 
 Run: `python -m pytest engine/tests/test_server.py -q && flutter test apps/fundlens_windows/test/data_engine/process_data_engine_client_test.dart`
 
 Expected: FAIL because server and client do not exist.
 
-- [ ] **Step 3: Implement the line server**
+- [x] **Step 3: Implement the line server**
 
 ```python
 import json
@@ -280,7 +280,7 @@ def main() -> None:
 
 Write all operational logs to `sys.stderr`; never print logging to stdout.
 
-- [ ] **Step 4: Implement the supervised Dart client**
+- [x] **Step 4: Implement the supervised Dart client**
 
 ```dart
 abstract interface class DataEngineClient {
@@ -292,7 +292,7 @@ abstract interface class DataEngineClient {
 
 `ProcessDataEngineClient` must inject a `ProcessAdapter`, serialize calls through one active-request queue, generate UUID ids, write one compact JSON object per line, correlate completers by id, validate `schema_version == 1`, convert engine errors to `DataEngineException`, fail all pending calls on unexpected exit, and restart only once. `cancel(requestId)` removes a queued request immediately; for the active request it terminates the child, completes that request as cancelled, and starts a fresh child on the next call without counting the user cancellation as a crash. Timeout uses the same path. Treat malformed stdout as an engine protocol error; capture stderr only through a redacting logger.
 
-- [ ] **Step 5: Run contract tests and commit**
+- [x] **Step 5: Run contract tests and commit**
 
 Run: `python -m pytest engine/tests/test_server.py -q && flutter test apps/fundlens_windows/test/data_engine && python -m ruff check engine && python -m mypy engine/src`
 
