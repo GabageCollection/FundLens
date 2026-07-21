@@ -7,17 +7,37 @@ from typing import Any
 from pydantic import ValidationError
 
 from .models import RpcRequest
+from .ocr.backend import OcrBackend
 
 logger = logging.getLogger("fundlens_engine")
 
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
+
+_ocr_backend: OcrBackend | None = None
+
+
+def set_ocr_backend(backend: OcrBackend | None) -> None:
+    """Inject an OCR backend (tests pass fakes; None restores PaddleOCR)."""
+    global _ocr_backend
+    _ocr_backend = backend
 
 
 def health(_: dict[str, Any]) -> dict[str, Any]:
     return {"status": "ok", "engine_version": "0.1.0"}
 
 
-HANDLERS: dict[str, Handler] = {"health.check": health}
+def ocr_parse_screenshots(params: dict[str, Any]) -> dict[str, Any]:
+    from .ocr.paddle_backend import PaddleBackend
+    from .ocr.service import parse_screenshots
+
+    backend = _ocr_backend if _ocr_backend is not None else PaddleBackend()
+    return parse_screenshots(params, backend)
+
+
+HANDLERS: dict[str, Handler] = {
+    "health.check": health,
+    "ocr.parse_screenshots": ocr_parse_screenshots,
+}
 
 
 def handle_line(line: str) -> dict[str, Any]:
