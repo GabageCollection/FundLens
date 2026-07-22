@@ -45,6 +45,7 @@ dependencies:
     path: ../../packages/fundlens_core
   csv: ^8.0.0
   excel: ^4.0.6
+  file_picker: ^3.0.4
 
 dev_dependencies:
   flutter_test:

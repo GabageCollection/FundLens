@@ -1,0 +1,208 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../importing/import_models.dart';
+import 'data_issue_list.dart';
+import 'import_diff_panel.dart';
+import 'import_review_controller.dart';
+import 'import_source_panel.dart';
+import 'ocr_field_editor.dart';
+import 'screenshot_crop_view.dart';
+
+/// The import, OCR review and data-issue workspace. All data issues are
+/// handled here, before anything is written to the portfolio.
+class ImportReviewPage extends ConsumerStatefulWidget {
+  const ImportReviewPage({super.key});
+
+  @override
+  ConsumerState<ImportReviewPage> createState() => _ImportReviewPageState();
+}
+
+class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(importReviewControllerProvider).restore();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ref.watch(importReviewControllerProvider);
+    final state = controller.state;
+    return Scaffold(
+      appBar: AppBar(title: const Text('导入与识别')),
+      body: switch (state) {
+        ImportIdle() => const _IdleBody(),
+        ImportParsing() =>
+          const Center(child: CircularProgressIndicator()),
+        ImportEditing() => _EditingBody(controller: controller),
+        ImportCommitting() =>
+          const Center(child: CircularProgressIndicator()),
+        ImportCommitted() => _CommittedBody(report: state.report),
+        ImportFailed() => _FailedBody(state: state),
+      },
+    );
+  }
+}
+
+class _IdleBody extends StatelessWidget {
+  const _IdleBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(width: 320, child: ImportSourcePanel()),
+    );
+  }
+}
+
+class _CommittedBody extends StatelessWidget {
+  const _CommittedBody({required this.report});
+
+  final ImportCommitReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('写入完成'),
+          Text(
+            '新增 ${report.inserted} 条 · 更新 ${report.updated} 条 · '
+            '移除 ${report.removed} 条',
+          ),
+          const SizedBox(height: 16),
+          const SizedBox(width: 320, child: ImportSourcePanel()),
+        ],
+      ),
+    );
+  }
+}
+
+class _FailedBody extends StatelessWidget {
+  const _FailedBody({required this.state});
+
+  final ImportFailed state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('导入失败: ${state.message}'),
+          const SizedBox(height: 16),
+          if (state.retryable)
+            const SizedBox(width: 320, child: ImportSourcePanel()),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditingBody extends StatelessWidget {
+  const _EditingBody({required this.controller});
+
+  final ImportReviewController controller;
+
+  Future<void> _confirmCommit(BuildContext context) async {
+    final state = controller.state;
+    if (state is! ImportEditing) return;
+    if (controller.mode == ImportMode.full &&
+        state.plan.removeIds.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('确认全量写入'),
+          content: Text('将移除 ${state.plan.removeIds.length} 条持仓'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('确认'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      await controller.commit(confirmedFullRemovals: true);
+      return;
+    }
+    await controller.commit();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: SegmentedButton<ImportMode>(
+            segments: const [
+              ButtonSegment(
+                value: ImportMode.partial,
+                label: Text('部分持仓'),
+              ),
+              ButtonSegment(
+                value: ImportMode.full,
+                label: Text('全量持仓'),
+              ),
+            ],
+            selected: {controller.mode},
+            onSelectionChanged: (selection) =>
+                controller.setMode(selection.first),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: ScreenshotCropView(controller: controller)),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: OcrFieldEditor(controller: controller),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: DataIssueList(controller: controller),
+                    ),
+                    ImportDiffPanel(controller: controller),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: controller.discard,
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: controller.canCommit
+                    ? () => _confirmCommit(context)
+                    : null,
+                child: const Text('确认写入'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
