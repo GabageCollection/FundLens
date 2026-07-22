@@ -211,7 +211,7 @@ git commit -m "feat(app): expose portfolio application state"
 - Produces: three `HoldingColumnPreset` values: portfolio, trading, platform.
 - Consumes: `filteredHoldingsProvider`, holding repository, quote refresh service.
 
-- [ ] **Step 1: Write failing editor and grid tests**
+- [x] **Step 1: Write failing editor and grid tests**
 
 ```dart
 testWidgets('manual editor requires name and current amount', (tester) async {
@@ -232,13 +232,13 @@ testWidgets('1280 width keeps name and amount visible', (tester) async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/features/holdings`
 
 Expected: FAIL because holdings widgets do not exist.
 
-- [ ] **Step 3: Implement manual editor and filtering**
+- [x] **Step 3: Implement manual editor and filtering**
 
 The editor fields are source, product form, asset class, name, code, quantity, price, current amount, cost, valuation date and note. Parse decimals with `DecimalValue.parse`, show field-level errors, and submit only a full `Holding` with `DataOrigin.manual` and user-corrected provenance. Delete requires a dialog naming the product; refresh is disabled for manual amount-only assets.
 
@@ -289,7 +289,7 @@ git commit -m "feat(ui): add virtualized holdings workspace"
 - Consumes: `PortfolioSummary`, holdings, selected asset class, data freshness.
 - Produces: selection events updating `selectedAssetClassProvider` and a semantic description per segment.
 
-- [ ] **Step 1: Write failing spectrum interaction and semantic tests**
+- [x] **Step 1: Write failing spectrum interaction and semantic tests**
 
 ```dart
 testWidgets('clicking a spectrum segment filters holdings', (tester) async {
@@ -308,13 +308,13 @@ testWidgets('segment semantics include class amount and share', (tester) async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/features/overview`
 
 Expected: FAIL because overview widgets do not exist.
 
-- [ ] **Step 3: Implement segment geometry and painter**
+- [x] **Step 3: Implement segment geometry and painter**
 
 ```dart
 final class SpectrumSegment {
@@ -330,13 +330,13 @@ final class SpectrumSegment {
 
 Map exact Decimal shares to cumulative double geometry only at the rendering boundary. Paint a 20 px horizontal spectrum with 2 px Paper separators, focused Indigo outline and a selected detail rail. Wrap each segment in a positioned transparent `Semantics`/`FocusableActionDetector` hit target. Arrow keys move focus; Enter/Space selects; Escape clears.
 
-- [ ] **Step 4: Build the overview composition**
+- [x] **Step 4: Build the overview composition**
 
 Top summary strip shows total assets, covered cost, floating profit, total return and return coverage. Below it place the spectrum, structure observations, top holdings and quote freshness. Empty portfolios show one direct “添加第一项资产” action. Observations use factual text such as “最大单项占总资产 34.9%”; no ideal allocation or action verbs.
 
 Animate only segment bounds for 400 ms with `Curves.easeOutCubic`; if `MediaQuery.disableAnimations` is true, duration is zero.
 
-- [ ] **Step 5: Verify golden and commit**
+- [x] **Step 5: Verify golden and commit**
 
 Run: `flutter test apps/fundlens_windows/test/features/overview --update-goldens` once after visual review, then rerun without `--update-goldens`.
 
