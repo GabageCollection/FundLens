@@ -364,7 +364,7 @@ git commit -m "feat(ui): add interactive Asset Spectrum overview"
 - Consumes: `PortfolioSummary`, user thresholds, `SnapshotRepository`, `SnapshotDiffService`.
 - Produces: class/type/source composition views and two-snapshot comparison.
 
-- [ ] **Step 1: Write failing language and comparison tests**
+- [x] **Step 1: Write failing language and comparison tests**
 
 ```dart
 testWidgets('analysis does not emit allocation advice', (tester) async {
@@ -381,21 +381,21 @@ testWidgets('snapshot comparison labels the delta as amount change', (tester) as
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/features/analysis apps/fundlens_windows/test/features/snapshots`
 
 Expected: FAIL because pages do not exist.
 
-- [ ] **Step 3: Implement factual structure analysis**
+- [x] **Step 3: Implement factual structure analysis**
 
 Use tab-like segmented controls for asset class, instrument type and source. Each view renders an exact amount/share table plus a thin proportional bar. Show largest holding, largest class, cash+deposit share, equity exposure, data completeness, return coverage and quote freshness. Compare only against thresholds explicitly set by the user; when none exist, show actual values without status judgment.
 
-- [ ] **Step 4: Implement snapshot creation, deletion and comparison**
+- [x] **Step 4: Implement snapshot creation, deletion and comparison**
 
 Snapshot creation opens a label dialog, then invokes `createFromCurrent`. Deletion names the date/label and requires confirmation. Two selectors default to the two latest snapshots; comparison shows total amount change, class changes and holding changes, with added/removed badges. Disable compare when fewer than two snapshots exist. Never edit snapshot rows.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `flutter test apps/fundlens_windows/test/features/analysis apps/fundlens_windows/test/features/snapshots && flutter analyze apps/fundlens_windows`
 
