@@ -425,7 +425,7 @@ git commit -m "feat(ui): add structure and snapshot analysis"
 - Consumes: file picker, `DataEngineClient`, tabular parser, import planner/commit service.
 - Produces: resumable import draft state and explicit commit action.
 
-- [ ] **Step 1: Write failing safety workflow tests**
+- [x] **Step 1: Write failing safety workflow tests**
 
 ```dart
 testWidgets('screenshot import defaults to partial mode', (tester) async {
@@ -449,13 +449,13 @@ testWidgets('field selection shows its source crop', (tester) async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/features/import_review`
 
 Expected: FAIL because import review widgets do not exist.
 
-- [ ] **Step 3: Implement controller state machine**
+- [x] **Step 3: Implement controller state machine**
 
 ```dart
 sealed class ImportReviewState { const ImportReviewState(); }
@@ -469,11 +469,11 @@ final class ImportFailed extends ImportReviewState { const ImportFailed(this.mes
 
 The controller persists drafts, supports cancel, restores an uncommitted draft after restart, and clears temporary screenshot copies only after successful commit or explicit discard. It never deletes the user's original selected files.
 
-- [ ] **Step 4: Implement side-by-side review and diff**
+- [x] **Step 4: Implement side-by-side review and diff**
 
 Left panel shows the selected screenshot and exact field crop; right panel shows editable fields with confidence badges and provenance. Selecting an issue focuses the corresponding field/crop. The bottom diff lists added, updated, possible duplicates and possible removals. Full mode uses a warning panel and a second confirmation listing removal count. Product candidates require an explicit radio selection.
 
-- [ ] **Step 5: Verify end-to-end import UI and commit**
+- [x] **Step 5: Verify end-to-end import UI and commit**
 
 Run: `flutter test apps/fundlens_windows/test/features/import_review && flutter analyze apps/fundlens_windows`
 
