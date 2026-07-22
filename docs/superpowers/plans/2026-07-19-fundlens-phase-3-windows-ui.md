@@ -255,13 +255,13 @@ final class HoldingFilterState {
 }
 ```
 
-- [ ] **Step 4: Implement the virtualized frozen grid and CSV export**
+- [x] **Step 4: Implement the virtualized frozen grid and CSV export**
 
 Use two `ListView.builder` regions: a 420 px frozen region for name/source and current amount, plus a horizontally scrollable region for preset-specific columns. Synchronize vertical controllers with a reentrancy guard. Both lists must use `itemExtent = FundLensTokens.rowHeight` and build only visible rows. Format values in a dedicated formatter; do not compute profits in row widgets.
 
 `HoldingExportService.exportCsv(filtered, path)` exports exactly the current sorted/filtered rows, UTF-8 BOM, canonical decimal strings and Chinese headers.
 
-- [ ] **Step 5: Verify 2,000 rows and commit**
+- [x] **Step 5: Verify 2,000 rows and commit**
 
 Run: `flutter test apps/fundlens_windows/test/features/holdings && flutter analyze apps/fundlens_windows`
 
