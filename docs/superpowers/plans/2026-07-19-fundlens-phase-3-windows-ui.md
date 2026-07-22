@@ -131,7 +131,7 @@ git commit -m "feat(ui): add Asset Spectrum desktop shell"
 - Produces: `holdingsProvider`, `portfolioSummaryProvider`, `dataQualityProvider`, `snapshotsProvider`, `dataIssuesProvider`, `selectedAssetClassProvider`.
 - Consumes: Phase 1 repositories, `PortfolioCalculator`, Phase 2 import and quote services.
 
-- [ ] **Step 1: Write failing provider cache tests**
+- [x] **Step 1: Write failing provider cache tests**
 
 ```dart
 test('page consumers share one holdings subscription', () async {
@@ -145,13 +145,13 @@ test('page consumers share one holdings subscription', () async {
 });
 ```
 
-- [ ] **Step 2: Run test and confirm failure**
+- [x] **Step 2: Run test and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/application/portfolio_providers_test.dart`
 
 Expected: FAIL because providers do not exist.
 
-- [ ] **Step 3: Implement application providers**
+- [x] **Step 3: Implement application providers**
 
 ```dart
 final holdingsProvider = StreamProvider<List<Holding>>((ref) {
@@ -180,13 +180,13 @@ final filteredHoldingsProvider = Provider<List<Holding>>((ref) {
 
 Create dependency providers that throw `UnimplementedError` unless overridden by bootstrap, then override them once in `main.dart` after database/engine initialization. Widgets must never instantiate repositories or engine clients.
 
-- [ ] **Step 4: Verify one subscription and deterministic loading/error states**
+- [x] **Step 4: Verify one subscription and deterministic loading/error states**
 
 Run: `flutter test apps/fundlens_windows/test/application && flutter analyze apps/fundlens_windows`
 
 Expected: PASS; loading, empty, data and degraded states are distinct.
 
-- [ ] **Step 5: Commit state wiring**
+- [x] **Step 5: Commit state wiring**
 
 ```bash
 git add apps/fundlens_windows/lib/application apps/fundlens_windows/test/application apps/fundlens_windows/lib/main.dart
