@@ -502,7 +502,7 @@ git commit -m "feat(ui): add import and OCR review workspace"
 - Consumes: app settings repository, daily refresh policy, privacy flags.
 - Produces: user-defined optional thresholds and quote refresh controls; Phase 4 attaches the backup actions before any release build is produced.
 
-- [ ] **Step 1: Write failing settings and forbidden-copy tests**
+- [x] **Step 1: Write failing settings and forbidden-copy tests**
 
 ```dart
 testWidgets('thresholds are opt-in with no ideal defaults', (tester) async {
@@ -522,19 +522,19 @@ test('localized copy has no advice or return mislabeling', () {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/features/settings apps/fundlens_windows/test/accessibility`
 
 Expected: FAIL because settings and copy registry do not exist.
 
-- [ ] **Step 3: Implement settings and keyboard behavior**
+- [x] **Step 3: Implement settings and keyboard behavior**
 
 Add optional user thresholds for max single holding, max class, minimum cash+deposit and maximum equity exposure. Each threshold displays “由你设置，仅用于结构提示”. Add daily auto-refresh toggle, last attempt/source/date, manual refresh and degraded engine state. Privacy shows local-only processing, temporary screenshot cleanup and redacted logging. Reserve a Paper section titled “加密备份” with a factual description; Phase 4 adds functioning buttons before release.
 
 Keyboard acceptance: `Ctrl+1..6` navigation, Tab logical order, Space/Enter activation, Escape closes dialogs/clears spectrum selection, arrow navigation in spectrum and radio groups. Focus indicator contrast must be at least 3:1.
 
-- [ ] **Step 4: Run the Windows workflow test**
+- [x] **Step 4: Run the Windows workflow test**
 
 The integration test uses in-memory repositories and fake engine to: add manual deposit → import synthetic Alipay partial screenshot → resolve one low-confidence field → commit → refresh a quote → save two snapshots → compare them → export filtered holdings.
 
@@ -542,7 +542,7 @@ Run on Windows: `flutter test integration_test/windows_workflow_test.dart -d win
 
 Expected: PASS at `1280×720`; no overflow, unhandled exception, network call or Python process outside the fake.
 
-- [ ] **Step 5: Run the phase gate and commit**
+- [x] **Step 5: Run the phase gate and commit**
 
 Run: `flutter test apps/fundlens_windows && flutter analyze apps/fundlens_windows`
 
@@ -555,10 +555,10 @@ git commit -m "feat(ui): complete FundLens Windows workflows"
 
 ## Phase 3 Completion Gate
 
-- [ ] All six destinations are functional and reachable by mouse and keyboard.
-- [ ] Asset Spectrum selection filters holdings and has full semantics.
-- [ ] 2,000-row grid remains virtualized and preserves frozen columns at 1280×720.
-- [ ] OCR review always shows field confidence and source crop before commit.
-- [ ] Snapshot comparison uses only “资产金额变化”.
-- [ ] Golden tests match the approved Asset Spectrum direction.
-- [ ] Copy scan contains no advice, rebalancing or transaction wording.
+- [x] All six destinations are functional and reachable by mouse and keyboard.
+- [x] Asset Spectrum selection filters holdings and has full semantics.
+- [x] 2,000-row grid remains virtualized and preserves frozen columns at 1280×720.
+- [x] OCR review always shows field confidence and source crop before commit.
+- [x] Snapshot comparison uses only “资产金额变化”.
+- [x] Golden tests match the approved Asset Spectrum direction.
+- [x] Copy scan contains no advice, rebalancing or transaction wording.
