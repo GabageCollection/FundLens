@@ -57,6 +57,9 @@ final class FakeSnapshotRepository implements SnapshotRepository {
 
   @override
   Future<String> createFromCurrent({required String label}) async => 'unused';
+
+  @override
+  Future<void> deleteById(String id) async {}
 }
 
 Holding fixtureHolding({

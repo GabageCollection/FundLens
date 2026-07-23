@@ -357,5 +357,25 @@ void main() {
       final saved = await snapshots.getById(snapshotId);
       expect(saved.holdings.single.currentValue.canonical, originalValue);
     });
+
+    test('deleteById removes the snapshot and its frozen holdings', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final holdings = DriftHoldingRepository(db);
+      final snapshots = DriftSnapshotRepository(db);
+      addTearDown(db.close);
+
+      await holdings.upsert(_alipayHolding('del-a1', '7000'));
+      final keepId = await snapshots.createFromCurrent(label: '保留');
+      final dropId = await snapshots.createFromCurrent(label: '删除目标');
+
+      await snapshots.deleteById(dropId);
+
+      final remaining = await snapshots.getAll();
+      expect(remaining.map((s) => s.id), [keepId]);
+      expect(remaining.single.label, '保留');
+      // Frozen holdings of the kept snapshot survive; the deleted one is gone.
+      expect(remaining.single.holdings, hasLength(1));
+      await expectLater(snapshots.getById(dropId), throwsA(anything));
+    });
   });
 }

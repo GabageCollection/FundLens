@@ -5,10 +5,17 @@ import 'package:uuid/uuid.dart';
 import 'app_database.dart';
 import 'enum_mappers.dart';
 
+/// Snapshot persistence.
+///
+/// Snapshot rows are immutable once created: the interface deliberately
+/// exposes no update method. The only mutations are creation and deletion.
 abstract interface class SnapshotRepository {
   Future<String> createFromCurrent({required String label});
   Future<PortfolioSnapshot> getById(String id);
   Future<List<PortfolioSnapshot>> getAll();
+
+  /// Deletes one snapshot together with its frozen holding rows.
+  Future<void> deleteById(String id);
 }
 
 final class DriftSnapshotRepository implements SnapshotRepository {
@@ -58,6 +65,17 @@ final class DriftSnapshotRepository implements SnapshotRepository {
       createdAt: dateTimeFromEpochMillis(snapshot.createdAt),
       holdings: holdings.map(_toSnapshotHolding).toList(),
     );
+  }
+
+  @override
+  Future<void> deleteById(String id) async {
+    await _db.transaction(() async {
+      await (_db.delete(_db.snapshotHoldingTable)
+            ..where((row) => row.snapshotId.equals(id)))
+          .go();
+      await (_db.delete(_db.snapshotTable)..where((row) => row.id.equals(id)))
+          .go();
+    });
   }
 
   @override

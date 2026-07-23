@@ -32,6 +32,11 @@ final class FakeSnapshotRepository implements SnapshotRepository {
     ));
     return 's-created';
   }
+
+  @override
+  Future<void> deleteById(String id) async {
+    snapshots.removeWhere((s) => s.id == id);
+  }
 }
 
 SnapshotHolding snapshotHolding({
