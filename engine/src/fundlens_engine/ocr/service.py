@@ -16,12 +16,12 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Literal
 
+from ..security import IMAGE_SUFFIXES as IMAGE_SUFFIXES
+from ..security import PathAccessError, validate_selected_files
 from .alipay_parser import parse_alipay
 from .backend import DraftRow, OcrBackend, OcrIssue
 from .layout import normalize_text
 from .ths_parser import parse_ths
-
-IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 
 Template = Literal["alipay", "ths"]
 
@@ -122,11 +122,20 @@ def normalize_rows(rows: list[DraftRow], template: Template) -> list[DraftRow]:
     return rows
 
 
-def _validate_image_path(raw_path: Any) -> Path:
-    path = Path(str(raw_path))
-    if not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
-        raise ValueError(f"ocr.invalid_image_path: {raw_path}")
-    return path
+def _validate_image_paths(raw_paths: list[Any]) -> list[Path]:
+    """Enforce the selected-path boundary before any file is read.
+
+    The request's paths double as the allowlist: each resolved path must
+    equal an exact allowlisted entry, be a regular image file and stay
+    within per-file and total size limits.
+    """
+    try:
+        return validate_selected_files(
+            [str(raw_path) for raw_path in raw_paths],
+            allowed_paths=[str(raw_path) for raw_path in raw_paths],
+        )
+    except PathAccessError as exc:
+        raise ValueError(f"ocr.invalid_image_path: {exc}") from exc
 
 
 def _row_to_dict(row: DraftRow, index: int) -> dict[str, Any]:
@@ -148,8 +157,7 @@ def parse_screenshots(params: dict[str, Any], backend: OcrBackend) -> dict[str, 
         raise ValueError("ocr.invalid_image_path: paths must be a non-empty list")
 
     rows: list[DraftRow] = []
-    for page_index, raw_path in enumerate(raw_paths):
-        path = _validate_image_path(raw_path)
+    for page_index, path in enumerate(_validate_image_paths(raw_paths)):
         tokens = backend.recognize(str(path))
         if template == "alipay":
             rows.extend(parse_alipay(tokens, page_index))

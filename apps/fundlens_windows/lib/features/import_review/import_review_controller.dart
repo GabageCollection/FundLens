@@ -13,6 +13,7 @@ import '../../importing/import_commit_service.dart';
 import '../../importing/import_models.dart';
 import '../../importing/import_planner.dart';
 import '../../importing/tabular_import_parser.dart';
+import '../../security/selected_path_guard.dart';
 import '../../storage/holding_repository.dart';
 
 /// Review state machine for the import workspace.
@@ -565,7 +566,10 @@ final class ImportReviewController extends ChangeNotifier {
       final template = templateHint;
       final response = await _engine.call(
         'ocr.parse_screenshots',
-        {'paths': tempPaths, 'template': template},
+        {
+          'paths': const SelectedPathGuard().canonicalizeAll(tempPaths),
+          'template': template,
+        },
       );
       _tempScreenshotPaths = tempPaths;
       final draft = _draftFromOcr(response, template);

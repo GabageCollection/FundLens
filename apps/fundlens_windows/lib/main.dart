@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -20,6 +21,7 @@ import 'features/import_review/import_review_controller.dart';
 import 'features/import_review/import_source_panel.dart';
 import 'features/settings/backup_section.dart';
 import 'market/quote_refresh_service.dart';
+import 'security/temporary_import_store.dart';
 import 'storage/app_database.dart';
 import 'storage/database_key_store.dart';
 import 'storage/database_opener.dart';
@@ -50,6 +52,15 @@ Future<void> main() async {
       engineDirectory: _engineDirectory(),
     ),
   );
+
+  // Temporary screenshot copies live in per-job directories; orphans left
+  // by a crash are swept on startup. Failures are nonblocking privacy
+  // issues and retried on the next launch.
+  final importTempStore = TemporaryImportStore(
+    root: Directory(p.join(supportDir.path, 'import_tmp')),
+    onPrivacyIssue: debugPrint,
+  );
+  unawaited(importTempStore.sweepOrphans());
 
   runApp(
     ProviderScope(
@@ -82,11 +93,7 @@ Future<void> main() async {
         dataEngineClientProvider.overrideWithValue(engineClient),
         importFilePickerProvider
             .overrideWithValue(const FilePickerImportFilePicker()),
-        screenshotTempStoreProvider.overrideWithValue(
-          FileScreenshotTempStore(
-            Directory(p.join(supportDir.path, 'import_tmp')),
-          ),
-        ),
+        screenshotTempStoreProvider.overrideWithValue(importTempStore),
         importDraftStoreProvider.overrideWithValue(
           FileImportDraftStore(
             File(p.join(supportDir.path, 'import_draft.json')),
