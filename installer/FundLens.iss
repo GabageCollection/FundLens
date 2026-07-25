@@ -99,11 +99,9 @@ begin
   DataDir := ExpandConstant('{userappdata}\FundLens');
   if not DirExists(DataDir) then Exit;
 
-  Form := CreateCustomForm;
+  Form := CreateCustomForm(420, 140, False, False);
   try
     Form.Caption := 'FundLens user data';
-    Form.ClientWidth := 420;
-    Form.ClientHeight := 140;
 
     CheckBox := TNewCheckBox.Create(Form);
     CheckBox.Parent := Form;
