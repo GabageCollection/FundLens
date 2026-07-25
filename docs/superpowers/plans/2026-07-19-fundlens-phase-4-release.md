@@ -315,7 +315,7 @@ git commit -m "feat(security): enforce local data boundaries"
 - Produces: `dist/engine/fundlens_engine.exe`, Flutter release bundle, `dist/installer/FundLens-Setup.exe`.
 - Consumes: locked Python/Dart dependencies, PaddleOCR model files, Inno Setup `ISCC.exe`.
 
-- [ ] **Step 1: Write failing bundle-verification tests**
+- [x] **Step 1: Write failing bundle-verification tests**
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -334,19 +334,19 @@ $forbidden = Get-ChildItem $args[0] -Recurse -File | Where-Object {
 if ($forbidden) { throw "Forbidden release files: $($forbidden.FullName -join ', ')" }
 ```
 
-- [ ] **Step 2: Run verifier and confirm failure**
+- [x] **Step 2: Run verifier and confirm failure**
 
 Run: `powershell -File tests/release/verify_bundle.ps1 dist/windows`
 
 Expected: FAIL because no release bundle exists.
 
-- [ ] **Step 3: Create deterministic engine packaging**
+- [x] **Step 3: Create deterministic engine packaging**
 
 `fundlens_engine.spec` must use `COLLECT`/one-directory, include PaddleOCR runtime modules and only the required Chinese detection/recognition/classification models, exclude pytest/dev caches, and set `console=False`. `build_engine.ps1` recreates an isolated venv from `requirements.lock`, runs Python tests, invokes PyInstaller with `--clean --noconfirm`, copies model licenses, and calls `fundlens_engine.exe` with a health JSON line to verify protocol version 1.
 
 `InstalledEngineLocator` resolves only `<install-dir>/fundlens_engine/fundlens_engine.exe`, verifies it is inside the install directory, and never searches `PATH` or the user's Python installation.
 
-- [ ] **Step 4: Build Flutter release and installer**
+- [x] **Step 4: Build Flutter release and installer**
 
 `build_windows_release.ps1` executes:
 
@@ -393,7 +393,7 @@ git commit -m "build: package FundLens Windows installer"
 - Produces: reproducible acceptance commands and release evidence.
 - Consumes: signed or unsigned release candidate installer built in Task 4.
 
-- [ ] **Step 1: Add failing performance budgets**
+- [x] **Step 1: Add failing performance budgets**
 
 ```dart
 testWidgets('2000 holdings and 500 snapshots meet interaction budgets', (tester) async {
@@ -413,13 +413,13 @@ testWidgets('2000 holdings and 500 snapshots meet interaction budgets', (tester)
 });
 ```
 
-- [ ] **Step 2: Run performance test before optimization**
+- [x] **Step 2: Run performance test before optimization**
 
 Run on Windows release/profile mode: `flutter test integration_test/performance_test.dart -d windows`
 
 Expected: record actual numbers; if a budget fails, profile and fix the measured bottleneck without reducing precision or dropping records.
 
-- [ ] **Step 3: Write the clean-VM acceptance script**
+- [x] **Step 3: Write the clean-VM acceptance script**
 
 The script installs silently into a disposable Windows VM user, launches FundLens, waits for the window, then drives a documented manual checklist with synthetic files. It records installer hash, Windows version, Flutter/Dart/Python dependency locks, test commands, timings and screenshots that contain only synthetic data. It then upgrades over the previous build, confirms database retention, uninstalls, and confirms data remains unless the deletion option was explicitly selected.
 
@@ -434,7 +434,7 @@ Required checklist:
 7. Kill the engine and verify degraded manual/cached mode.
 8. Verify no advice wording and no real/user files in installation directory.
 
-- [ ] **Step 4: Write user-facing documentation and the test report**
+- [x] **Step 4: Write user-facing documentation and the test report**
 
 `user-guide.md` covers the six pages, supported assets, manual/CSV/Excel/OCR imports, partial/full distinction, quote dates, snapshot meaning and backup recovery. `known-limitations.md` explicitly states no direct bonds, no transaction records, no real-time quotes, no cloud, no Android and no investment advice. `privacy-and-security.md` documents local processing, temporary cleanup, database key storage, backup cryptography and log redaction without exposing secrets.
 
