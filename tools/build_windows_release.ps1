@@ -74,13 +74,19 @@ Invoke-Step 'Verify release bundle' {
   powershell -NoProfile -File (Join-Path $repoRoot 'tests\release\verify_bundle.ps1') $releaseDir
 }
 
-$iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-if (Test-Path $iscc) {
+# Inno Setup 6 may be installed per-machine (Program Files (x86)) or
+# per-user (%LOCALAPPDATA%\Programs, e.g. winget silent install).
+$isccCandidates = @(
+  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+  "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
+)
+$iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($iscc) {
   Invoke-Step 'Compile installer (Inno Setup)' {
     & $iscc (Join-Path $repoRoot 'installer\FundLens.iss')
   }
   Write-Host '==> Release complete: dist\installer\FundLens-Setup.exe'
 } else {
   Write-Host '==> ISCC.exe not found; skipping installer compile.'
-  Write-Host "    Install Inno Setup 6 and run: `"$iscc`" installer\FundLens.iss"
+  Write-Host "    Install Inno Setup 6 and run: ISCC.exe installer\FundLens.iss"
 }
