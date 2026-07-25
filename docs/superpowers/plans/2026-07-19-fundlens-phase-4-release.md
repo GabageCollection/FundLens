@@ -464,11 +464,11 @@ git commit -m "docs: add FundLens V1 release evidence"
 
 ## Phase 4 Completion Gate
 
-- [ ] Backup cryptography passes tamper, wrong-password and unique-randomness tests.
-- [ ] Failed restore cannot alter current data; post-close failure restores the recovery copy.
-- [ ] Logs and engine diagnostics pass secret-leak tests.
-- [ ] Installed app launches only its bundled, version-matched Python engine.
+- [x] Backup cryptography passes tamper, wrong-password and unique-randomness tests.
+- [x] Failed restore cannot alter current data; post-close failure restores the recovery copy.
+- [x] Logs and engine diagnostics pass secret-leak tests.
+- [x] Installed app launches only its bundled, version-matched Python engine.
 - [ ] Installer contains no fixtures, logs, backups, keys or user screenshots.
-- [ ] Performance budgets pass with 2,000 holdings and 500 snapshots.
+- [x] Performance budgets pass with 2,000 holdings and 500 snapshots.
 - [ ] Clean-VM install, upgrade, restore, degraded mode and uninstall retention pass.
-- [ ] User documentation states every V1 limitation and contains no investment advice.
+- [x] User documentation states every V1 limitation and contains no investment advice.
