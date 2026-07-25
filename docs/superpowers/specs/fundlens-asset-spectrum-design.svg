@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1120" viewBox="0 0 1680 1120">
+  <defs>
+    <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7D8A86"/><stop offset=".18" stop-color="#9FA7A3"/>
+      <stop offset=".32" stop-color="#625BD4"/><stop offset=".56" stop-color="#827BE6"/>
+      <stop offset=".72" stop-color="#2E8162"/><stop offset=".88" stop-color="#D2A05B"/><stop offset="1" stop-color="#C54B40"/>
+    </linearGradient>
+    <linearGradient id="focus" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#625BD4"/><stop offset="1" stop-color="#2E8162"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#08100d" flood-opacity=".16"/></filter>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#121817}
+      .display{font-family:"Noto Serif CJK SC","Source Han Serif SC","Microsoft YaHei",serif;font-weight:600}
+      .mono{font-family:"IBM Plex Mono","Roboto Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+      .white{fill:#fff}.muted{fill:#68736f}.faint{fill:#919b97}.indigo{fill:#625BD4}.profit{fill:#C54B40}.loss{fill:#2E8162}
+      .h1{font-size:34px}.h2{font-size:24px}.h3{font-size:18px;font-weight:650}.body{font-size:15px}.small{font-size:13px}.tiny{font-size:11px}.number{font-size:42px;font-weight:550;letter-spacing:-2px}.mnumber{font-size:31px;font-weight:550;letter-spacing:-1px}
+    </style>
+  </defs>
+
+  <rect width="1680" height="1120" fill="#E9EEEB"/>
+  <text x="58" y="60" class="display h1">FundLens · Asset Spectrum</text>
+  <text x="58" y="96" class="body muted">视觉概念：把分散持仓压缩成一条可聚焦的“资产光谱”，让结构先于建议、事实先于判断。</text>
+  <rect x="1426" y="39" width="194" height="44" rx="22" fill="#121817"/><circle cx="1453" cy="61" r="7" fill="#92D9C8"/><text x="1472" y="67" class="small white">Windows + Android</text>
+
+  <!-- Desktop shell -->
+  <g filter="url(#shadow)"><rect x="55" y="135" width="1085" height="735" rx="25" fill="#F7F9F7"/></g>
+  <rect x="55" y="135" width="188" height="735" rx="25" fill="#121817"/>
+  <rect x="219" y="135" width="24" height="735" fill="#121817"/>
+  <circle cx="91" cy="178" r="16" fill="url(#focus)"/><circle cx="91" cy="178" r="7" fill="#121817" stroke="#fff" stroke-width="2"/>
+  <text x="119" y="185" class="white h3">FundLens</text>
+  <text x="81" y="235" class="tiny" fill="#82908A">统一资产组合</text>
+  <rect x="75" y="264" width="148" height="45" rx="8" fill="#222B28"/><rect x="75" y="264" width="3" height="45" rx="2" fill="#92D9C8"/><text x="98" y="292" class="small white">资产总览</text>
+  <text x="98" y="346" class="small" fill="#A8B1AD">全部持仓</text><text x="98" y="397" class="small" fill="#A8B1AD">历史快照</text><text x="98" y="448" class="small" fill="#A8B1AD">导入与识别</text><text x="98" y="499" class="small" fill="#A8B1AD">数据校验</text>
+  <line x1="75" y1="542" x2="223" y2="542" stroke="#313B37"/>
+  <text x="98" y="584" class="small" fill="#A8B1AD">设置</text>
+  <rect x="75" y="794" width="148" height="52" rx="9" fill="#1B2421"/><text x="90" y="815" class="tiny" fill="#84918B">数据保存在此设备</text><text x="90" y="834" class="tiny" fill="#92D9C8">上次备份 · 7月18日</text>
+
+  <!-- desktop main -->
+  <text x="281" y="182" class="display h2">今天的资产结构</text>
+  <text x="281" y="210" class="small muted">2026年7月19日 · 行情更新至昨日收盘</text>
+  <rect x="1000" y="166" width="103" height="38" rx="19" fill="#fff" stroke="#DCE3DF"/><text x="1021" y="190" class="small">切换快照</text>
+
+  <text x="281" y="274" class="tiny muted" letter-spacing="1.5">TOTAL ASSETS · 总资产</text>
+  <text x="281" y="330" class="mono number">¥ 386,420.00</text>
+  <text x="281" y="365" class="small muted">持有成本 ¥373,560.00</text>
+  <line x1="572" y1="270" x2="572" y2="365" stroke="#D8DFDB"/>
+  <text x="608" y="287" class="tiny muted" letter-spacing="1.2">FLOATING P/L</text><text x="608" y="325" class="mono h2 profit">+ ¥12,860.00</text><text x="608" y="354" class="small profit">+3.44%</text>
+  <line x1="814" y1="270" x2="814" y2="365" stroke="#D8DFDB"/>
+  <text x="850" y="287" class="tiny muted" letter-spacing="1.2">HOLDINGS</text><text x="850" y="325" class="mono h2">24</text><text x="850" y="354" class="small muted">6 类资产</text>
+
+  <!-- Asset spectrum signature -->
+  <text x="281" y="420" class="h3">资产光谱</text><text x="381" y="420" class="small muted">点击任一颜色，聚焦相应资产</text>
+  <rect x="281" y="444" width="821" height="32" rx="7" fill="url(#spectrum)"/>
+  <line x1="428" y1="444" x2="428" y2="476" stroke="#F7F9F7" stroke-width="3"/><line x1="543" y1="444" x2="543" y2="476" stroke="#F7F9F7" stroke-width="3"/><line x1="811" y1="444" x2="811" y2="476" stroke="#F7F9F7" stroke-width="3"/><line x1="948" y1="444" x2="948" y2="476" stroke="#F7F9F7" stroke-width="3"/>
+  <rect x="533" y="433" width="288" height="54" rx="10" fill="none" stroke="#121817" stroke-width="2"/>
+  <path d="M 816 481 L 832 497" stroke="#121817" stroke-width="2"/><circle cx="838" cy="503" r="8" fill="none" stroke="#121817" stroke-width="2"/>
+  <text x="281" y="510" class="tiny muted">现金 12%</text><text x="425" y="510" class="tiny muted">存款 10%</text><text x="541" y="510" class="tiny indigo">股票与场内基金 34%</text><text x="813" y="510" class="tiny muted">场外基金 26%</text><text x="951" y="510" class="tiny muted">黄金 18%</text>
+
+  <!-- lower content -->
+  <rect x="281" y="552" width="478" height="280" rx="10" fill="#fff" stroke="#DCE3DF"/>
+  <text x="305" y="589" class="h3">聚焦 · 股票与场内基金</text><text x="693" y="589" class="small indigo">34%</text>
+  <text x="305" y="626" class="tiny faint">产品</text><text x="568" y="626" class="tiny faint">当前金额</text><text x="680" y="626" class="tiny faint">盈亏</text>
+  <line x1="305" y1="642" x2="735" y2="642" stroke="#E3E8E5"/>
+  <circle cx="312" cy="672" r="5" fill="#625BD4"/><text x="327" y="677" class="small">沪深300 ETF</text><text x="560" y="677" class="mono small">¥52,310</text><text x="680" y="677" class="mono small profit">+8.2%</text>
+  <line x1="305" y1="696" x2="735" y2="696" stroke="#EDF0EE"/>
+  <circle cx="312" cy="726" r="5" fill="#827BE6"/><text x="327" y="731" class="small">红利低波 ETF</text><text x="560" y="731" class="mono small">¥31,200</text><text x="680" y="731" class="mono small profit">+3.9%</text>
+  <line x1="305" y1="750" x2="735" y2="750" stroke="#EDF0EE"/>
+  <circle cx="312" cy="780" r="5" fill="#9C96EB"/><text x="327" y="785" class="small">某场内股票</text><text x="560" y="785" class="mono small">¥28,760</text><text x="680" y="785" class="mono small loss">−2.1%</text>
+
+  <rect x="781" y="552" width="321" height="280" rx="10" fill="#fff" stroke="#DCE3DF"/>
+  <text x="805" y="589" class="h3">结构观察</text><rect x="999" y="569" width="79" height="28" rx="14" fill="#EEF1FF"/><text x="1017" y="588" class="tiny indigo">客观提示</text>
+  <circle cx="814" cy="631" r="5" fill="#625BD4"/><text x="832" y="627" class="small">最大单品占比 13.5%</text><text x="832" y="648" class="tiny muted">未达到 20% 关注线</text>
+  <line x1="805" y1="674" x2="1078" y2="674" stroke="#EDF0EE"/>
+  <circle cx="814" cy="708" r="5" fill="#D2A05B"/><text x="832" y="704" class="small">黄金资产占比 18.0%</text><text x="832" y="725" class="tiny muted">较上一快照增加 1.8%</text>
+  <line x1="805" y1="751" x2="1078" y2="751" stroke="#EDF0EE"/>
+  <circle cx="814" cy="785" r="5" fill="#2E8162"/><text x="832" y="781" class="small">现金与存款占比 22.0%</text><text x="832" y="802" class="tiny muted">流动性结构正常</text>
+
+  <!-- Mobile -->
+  <g filter="url(#shadow)"><rect x="1210" y="135" width="355" height="735" rx="45" fill="#121817"/></g>
+  <rect x="1221" y="150" width="333" height="705" rx="36" fill="#F7F9F7"/>
+  <rect x="1325" y="163" width="126" height="22" rx="11" fill="#121817"/>
+  <circle cx="1252" cy="205" r="13" fill="url(#focus)"/><text x="1275" y="211" class="h3">FundLens</text><circle cx="1518" cy="205" r="16" fill="#fff" stroke="#DCE3DF"/><circle cx="1518" cy="205" r="4" fill="#625BD4"/>
+  <text x="1247" y="259" class="tiny muted" letter-spacing="1.2">TOTAL ASSETS</text><text x="1247" y="301" class="mono mnumber">¥386,420</text><text x="1247" y="329" class="small profit">+¥12,860 · +3.44%</text>
+  <text x="1247" y="382" class="h3">资产光谱</text>
+  <rect x="1247" y="401" width="281" height="27" rx="7" fill="url(#spectrum)"/><rect x="1339" y="391" width="95" height="47" rx="9" fill="none" stroke="#121817" stroke-width="2"/>
+  <text x="1247" y="459" class="tiny muted">已聚焦：股票与场内基金</text><text x="1499" y="459" class="mono tiny indigo">34%</text>
+  <rect x="1247" y="489" width="281" height="74" rx="10" fill="#fff" stroke="#DCE3DF"/><text x="1264" y="517" class="small">沪深300 ETF</text><text x="1264" y="546" class="mono h3">¥52,310</text><text x="1468" y="546" class="mono small profit">+8.2%</text>
+  <rect x="1247" y="574" width="281" height="74" rx="10" fill="#fff" stroke="#DCE3DF"/><text x="1264" y="602" class="small">红利低波 ETF</text><text x="1264" y="631" class="mono h3">¥31,200</text><text x="1468" y="631" class="mono small profit">+3.9%</text>
+  <text x="1247" y="692" class="h3">结构观察</text>
+  <rect x="1247" y="713" width="281" height="67" rx="10" fill="#EEF1FF"/><circle cx="1267" cy="746" r="5" fill="#625BD4"/><text x="1282" y="741" class="small">最大单品占比 13.5%</text><text x="1282" y="762" class="tiny muted">未达到 20% 关注线</text>
+  <rect x="1221" y="803" width="333" height="52" fill="#fff"/><line x1="1221" y1="803" x2="1554" y2="803" stroke="#DCE3DF"/>
+  <circle cx="1265" cy="826" r="7" fill="#625BD4"/><circle cx="1346" cy="826" r="6" fill="#A8B1AD"/><circle cx="1427" cy="826" r="6" fill="#A8B1AD"/><circle cx="1508" cy="826" r="6" fill="#A8B1AD"/>
+
+  <!-- Design tokens -->
+  <text x="58" y="928" class="display h2">视觉系统</text>
+  <text x="58" y="962" class="small muted">少圆角、弱阴影、细分隔线；强调数字对齐与信息密度，不堆叠通用卡片。</text>
+  <rect x="58" y="997" width="34" height="34" rx="8" fill="#121817"/><text x="103" y="1019" class="tiny">Graphite  #121817</text>
+  <rect x="252" y="997" width="34" height="34" rx="8" fill="#F2F5F3" stroke="#DCE3DF"/><text x="297" y="1019" class="tiny">Frost  #F2F5F3</text>
+  <rect x="430" y="997" width="34" height="34" rx="8" fill="#625BD4"/><text x="475" y="1019" class="tiny">Lens Indigo  #625BD4</text>
+  <rect x="669" y="997" width="34" height="34" rx="8" fill="#C54B40"/><text x="714" y="1019" class="tiny">Profit  #C54B40</text>
+  <rect x="866" y="997" width="34" height="34" rx="8" fill="#2E8162"/><text x="911" y="1019" class="tiny">Loss  #2E8162</text>
+  <text x="1180" y="996" class="display h3">思源宋体</text><text x="1180" y="1024" class="small muted">标题 / 快照日期</text>
+  <text x="1371" y="996" class="h3">思源黑体</text><text x="1371" y="1024" class="small muted">界面 / 正文</text>
+  <text x="1528" y="996" class="mono h3">386,420</text><text x="1528" y="1024" class="small muted">IBM Plex Mono</text>
+</svg>
