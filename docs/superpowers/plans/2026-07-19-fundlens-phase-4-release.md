@@ -245,7 +245,7 @@ git commit -m "feat(backup): add safe backup and restore workflow"
 - Produces: structured redacted events and allowlisted file access.
 - Consumes: event codes, non-sensitive counts/durations and user-selected canonical paths.
 
-- [ ] **Step 1: Write failing secret-leak tests**
+- [x] **Step 1: Write failing secret-leak tests**
 
 ```dart
 test('logger removes money, OCR text, keys and passwords', () {
@@ -270,23 +270,23 @@ def test_engine_rejects_unselected_path(tmp_path) -> None:
         validate_selected_file(str(tmp_path / "not-selected.png"), allowed_paths=[])
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/security && python -m pytest engine/tests/test_security.py -q`
 
 Expected: FAIL because security adapters do not exist.
 
-- [ ] **Step 3: Implement allowlists and redaction**
+- [x] **Step 3: Implement allowlists and redaction**
 
 Logger accepts only registered event schemas; keys `amount`, `value`, `profit`, `ocr_text`, `screenshot`, `database_key`, `backup_password`, `password` are always replaced with `"[REDACTED]"`. Unknown values default to redacted, not included.
 
 Canonicalize selected paths before sending them to Python. Python resolves symlinks, requires the resolved path to equal one of the request's exact allowlisted paths, verifies regular-file type and extension, and imposes per-file/total size limits. The engine writes only beneath its provided job temp directory.
 
-- [ ] **Step 4: Implement cleanup and crash recovery**
+- [x] **Step 4: Implement cleanup and crash recovery**
 
 `TemporaryImportStore` creates per-job directories with restrictive permissions where available, records no user content in names, and removes them after commit/discard. On app startup it removes orphaned job directories older than 24 hours. Cleanup failures create a nonblocking privacy issue and retry on next launch.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `flutter test apps/fundlens_windows/test/security && python -m pytest engine/tests/test_security.py -q && python -m ruff check engine`
 
