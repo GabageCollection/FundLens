@@ -1,16 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fundlens_windows/backup/backup_service.dart';
+import 'package:fundlens_windows/backup/database_restore_service.dart';
 import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
+import 'package:fundlens_windows/features/settings/backup_section.dart';
 import 'package:fundlens_windows/features/settings/settings_page.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
-Future<ProviderContainer> pumpSettings(WidgetTester tester) async {
+final class _NoopBackupService implements BackupService {
+  @override
+  Future<void> create(String destination, String password) async {}
+}
+
+final class _NoopRestoreService implements DatabaseRestoreService {
+  @override
+  Future<void> restore(String source, String password) async {}
+}
+
+Future<ProviderContainer> pumpSettings(
+  WidgetTester tester, {
+  List<Override> overrides = const [],
+}) async {
   tester.view.physicalSize = const Size(1280, 720);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
+      overrides: overrides,
       child: MaterialApp(
         theme: FundLensTheme.light,
         home: const SettingsPage(),
@@ -113,6 +131,49 @@ void main() {
     expect(
       find.descendant(of: backupSection, matching: find.text('备份功能当前不可用。')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('backup controls are enabled when backup services are wired',
+      (tester) async {
+    await pumpSettings(
+      tester,
+      overrides: [
+        backupServiceProvider.overrideWithValue(_NoopBackupService()),
+        databaseRestoreServiceProvider.overrideWithValue(_NoopRestoreService()),
+      ],
+    );
+
+    expect(find.text('备份功能当前不可用。'), findsNothing);
+
+    final createPassword = find.byKey(const ValueKey('backup-create-password'));
+    await tester.ensureVisible(createPassword);
+    await tester.pumpAndSettle();
+    await tester.enterText(createPassword, 'pw');
+    await tester.enterText(
+      find.byKey(const ValueKey('backup-create-confirm')),
+      'pw',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilledButton>(
+              find.byKey(const ValueKey('backup-create-button')))
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('backup-restore-password')),
+      'pw',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<OutlinedButton>(
+              find.byKey(const ValueKey('backup-restore-button')))
+          .onPressed,
+      isNotNull,
     );
   });
 }

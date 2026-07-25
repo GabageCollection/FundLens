@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../application/app_dependencies.dart';
 import '../../backup/backup_cipher.dart';
 import '../../backup/backup_format.dart';
 import '../../backup/backup_service.dart';
@@ -168,6 +169,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     setState(() => _busy = true);
     try {
       await service.restore(picked, _restorePassword.text);
+      // The restore closed and reopened the physical database; refresh all
+      // database-dependent providers so the UI reflects the restored data.
+      ref.read(databaseRevisionProvider.notifier).state++;
       _setFeedback('恢复完成。', isError: false);
     } on BackupAuthenticationException {
       _setFeedback('备份密码不正确或备份文件已损坏。', isError: true);

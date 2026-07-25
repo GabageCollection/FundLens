@@ -10,17 +10,19 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app/fundlens_app.dart';
 import 'application/app_dependencies.dart';
+import 'backup/backup_service.dart';
+import 'backup/database_restore_service.dart';
+import 'backup/pointycastle_backup_cipher.dart';
 import 'data_engine/local_engine_process.dart';
 import 'data_engine/process_data_engine_client.dart';
 import 'features/holdings/holdings_page.dart';
 import 'features/import_review/import_review_controller.dart';
 import 'features/import_review/import_source_panel.dart';
+import 'features/settings/backup_section.dart';
 import 'market/quote_refresh_service.dart';
 import 'storage/app_database.dart';
 import 'storage/database_key_store.dart';
 import 'storage/database_opener.dart';
-import 'storage/holding_repository.dart';
-import 'storage/snapshot_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,9 +38,11 @@ Future<void> main() async {
   );
   final keyHex = await keyStore.readOrCreate();
   final database = AppDatabase(openEncryptedDatabase(dbFile, keyHex));
+  final lifecycle =
+      DriftDatabaseLifecycle(databaseFile: dbFile, database: database);
 
-  final holdingRepository = DriftHoldingRepository(database);
-  final snapshotRepository = DriftSnapshotRepository(database);
+  final backupCipher = PointyCastleBackupCipher();
+  const backupFiles = IoBackupFileSystem();
 
   // The data engine runs as a supervised local Python child process.
   final engineClient = ProcessDataEngineClient(
@@ -50,8 +54,28 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
-        holdingRepositoryProvider.overrideWithValue(holdingRepository),
-        snapshotRepositoryProvider.overrideWithValue(snapshotRepository),
+        databaseLifecycleProvider.overrideWithValue(lifecycle),
+        backupServiceProvider.overrideWithValue(
+          BackupService(
+            databasePath: dbFile.path,
+            lifecycle: lifecycle,
+            keyStore: keyStore,
+            cipher: backupCipher,
+            files: backupFiles,
+          ),
+        ),
+        databaseRestoreServiceProvider.overrideWithValue(
+          DatabaseRestoreService(
+            databasePath: dbFile.path,
+            lifecycle: lifecycle,
+            keyStore: keyStore,
+            cipher: backupCipher,
+            files: backupFiles,
+            inspector: const SqliteBackupDatabaseInspector(),
+            supportedSchemaVersion: database.schemaVersion,
+            recoveryDirectoryPath: p.join(supportDir.path, 'restore-recovery'),
+          ),
+        ),
         portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
         dataQualityCalculatorProvider
             .overrideWithValue(DataQualityCalculator()),
@@ -68,11 +92,13 @@ Future<void> main() async {
             File(p.join(supportDir.path, 'import_draft.json')),
           ),
         ),
-        quoteRefreshServiceProvider.overrideWithValue(
-          QuoteRefreshService(
+        // Resolved through the provider graph so a completed restore swaps
+        // the underlying database for quote writes as well.
+        quoteRefreshServiceProvider.overrideWith(
+          (ref) => QuoteRefreshService(
             engine: engineClient,
-            holdings: holdingRepository,
-            quoteCache: DriftQuoteCacheStore(database),
+            holdings: ref.watch(holdingRepositoryProvider),
+            quoteCache: DriftQuoteCacheStore(ref.watch(appDatabaseProvider)),
             clock: DateTime.now,
           ),
         ),

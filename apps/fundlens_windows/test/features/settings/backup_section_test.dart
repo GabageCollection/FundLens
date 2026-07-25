@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/backup/backup_cipher.dart';
 import 'package:fundlens_windows/backup/backup_format.dart';
 import 'package:fundlens_windows/backup/backup_service.dart';
@@ -217,6 +218,11 @@ void main() {
     expect(restoreService.calls.single.password, 'pw');
     expect(find.textContaining('恢复完成'), findsOneWidget);
     expect(fieldText(tester, 'backup-restore-password'), isEmpty);
+    // A successful restore refreshes database-dependent providers.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BackupSection)),
+    );
+    expect(container.read(databaseRevisionProvider), 1);
   });
 
   testWidgets('wrong restore password shows an authentication error',
@@ -238,6 +244,11 @@ void main() {
 
     expect(find.textContaining('备份密码不正确或备份文件已损坏'), findsOneWidget);
     expect(fieldText(tester, 'backup-restore-password'), isEmpty);
+    // A failed restore must not refresh providers: nothing was replaced.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BackupSection)),
+    );
+    expect(container.read(databaseRevisionProvider), 0);
   });
 
   testWidgets('busy state disables actions and shows progress', (tester) async {
