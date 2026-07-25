@@ -1,0 +1,48 @@
+FundLens — Third-Party License Notices
+======================================
+
+FundLens bundles the following third-party components. Full license texts
+are reproduced in the locations listed below; this file is an index, not a
+substitute for those texts.
+
+Flutter SDK and Flutter framework
+  License: BSD 3-Clause
+  Full text: https://github.com/flutter/flutter/blob/master/LICENSE
+  (shipped with the SDK at <flutter-sdk>/LICENSE)
+
+Dart packages (via pub.dev; each package's LICENSE ships in the pub cache
+and is listed in the app's dependency lockfile):
+  pointycastle   — Bouncy Castle license (MIT-style)
+  Drift (drift)  — MIT
+  plus the other direct/transitive dependencies listed in
+  apps/fundlens_windows/pubspec.lock and packages/fundlens_core/pubspec.lock.
+
+sqlite3multipleciphers (SQLite3 Multiple Ciphers, SQLCipher-compatible)
+  License: MIT
+  Full text: https://github.com/utelle/SQLite3MultipleCiphers/blob/main/LICENSE
+
+PaddleOCR
+  License: Apache License 2.0
+  Full text: https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE
+  Bundled copy: fundlens_engine/licenses/paddleocr_* (when present in the
+  installed Python packages at build time)
+
+PaddlePaddle
+  License: Apache License 2.0
+  Full text: https://github.com/PaddlePaddle/Paddle/blob/main/LICENSE
+  Bundled copy: fundlens_engine/licenses/paddle_* (when present in the
+  installed Python packages at build time)
+
+PaddleOCR pre-trained inference models (PP-OCR series, PP-LCNet textline
+orientation classifier)
+  Released by the PaddleOCR project under the Apache License 2.0.
+  Source: https://github.com/PaddlePaddle/PaddleOCR
+
+Python runtime and Python packages locked in engine/requirements.lock
+  Each package's license ships inside its installed distribution metadata
+  (site-packages/*.dist-info); see the lockfile for the exact set.
+
+NOTE FOR RELEASE BUILDERS: verify the per-package license files listed
+above are present in the final bundle (tools/build_engine.ps1 copies the
+ones it finds into fundlens_engine/licenses/) before publishing
+FundLens-Setup.exe.

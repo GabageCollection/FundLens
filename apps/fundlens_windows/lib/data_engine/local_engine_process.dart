@@ -5,8 +5,8 @@ import 'dart:io';
 import 'process_data_engine_client.dart';
 
 /// [EngineProcessHandle] backed by a real child [Process].
-final class _IoEngineProcessHandle implements EngineProcessHandle {
-  _IoEngineProcessHandle(this._process);
+final class IoEngineProcessHandle implements EngineProcessHandle {
+  IoEngineProcessHandle(this._process);
 
   final Process _process;
 
@@ -73,6 +73,6 @@ final class LocalEngineProcessAdapter implements ProcessAdapter {
       workingDirectory: engineDirectory,
       environment: {'PYTHONPATH': 'src'},
     );
-    return _IoEngineProcessHandle(process);
+    return IoEngineProcessHandle(process);
   }
 }

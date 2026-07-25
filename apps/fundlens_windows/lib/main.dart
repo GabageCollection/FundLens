@@ -14,6 +14,7 @@ import 'application/app_dependencies.dart';
 import 'backup/backup_service.dart';
 import 'backup/database_restore_service.dart';
 import 'backup/pointycastle_backup_cipher.dart';
+import 'data_engine/installed_engine_locator.dart';
 import 'data_engine/local_engine_process.dart';
 import 'data_engine/process_data_engine_client.dart';
 import 'features/holdings/holdings_page.dart';
@@ -46,12 +47,13 @@ Future<void> main() async {
   final backupCipher = PointyCastleBackupCipher();
   const backupFiles = IoBackupFileSystem();
 
-  // The data engine runs as a supervised local Python child process.
-  final engineClient = ProcessDataEngineClient(
-    adapter: LocalEngineProcessAdapter(
-      engineDirectory: _engineDirectory(),
-    ),
-  );
+  // The data engine runs as a supervised local child process. An installed
+  // build uses its bundled engine; development falls back to the repo venv.
+  final bundledEngine = const InstalledEngineLocator().locate();
+  final ProcessAdapter engineAdapter = bundledEngine != null
+      ? InstalledEngineProcessAdapter(executablePath: bundledEngine)
+      : LocalEngineProcessAdapter(engineDirectory: _engineDirectory());
+  final engineClient = ProcessDataEngineClient(adapter: engineAdapter);
 
   // Temporary screenshot copies live in per-job directories; orphans left
   // by a crash are swept on startup. Failures are nonblocking privacy

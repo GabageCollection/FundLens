@@ -20,6 +20,12 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .venv/
+.venv-build/
+
+# Release packaging outputs (built, never committed)
+dist/
+/engine/models/
+/engine/.pytest-basetemp/
 
 # Windows / IDE
 *.log
