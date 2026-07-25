@@ -37,7 +37,7 @@
 - Produces: `BackupCipher.encrypt/decrypt`, `FundLensBackupHeader`, `FundLensBackupPayload`, extension `.fundlens-backup`.
 - Consumes: raw encrypted-database bytes, its 64-character database key and a user password held only in memory.
 
-- [ ] **Step 1: Add crypto dependencies and failing round-trip tests**
+- [x] **Step 1: Add crypto dependencies and failing round-trip tests**
 
 Run: `cd apps/fundlens_windows && flutter pub add pointycastle crypto`
 
@@ -60,13 +60,13 @@ test('wrong password and tampering are indistinguishable to callers', () async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/backup`
 
 Expected: FAIL because backup types do not exist.
 
-- [ ] **Step 3: Implement the versioned container**
+- [x] **Step 3: Implement the versioned container**
 
 The binary layout is:
 
@@ -112,7 +112,7 @@ final class FundLensBackupHeader {
 
 Serialize maps in the literal key order above; decoder must ignore unknown header keys but reject unknown format/KDF/cipher versions before allocating large buffers.
 
-- [ ] **Step 4: Implement Argon2id and AES-GCM**
+- [x] **Step 4: Implement Argon2id and AES-GCM**
 
 ```dart
 Uint8List deriveBackupKey(String password, Uint8List salt) {
@@ -145,7 +145,7 @@ Uint8List cryptGcm(bool encrypt, Uint8List input, Uint8List key, Uint8List nonce
 
 Map GCM authentication failures and wrong passwords to `BackupAuthenticationException` without revealing which check failed. After decryption, compare payload SHA-256 in constant time, require an exactly 64-character lowercase hexadecimal database key, and reject a declared database length that differs from remaining bytes.
 
-- [ ] **Step 5: Run crypto tests and commit**
+- [x] **Step 5: Run crypto tests and commit**
 
 Run: `flutter test apps/fundlens_windows/test/backup && flutter analyze apps/fundlens_windows`
 
@@ -172,7 +172,7 @@ git commit -m "feat(backup): add authenticated encrypted backup format"
 - Produces: `BackupService.create(destination, password)`, `DatabaseRestoreService.restore(source, password)`.
 - Consumes: database lifecycle lock, database path, backup cipher, file-system adapter.
 
-- [ ] **Step 1: Write failing non-destructive restore tests**
+- [x] **Step 1: Write failing non-destructive restore tests**
 
 ```dart
 test('wrong password never closes or replaces current database', () async {
@@ -189,13 +189,13 @@ test('replacement failure restores the pre-restore copy', () async {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `flutter test apps/fundlens_windows/test/backup/database_restore_service_test.dart`
 
 Expected: FAIL because restore service does not exist.
 
-- [ ] **Step 3: Implement creation and staged restore**
+- [x] **Step 3: Implement creation and staged restore**
 
 `BackupService.create` acquires the database lifecycle lock, checkpoints WAL, copies the encrypted DB to a private temporary file, reads the current database key from `DatabaseKeyStore`, builds `FundLensBackupPayload(databaseKeyHex, databaseBytes)`, encrypts it with the user password, writes `destination.tmp`, fsyncs, then atomically renames. It deletes temporary material and zeroes the in-memory key bytes in `finally`.
 
@@ -212,11 +212,11 @@ Expected: FAIL because restore service does not exist.
 
 The candidate is never moved over current data before steps 1–3 pass.
 
-- [ ] **Step 4: Replace the reserved settings section with working controls**
+- [x] **Step 4: Replace the reserved settings section with working controls**
 
 UI requires password + confirmation on create, password on restore, file picker restricted to `.fundlens-backup`, progress state, and explicit restore warning. Never retain password in controller state after completion. Restore confirmation names the chosen file and states that a recovery copy will be kept.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `flutter test apps/fundlens_windows/test/backup apps/fundlens_windows/test/features/settings/backup_section_test.dart`
 
