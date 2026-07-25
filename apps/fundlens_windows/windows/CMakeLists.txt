@@ -4,7 +4,7 @@ project(fundlens_windows LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "fundlens_windows")
+set(BINARY_NAME "FundLens")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
