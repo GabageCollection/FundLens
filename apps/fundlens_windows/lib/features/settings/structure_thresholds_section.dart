@@ -143,6 +143,7 @@ class _StructureThresholdsSectionState
     final editing = _editing || _hasAny(thresholds);
 
     return SettingsSectionCard(
+      key: const ValueKey('structure-thresholds-section'),
       title: '结构阈值',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

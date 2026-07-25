@@ -26,11 +26,19 @@ Future<ProviderContainer> pumpSettings(WidgetTester tester) async {
 void main() {
   testWidgets('thresholds are opt-in with no ideal defaults', (tester) async {
     await pumpSettings(tester);
+    final thresholdsSection =
+        find.byKey(const ValueKey('structure-thresholds-section'));
     expect(find.textContaining('理想比例'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    expect(
+      find.descendant(of: thresholdsSection, matching: find.byType(TextField)),
+      findsNothing,
+    );
     await tester.tap(find.text('添加结构阈值'));
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsWidgets);
+    expect(
+      find.descendant(of: thresholdsSection, matching: find.byType(TextField)),
+      findsWidgets,
+    );
   });
 
   testWidgets('each threshold is labeled as user-set hint only', (tester) async {
@@ -82,19 +90,29 @@ void main() {
     expect(find.textContaining('脱敏'), findsOneWidget);
   });
 
-  testWidgets('backup section is descriptive only, without action buttons',
-      (tester) async {
+  testWidgets('backup section offers create and restore controls', (tester) async {
     await pumpSettings(tester);
-    expect(find.text('加密备份'), findsOneWidget);
     final backupSection = find.byKey(const ValueKey('backup-section'));
     expect(backupSection, findsOneWidget);
     expect(
-      find.descendant(of: backupSection, matching: find.byType(FilledButton)),
-      findsNothing,
+      find.descendant(of: backupSection, matching: find.text('加密备份')),
+      findsOneWidget,
     );
     expect(
-      find.descendant(of: backupSection, matching: find.byType(OutlinedButton)),
-      findsNothing,
+      find.descendant(of: backupSection, matching: find.text('创建加密备份')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: backupSection,
+        matching: find.text('选择备份文件并恢复'),
+      ),
+      findsOneWidget,
+    );
+    // No backup services are wired in this harness: controls are disabled.
+    expect(
+      find.descendant(of: backupSection, matching: find.text('备份功能当前不可用。')),
+      findsOneWidget,
     );
   });
 }
