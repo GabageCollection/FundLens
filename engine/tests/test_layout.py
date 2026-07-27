@@ -3,6 +3,7 @@
 from fundlens_engine.ocr.layout import (
     anchor_columns,
     group_into_lines,
+    is_money,
     is_noise,
     layout_unknown_row,
 )
@@ -95,3 +96,38 @@ def test_layout_unknown_row_is_blocking_without_fields() -> None:
     assert issue.code == "ocr.layout_unknown"
     assert issue.severity == "blocking"
     assert "测试版式" in issue.message
+
+
+def test_group_into_lines_scales_tolerance_with_token_height() -> None:
+    """真实支付宝截图坐标：60px 高的表头 token，y 中心最大相差 22，必须同一行。"""
+    header = [
+        tok("累计收益", 1.0, 1034, 330, 190, 66),  # center 363
+        tok("日收益", 1.0, 465, 335, 150, 80),  # center 375
+        tok("持有收益", 1.0, 726, 342, 188, 61),  # center 372
+        tok("名称/金额", 0.99, 35, 355, 200, 60),  # center 385
+    ]
+    lines = group_into_lines(header)
+    assert len(lines) == 1
+    assert {t.text for t in lines[0]} == {"名称/金额", "日收益", "持有收益", "累计收益"}
+
+
+def test_group_into_lines_keeps_distinct_rows_separate() -> None:
+    """60px 高 token、行心距 65 的两行不得合并。"""
+    tokens = [
+        tok("纳指", 1.0, 0, 644, 116, 72),  # center 680
+        tok("12,893.40", 0.99, 0, 714, 217, 62),  # center 745
+    ]
+    assert len(group_into_lines(tokens)) == 2
+
+
+def test_is_money_tolerates_trailing_dot_from_dashed_gridlines() -> None:
+    """分时图虚线贴着坐标轴数字时 OCR 会带出尾点（'2.255.'），仍按数字分类。"""
+    assert is_money("2.255.")
+    assert is_money("4.647．")
+    assert not is_money("2.255..")
+    assert not is_money(".")
+
+
+def test_is_noise_drops_empty_tokens() -> None:
+    assert is_noise(tok("", 0.0, 0, 2086, 213, 73))
+    assert is_noise(tok("  ", 0.1, 0, 500, 100, 30))

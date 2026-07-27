@@ -5,6 +5,8 @@
 无符号的盈亏/盈亏% 按列语义视为正数并附 warning，由人工确认把关。
 """
 
+import re
+
 from .backend import DraftRow, OcrIssue, OcrToken
 from .layout import (
     ColumnLayout,
@@ -52,11 +54,22 @@ def _drop_quote_lines(tokens: list[OcrToken], y_tolerance: int = 18) -> list[Ocr
     ]
 
 
+_ANCHOR_RE = re.compile(r"[一-鿿A-Za-z]")
+
+
 def _name_tokens(layout: ColumnLayout, line: list[OcrToken]) -> list[OcrToken]:
+    """名称 token：首列文本，且至少含一个中日韩字符或字母。
+
+    坐标轴虚线带出的尾点数字已按 money 分类；'-'、'•'、'□' 这类
+    纯符号碎块在这里被进一步挡掉，避免生成幻影持仓。
+    """
     return [
         t
         for t in line
-        if layout.column_of(t) == "value" and not is_money(t.text) and not is_ratio(t.text)
+        if layout.column_of(t) == "value"
+        and not is_money(t.text)
+        and not is_ratio(t.text)
+        and _ANCHOR_RE.search(t.text)
     ]
 
 
@@ -155,8 +168,9 @@ def parse_ths(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
         names = _name_tokens(layout, line)
 
         if pending is None:
-            if not names:
-                continue  # 图表残片、空行
+            has_numbers = any(is_money(t.text) for t in line)
+            if not names or not has_numbers:
+                continue  # 图表残片、导航图标碎块（有汉字但零数字）、空行
             pending = DraftRow(page_index=page_index)
             rows.append(pending)
             pending.fields["product_name"] = make_field("product_name", names, page_index)

@@ -10,8 +10,11 @@ logger = logging.getLogger("fundlens_engine")
 
 # Screenshots larger than this on their long side are downscaled before
 # inference: detection cost scales with pixels while the fund-app text stays
-# comfortably legible at this size.
-MAX_INPUT_LONG_SIDE = 1600
+# comfortably legible at this size. Do not lower this: at 1600 the small
+# colored digits of the THS positions page degrade beyond recognition
+# (measured: '40.70' → '020' @0.24); at 2200 the same row reads ≥0.94 with
+# negligible latency change (12.6s → 13.5s on CPU).
+MAX_INPUT_LONG_SIDE = 2200
 
 
 class PaddleBackend:

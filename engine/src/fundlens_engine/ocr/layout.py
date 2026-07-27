@@ -40,7 +40,7 @@ TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
 
 QUOTE_TICK_RE = re.compile(r"(最新|额|换)[:：]")
 
-MONEY_RE = re.compile(r"^[+＋\-－]?[\d,，]*\d(?:[\.．]\d+)?$")
+MONEY_RE = re.compile(r"^[+＋\-－]?[\d,，]*\d(?:[\.．]\d+)?[\.．]?$")
 
 SIGNED_RE = re.compile(r"^[+＋\-－]")
 
@@ -75,6 +75,8 @@ def is_noise(token: OcrToken) -> bool:
     if y + h // 2 < STATUS_BAR_MAX_Y:
         return True
     text = token.text.strip()
+    if not text:
+        return True
     if text in NAV_LABELS:
         return True
     if TIME_RE.match(normalize_text(text)):
@@ -87,13 +89,18 @@ def is_noise(token: OcrToken) -> bool:
 
 
 def group_into_lines(tokens: Iterable[OcrToken], y_tolerance: int = 18) -> list[list[OcrToken]]:
-    """Group tokens into horizontal lines by vertical center."""
+    """Group tokens into horizontal lines by vertical center.
+
+    容差随 token 高度自适应：大图下采样比例小、字号大时，同一视觉行的
+    中心偏移会超过固定 18px（真实支付宝表头实测最大 22px）。
+    """
     ordered = sorted(tokens, key=lambda t: (t.box[1] + t.box[3] // 2, t.box[0]))
     lines: list[list[OcrToken]] = []
     centers: list[int] = []
     for token in ordered:
         center = token.box[1] + token.box[3] // 2
-        if lines and abs(center - centers[-1]) <= y_tolerance:
+        tolerance = max(y_tolerance, token.box[3] // 2)
+        if lines and abs(center - centers[-1]) <= tolerance:
             lines[-1].append(token)
         else:
             lines.append([token])
