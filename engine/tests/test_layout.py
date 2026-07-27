@@ -1,7 +1,6 @@
 """Tests for header-anchored column layout and noise filtering."""
 
 from fundlens_engine.ocr.layout import (
-    ColumnLayout,
     anchor_columns,
     group_into_lines,
     is_noise,

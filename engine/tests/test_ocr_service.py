@@ -154,6 +154,18 @@ def test_rpc_handler_parses_and_never_deletes_source(fake_ocr_tokens: FakeOcrTok
     assert fixture.is_file()
 
 
+def test_parse_screenshots_surfaces_layout_unknown_as_blocking() -> None:
+    backend = FakeBackend([tok("一些无法识别的文字", 0.90, 40, 200, 200, 30)])
+    params = {"template": "alipay", "paths": [str(FIXTURE_DIR / "alipay_synthetic.png")]}
+    result = parse_screenshots(params, backend)
+    assert len(result["rows"]) == 1
+    assert result["rows"][0]["fields"] == {}
+    assert any(
+        issue["code"] == "ocr.layout_unknown" and issue["holding_index"] == 0
+        for issue in result["issues"]
+    )
+
+
 def test_rpc_handler_rejects_bad_path_as_structured_error() -> None:
     server.set_ocr_backend(FakeBackend([]))
     try:
