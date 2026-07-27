@@ -119,7 +119,28 @@ def handle_line(line: str) -> dict[str, Any]:
         }
 
 
+def _configure_stdio_utf8() -> None:
+    """Force UTF-8 on the JSON-RPC pipes regardless of the host locale.
+
+    The Flutter client UTF-8-encodes request lines and decodes responses as
+    UTF-8, but a Python child on a Chinese-Windows host defaults its pipes
+    to GBK. Chinese text (screenshot paths in requests, product names in
+    responses) is then corrupted in both directions: requests arrive as
+    mojibake and responses fail UTF-8 decoding in the app, which silently
+    drops the line and lets the request run into its timeout.
+    """
+    for stream in (sys.stdin, sys.stdout):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="strict")
+    reconfigure_stderr = getattr(sys.stderr, "reconfigure", None)
+    if reconfigure_stderr is not None:
+        # Logs must never take the engine down on an odd byte.
+        reconfigure_stderr(encoding="utf-8", errors="replace")
+
+
 def main() -> None:
+    _configure_stdio_utf8()
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(message)s")
     logger.info("fundlens engine ready")
     for line in sys.stdin:
