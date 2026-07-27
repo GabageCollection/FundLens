@@ -1,23 +1,60 @@
-"""Alipay holdings screenshot parser.
+"""Alipay holdings parser: header-anchored columns + row state machine.
 
-Groups fake/real OCR tokens into holding blocks by vertical bands. Never
-infers sign from color; signs come only from explicit +/− characters.
+每个持仓固定四行结构：名称 → 标签（可缺）→ 数值（按列拆分）→ 占比（忽略）。
+字段归属只看列区间，与行内 token 顺序无关。符号只来自显式 +/− 字符。
 """
 
 from .backend import DraftRow, OcrIssue, OcrToken
 from .layout import (
+    ColumnLayout,
+    anchor_columns,
     group_into_lines,
     is_money,
     is_noise,
+    is_ratio,
     is_signed,
+    layout_unknown_row,
     make_field,
 )
-PROFIT_LABELS = {"持有收益": "holding_profit", "累计收益": "cumulative_profit"}
+
+ANCHORS = {
+    "value": {"名称/金额", "名称"},
+    "daily": {"日收益"},
+    "holding": {"持有收益"},
+    "cumulative": {"累计收益"},
+}
 
 REQUIRED_FIELDS = ("product_name", "current_value")
 NAME_THRESHOLD = 0.85
 AMOUNT_THRESHOLD = 0.90
 TAG_THRESHOLD = 0.70
+
+_NUMBER_SLOTS = {
+    "value": "current_value",
+    "holding": "holding_profit",
+    "cumulative": "cumulative_profit",
+}
+
+
+def _assign_numbers(
+    row: DraftRow, layout: ColumnLayout, line: list[OcrToken], page_index: int
+) -> None:
+    """把数值行的 money token 按列归入字段；日收益列与列外 token 丢弃。"""
+    for token in (t for t in line if is_money(t.text)):
+        field_name = _NUMBER_SLOTS.get(layout.column_of(token) or "")
+        if field_name is None:
+            continue
+        if field_name in row.fields:
+            row.issues.append(
+                OcrIssue(
+                    code="ocr.extra_token",
+                    field=field_name,
+                    severity="warning",
+                    message=f"列内多余数字 token {token.text!r} 已忽略",
+                )
+            )
+            continue
+        row.fields[field_name] = make_field(field_name, [token], page_index)
 
 
 def _add_confidence_issues(row: DraftRow) -> None:
@@ -69,35 +106,43 @@ def _finalize(row: DraftRow) -> None:
 
 def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
     lines = group_into_lines(t for t in tokens if not is_noise(t))
+    anchored = anchor_columns(lines, ANCHORS)
+    if anchored is None:
+        return [layout_unknown_row(page_index, "名称/金额、日收益、持有收益、累计收益")]
+    layout, header_index = anchored
+
     rows: list[DraftRow] = []
     current: DraftRow | None = None
+    state = "name"  # name -> tags -> numbers -> ratio -> name ...
 
-    for line in lines:
-        labels = [t for t in line if t.text.strip() in PROFIT_LABELS]
+    for line in lines[header_index + 1 :]:
         money = [t for t in line if is_money(t.text)]
-        texts = [t for t in line if t not in labels and t not in money]
+        texts = [t for t in line if not is_money(t.text) and not is_ratio(t.text)]
+        ratio_line = any(t.text.strip().startswith("占比") for t in line)
 
-        if labels:
-            if current is None:
-                continue
-            # Pair each profit label with the money token to its right.
-            for label in labels:
-                value = next(
-                    (t for t in money if t.box[0] > label.box[0]),
-                    None,
+        if state == "tags":
+            if texts and not money and not ratio_line:
+                assert current is not None
+                current.fields["platform_tags"] = make_field(
+                    "platform_tags", texts, page_index
                 )
-                if value is not None:
-                    name = PROFIT_LABELS[label.text.strip()]
-                    current.fields[name] = make_field(name, [value], page_index)
-        elif texts and not money:
-            if current is None or "current_value" in current.fields:
-                current = DraftRow(page_index=page_index)
-                rows.append(current)
-                current.fields["product_name"] = make_field("product_name", texts, page_index)
-            else:
-                current.fields["platform_tags"] = make_field("platform_tags", texts, page_index)
-        elif money and current is not None and "current_value" not in current.fields:
-            current.fields["current_value"] = make_field("current_value", [money[0]], page_index)
+                continue
+            state = "numbers"  # 标签行可缺
+
+        if state == "numbers":
+            if money:
+                assert current is not None
+                _assign_numbers(current, layout, line, page_index)
+                state = "ratio"
+                continue
+            state = "ratio"
+
+        # state 为 name 或 ratio：文本行开启新持仓，占比行与零散数字行忽略
+        if texts and not money and not ratio_line:
+            current = DraftRow(page_index=page_index)
+            rows.append(current)
+            current.fields["product_name"] = make_field("product_name", texts, page_index)
+            state = "tags"
 
     for row in rows:
         _finalize(row)
