@@ -26,8 +26,13 @@ final class ImportIdle extends ImportReviewState {
 }
 
 final class ImportParsing extends ImportReviewState {
-  const ImportParsing(this.progress);
+  const ImportParsing(this.progress, {this.currentStep, this.totalSteps});
   final double? progress;
+
+  /// 1-based step currently running, when parsing works through several
+  /// inputs (one per screenshot); null for single-shot parsing.
+  final int? currentStep;
+  final int? totalSteps;
 }
 
 final class ImportEditing extends ImportReviewState {
@@ -467,7 +472,14 @@ final class ImportReviewController extends ChangeNotifier {
   ImportMode get mode => _mode;
 
   /// OCR template hint for screenshot imports (`alipay` or `ths`).
-  String templateHint = 'alipay';
+  String get templateHint => _templateHint;
+  String _templateHint = 'alipay';
+
+  set templateHint(String value) {
+    if (value == _templateHint) return;
+    _templateHint = value;
+    notifyListeners();
+  }
 
   String? _template;
   String? get template => _template;
@@ -531,10 +543,10 @@ final class ImportReviewController extends ChangeNotifier {
   }
 
   Future<void> importCsv() async {
-    final file = await _picker.pickCsvFile();
-    if (file == null) return;
-    _setState(const ImportParsing(null));
     try {
+      final file = await _picker.pickCsvFile();
+      if (file == null) return;
+      _setState(const ImportParsing(null));
       final bytes = file.bytes ?? await File(file.path).readAsBytes();
       final draft = _parser.parseCsv(utf8.decode(bytes));
       await _enterEditing(draft);
@@ -544,10 +556,10 @@ final class ImportReviewController extends ChangeNotifier {
   }
 
   Future<void> importExcel() async {
-    final file = await _picker.pickExcelFile();
-    if (file == null) return;
-    _setState(const ImportParsing(null));
     try {
+      final file = await _picker.pickExcelFile();
+      if (file == null) return;
+      _setState(const ImportParsing(null));
       final bytes = file.bytes ?? await File(file.path).readAsBytes();
       final draft = _parser.parseExcel(bytes);
       await _enterEditing(draft);
@@ -557,22 +569,45 @@ final class ImportReviewController extends ChangeNotifier {
   }
 
   Future<void> importScreenshots() async {
-    final files = await _picker.pickScreenshotFiles();
-    if (files.isEmpty) return;
-    _setState(const ImportParsing(null));
     try {
+      final files = await _picker.pickScreenshotFiles();
+      if (files.isEmpty) return;
+      _setState(const ImportParsing(null));
       final tempPaths =
           await _tempStore.copyToTemp([for (final f in files) f.path]);
       final template = templateHint;
-      final response = await _engine.call(
-        'ocr.parse_screenshots',
-        {
-          'paths': const SelectedPathGuard().canonicalizeAll(tempPaths),
-          'template': template,
-        },
-      );
+      final canonicalPaths =
+          const SelectedPathGuard().canonicalizeAll(tempPaths);
+      // Recognize one screenshot per engine call: a single slow page can no
+      // longer stall the whole batch behind one timeout, and the UI can show
+      // real progress. The engine keeps its OCR models loaded between calls,
+      // so only the first call pays the model-loading cost — a generous
+      // per-call timeout covers that cold start in the frozen bundle.
+      final mergedRows = <Object?>[];
+      final mergedIssues = <Object?>[];
+      for (var i = 0; i < canonicalPaths.length; i++) {
+        _setState(ImportParsing(
+          i / canonicalPaths.length,
+          currentStep: i + 1,
+          totalSteps: canonicalPaths.length,
+        ));
+        final response = await _engine.call(
+          'ocr.parse_screenshots',
+          {'paths': [canonicalPaths[i]], 'template': template},
+          timeout: const Duration(minutes: 3),
+        );
+        for (final rawRow in response['rows'] as List? ?? const []) {
+          final row = _asMap(rawRow);
+          row['page_index'] = i;
+          mergedRows.add(row);
+        }
+        mergedIssues.addAll(response['issues'] as List? ?? const []);
+      }
       _tempScreenshotPaths = tempPaths;
-      final draft = _draftFromOcr(response, template);
+      final draft = _draftFromOcr(
+        {'rows': mergedRows, 'issues': mergedIssues},
+        template,
+      );
       await _enterEditing(draft, template: template);
     } catch (e) {
       _setState(ImportFailed('截图识别失败: $e', true));

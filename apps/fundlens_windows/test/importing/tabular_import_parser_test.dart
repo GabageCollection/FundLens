@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -156,6 +157,33 @@ void main() {
         draft.issues.single.severity,
         IssueSeverity.blocking,
       );
+    });
+  });
+
+  group('bundled import templates', () {
+    test('shipped CSV template parses into the sample holding', () {
+      final content =
+          File('assets/import-templates/fundlens-import-template.csv')
+              .readAsStringSync();
+      final draft = parser.parseCsv(content);
+      expect(draft.issues, isEmpty);
+      final holding = draft.holdings.single;
+      expect(holding.productName, '脱敏纯债基金A');
+      expect(holding.sourcePlatform, SourcePlatform.alipay);
+      expect(holding.currentValue.canonical, '78347.87');
+    });
+
+    test('shipped Excel template parses into the sample holding', () {
+      final bytes =
+          File('assets/import-templates/fundlens-import-template.xlsx')
+              .readAsBytesSync();
+      final draft = parser.parseExcel(bytes);
+      expect(draft.issues, isEmpty);
+      final holding = draft.holdings.single;
+      expect(holding.productName, '脱敏纯债基金A');
+      expect(holding.sourcePlatform, SourcePlatform.alipay);
+      expect(holding.currentValue.canonical, '78347.87');
+      expect(holding.holdingProfit?.canonical, '428.96');
     });
   });
 }

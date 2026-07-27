@@ -35,8 +35,26 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
       appBar: AppBar(title: const Text('导入与识别')),
       body: switch (state) {
         ImportIdle() => const _IdleBody(),
-        ImportParsing() =>
-          const Center(child: CircularProgressIndicator()),
+        ImportParsing() => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state.progress != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 96),
+                    child: LinearProgressIndicator(value: state.progress),
+                  )
+                else
+                  const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  state.currentStep != null && state.totalSteps != null
+                      ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
+                      : '正在解析，首次截图识别需要加载模型，可能需要几分钟',
+                ),
+              ],
+            ),
+          ),
         ImportEditing() => _EditingBody(controller: controller),
         ImportCommitting() =>
           const Center(child: CircularProgressIndicator()),

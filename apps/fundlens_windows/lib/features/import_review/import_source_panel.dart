@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'import_review_controller.dart';
@@ -55,6 +56,28 @@ final class FilePickerImportFilePicker implements ImportFilePicker {
 class ImportSourcePanel extends ConsumerWidget {
   const ImportSourcePanel({super.key});
 
+  /// Offers a bundled import template through the OS save dialog.
+  static Future<void> _downloadTemplate(
+    BuildContext context, {
+    required String assetName,
+    required String fileName,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await rootBundle.load('assets/import-templates/$assetName');
+      final savedPath = await file_picker.FilePicker.platform.saveFile(
+        dialogTitle: '保存导入模板',
+        fileName: fileName,
+        bytes: bytes.buffer.asUint8List(),
+      );
+      if (savedPath != null) {
+        messenger.showSnackBar(SnackBar(content: Text('模板已保存: $savedPath')));
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('模板保存失败: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(importReviewControllerProvider);
@@ -85,6 +108,32 @@ class ImportSourcePanel extends ConsumerWidget {
         FilledButton.tonal(
           onPressed: controller.importScreenshots,
           child: const Text('导入截图'),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _downloadTemplate(
+                  context,
+                  assetName: 'fundlens-import-template.csv',
+                  fileName: 'fundlens-import-template.csv',
+                ),
+                child: const Text('下载 CSV 模板'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _downloadTemplate(
+                  context,
+                  assetName: 'fundlens-import-template.xlsx',
+                  fileName: 'fundlens-import-template.xlsx',
+                ),
+                child: const Text('下载 Excel 模板'),
+              ),
+            ),
+          ],
         ),
       ],
     );

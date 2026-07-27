@@ -35,8 +35,8 @@ abstract interface class BackupFilePicker {
 /// OS-backed picker used by the app bootstrap; tests inject a fake
 /// [BackupFilePicker] instead.
 ///
-/// file_picker 3.0.4 has no save-file dialog, so the save flow picks a
-/// directory and writes a timestamped default file name into it.
+/// The save flow picks a directory and writes a timestamped default file
+/// name into it.
 final class FilePickerBackupFilePicker implements BackupFilePicker {
   const FilePickerBackupFilePicker();
 

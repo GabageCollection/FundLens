@@ -42,7 +42,7 @@ V1 不单独支持直接持有的国债、公司债、地方债和可转债；�
 
 ### CSV / Excel 导入
 
-在“导入与识别”页选择 CSV 或 Excel 文件。CSV 模板见 `docs/import-template/fundlens-import-template.csv`。导入前会显示字段预览，确认后以单个事务写入。
+在“导入与识别”页选择 CSV 或 Excel 文件。模板可在“导入与识别”页点击“下载 CSV 模板 / 下载 Excel 模板”获取，也见 `docs/import-template/fundlens-import-template.csv` 和 `fundlens-import-template.xlsx`。导入前会显示字段预览，确认后以单个事务写入。
 
 ### 截图 OCR 导入
 
