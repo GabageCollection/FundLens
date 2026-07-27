@@ -143,6 +143,13 @@ foreach ($pkg in @('paddleocr', 'paddlex', 'paddle')) {
     ForEach-Object { Copy-Item $_.FullName (Join-Path $licensesDir "$($pkg)_$($_.Name)") }
 }
 
+# The engine speaks UTF-8 on stdio (server._configure_stdio_utf8); PowerShell
+# decodes native stdout with the console codepage (GBK on Chinese Windows),
+# which would corrupt the Chinese text in OCR responses and break
+# ConvertFrom-Json below.
+$previousOutputEncoding = [Console]::OutputEncoding
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+
 Write-Host '==> Health-checking bundled engine (JSON-RPC schema_version 1)'
 $healthRequest = '{"jsonrpc":"2.0","id":"health-1","method":"health.check","params":{},"schema_version":1}'
 $previous = $ErrorActionPreference
@@ -178,4 +185,5 @@ $ocrResponse = $ocrLine | ConvertFrom-Json
 if ($ocrResponse.error -or $null -eq $ocrResponse.result.rows) {
   throw "Engine OCR smoke test failed: $ocrLine"
 }
+[Console]::OutputEncoding = $previousOutputEncoding
 Write-Host "==> Engine OCR smoke OK ($($ocrResponse.result.rows.Count) rows recognized)"
