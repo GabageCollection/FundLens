@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fundlens_core/fundlens_core.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -21,16 +22,20 @@ import 'features/holdings/holdings_page.dart';
 import 'features/import_review/import_review_controller.dart';
 import 'features/import_review/import_source_panel.dart';
 import 'features/settings/backup_section.dart';
+import 'features/settings/update_section.dart';
 import 'market/quote_refresh_service.dart';
 import 'security/temporary_import_store.dart';
 import 'storage/app_database.dart';
 import 'storage/database_key_store.dart';
 import 'storage/database_opener.dart';
+import 'updates/update_checker.dart';
+import 'updates/update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final supportDir = await getApplicationSupportDirectory();
+  final packageInfo = await PackageInfo.fromPlatform();
   final dbFile = File(p.join(supportDir.path, 'fundlens.db'));
   final keyStore = SecureDatabaseKeyStore(
     const FlutterSecureStorage(),
@@ -99,6 +104,17 @@ Future<void> main() async {
         importDraftStoreProvider.overrideWithValue(
           FileImportDraftStore(
             File(p.join(supportDir.path, 'import_draft.json')),
+          ),
+        ),
+        updateCheckerProvider.overrideWithValue(
+          UpdateChecker(
+            manifestUrl: kUpdateManifestUrl,
+            currentVersion: packageInfo.version,
+          ),
+        ),
+        updateServiceProvider.overrideWithValue(
+          UpdateService(
+            tempDirectory: Directory(p.join(supportDir.path, 'updates')),
           ),
         ),
         // Resolved through the provider graph so a completed restore swaps

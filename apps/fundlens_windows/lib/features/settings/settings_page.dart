@@ -5,9 +5,10 @@ import 'backup_section.dart';
 import 'market_settings_section.dart';
 import 'privacy_section.dart';
 import 'structure_thresholds_section.dart';
+import 'update_section.dart';
 
 /// 设置与备份 page: opt-in structure thresholds, quote refresh controls,
-/// privacy facts and the encrypted backup section.
+/// the manual update check, privacy facts and the encrypted backup section.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -22,6 +23,7 @@ class SettingsPage extends StatelessWidget {
         const SizedBox(height: 20),
         const StructureThresholdsSection(),
         const MarketSettingsSection(),
+        const UpdateSection(),
         const PrivacySection(),
         const BackupSection(),
       ],
