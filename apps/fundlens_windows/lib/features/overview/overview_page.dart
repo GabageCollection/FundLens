@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
+import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../holdings/holding_editor_dialog.dart';
 import 'asset_spectrum.dart';
 import 'structure_observations.dart';
 import 'summary_strip.dart';
@@ -26,13 +28,19 @@ class OverviewPage extends ConsumerWidget {
       PortfolioEmpty() => Center(
           child: FilledButton.icon(
             key: const ValueKey('overview-add-first-asset'),
-            onPressed: () {},
+            onPressed: () => _addFirstAsset(context, ref),
             icon: const Icon(Icons.add),
             label: const Text('添加第一项资产'),
           ),
         ),
       PortfolioReady() => const _OverviewContent(),
     };
+  }
+
+  Future<void> _addFirstAsset(BuildContext context, WidgetRef ref) async {
+    final holding = await showHoldingEditorDialog(context);
+    if (holding == null) return;
+    await ref.read(holdingRepositoryProvider).upsert(holding);
   }
 }
 
