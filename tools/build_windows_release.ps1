@@ -4,6 +4,15 @@
 #   -> verify_bundle.ps1 -> Inno Setup compile (skipped when ISCC is absent).
 #
 # Run from anywhere: powershell -File tools/build_windows_release.ps1
+#
+# -UpdateManifestUrl: HTTPS address of the published version.json update
+# manifest (e.g. a GitHub Releases asset). Baked into the app as the
+# FUNDLENS_UPDATE_MANIFEST_URL dart-define; when omitted the in-app update
+# check stays disabled.
+
+param(
+  [string]$UpdateManifestUrl = ''
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -42,23 +51,44 @@ Invoke-Step 'Build data engine bundle' {
   powershell -NoProfile -File (Join-Path $repoRoot 'tools\build_engine.ps1')
 }
 Invoke-Step 'dart test packages/fundlens_core' {
-  & $dart test (Join-Path $repoRoot 'packages\fundlens_core')
+  # dart test resolves the package from the working directory, so run it
+  # from inside the package root.
+  Push-Location (Join-Path $repoRoot 'packages\fundlens_core')
+  try {
+    & $dart test
+  } finally {
+    Pop-Location
+  }
 }
 Invoke-Step 'flutter test apps/fundlens_windows' {
-  # Flutter tests need the sqlite3mc native library; the wrapper script
-  # serves it during the test run and executes the command in the app dir.
+  # Port 8765 matches the sqlite3 url_pattern in the app's pubspec.yaml.
   Push-Location $appDir
   try {
-    & python (Join-Path $repoRoot 'tools\with_sqlite3mc_server.py') 45531 'flutter test'
+    & python (Join-Path $repoRoot 'tools\with_sqlite3mc_server.py') 8765 'flutter test'
   } finally {
     Pop-Location
   }
 }
 Invoke-Step 'flutter analyze apps/fundlens_windows' {
-  & $flutter analyze $appDir
+  Push-Location $appDir
+  try {
+    & python (Join-Path $repoRoot 'tools\with_sqlite3mc_server.py') 8765 'flutter analyze'
+  } finally {
+    Pop-Location
+  }
 }
 Invoke-Step 'flutter build windows --release' {
-  & $flutter build windows --release --project-dir $appDir
+  $buildCmd = 'flutter build windows --release'
+  if ($UpdateManifestUrl) {
+    $buildCmd += " --dart-define=FUNDLENS_UPDATE_MANIFEST_URL=$UpdateManifestUrl"
+  }
+  # The sqlite3mc hook downloads its DLL on a cold cache; serve it locally.
+  Push-Location $appDir
+  try {
+    & python (Join-Path $repoRoot 'tools\with_sqlite3mc_server.py') 8765 $buildCmd
+  } finally {
+    Pop-Location
+  }
 }
 
 Invoke-Step 'Stage engine bundle into release directory' {
