@@ -9,7 +9,7 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, copy_metadata
 
 SPEC_DIR = Path(SPECPATH).resolve()
 ENGINE_DIR = SPEC_DIR
@@ -27,10 +27,45 @@ for package in ("paddleocr", "paddlex", "paddle"):
     binaries += pkg_binaries
     hiddenimports += pkg_hiddenimports
 
+# paddlex checks `importlib.metadata.version()` for its "ocr" extra
+# dependencies before creating the OCR pipeline; frozen apps do not see
+# distribution metadata unless it is collected explicitly. Copy metadata
+# for every candidate that is actually installed so the bundle's view
+# matches the build venv (paddlex.utils.deps.EXTRAS["ocr"] / ["ocr-core"]).
+import importlib.metadata as _importlib_metadata
+
+for dist in (
+    "beautifulsoup4",
+    "einops",
+    "ftfy",
+    "imagesize",
+    "Jinja2",
+    "latex2mathml",
+    "lxml",
+    "opencv-contrib-python",
+    "openpyxl",
+    "premailer",
+    "pyclipper",
+    "pypdfium2",
+    "python-bidi",
+    "regex",
+    "safetensors",
+    "scikit-learn",
+    "scipy",
+    "sentencepiece",
+    "shapely",
+    "tiktoken",
+    "tokenizers",
+):
+    try:
+        datas += copy_metadata(dist)
+    except _importlib_metadata.PackageNotFoundError:
+        pass
+
 # Only the models staged by build_engine.ps1 ship: the Chinese detection /
 # recognition / textline-orientation set PaddleOCR downloads for
 # PaddleOCR(use_textline_orientation=True, lang="ch") (for paddleocr 3.7:
-# PP-OCRv6_medium_det/rec, PP-LCNet_x1_0_textline_ori and companions).
+# PP-OCRv5_mobile_det/rec, PP-LCNet_x1_0_textline_ori and companions).
 if MODELS_STAGING.is_dir():
     datas.append((str(MODELS_STAGING), "models"))
 
@@ -45,12 +80,13 @@ a = Analysis(
     runtime_hooks=[str(ENGINE_DIR / "packaging" / "pyinstaller_rth_models.py")],
     excludes=[
         # Test/dev tooling locked in requirements.lock but never shipped.
+        # NOTE: setuptools must NOT be excluded: paddle imports it at
+        # runtime (paddle.utils.cpp_extension).
         "pytest",
         "_pytest",
         "mypy",
         "ruff",
         "pip",
-        "setuptools",
         "wheel",
         "IPython",
         "notebook",

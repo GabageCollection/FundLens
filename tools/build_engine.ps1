@@ -4,8 +4,8 @@
 # Steps: recreate an isolated build venv from requirements.lock, run the
 # engine test suite, stage the PaddleOCR models the engine actually uses
 # (downloading them on first run), invoke PyInstaller, lay out the models
-# and license files, then health-check the exe over the JSON-RPC stdio
-# protocol (schema_version 1).
+# and license files, health-check the exe over the JSON-RPC stdio protocol
+# (schema_version 1) and smoke-test real OCR on a synthetic fixture.
 #
 # Run from anywhere: powershell -File tools/build_engine.ps1
 # Optional: -SkipTests to reuse an existing venv without rerunning pytest.
@@ -88,17 +88,17 @@ if (-not $SkipTests) {
   }
 }
 
-# Stage the OCR models the engine uses. PaddleOCR(use_textline_orientation=
-# True, lang="ch") downloads its detection / recognition / textline
-# orientation models into $PADDLE_PDX_CACHE_HOME/official_models on first
-# use; pointing the cache home at engine/models makes the staging layout
-# exactly what the bundle ships. Locked dependency versions keep the
-# downloaded model set deterministic; delete engine/models to re-download.
-if (-not (Test-Path (Join-Path $modelsStaging 'official_models'))) {
+# Stage the OCR models the engine uses. PaddleOCR with the mobile
+# detection/recognition set downloads its models into
+# $PADDLE_PDX_CACHE_HOME/official_models on first use; pointing the cache
+# home at engine/models makes the staging layout exactly what the bundle
+# ships. Locked dependency versions keep the downloaded model set
+# deterministic; delete engine/models to re-download.
+if (-not (Test-Path (Join-Path $modelsStaging 'official_models\PP-OCRv5_mobile_rec'))) {
   Write-Host '==> Downloading PaddleOCR models into engine/models (first run only)'
   $env:PADDLE_PDX_CACHE_HOME = $modelsStaging
   try {
-    Invoke-Native $venvPython @('-c', "from paddleocr import PaddleOCR; PaddleOCR(use_textline_orientation=True, lang='ch')")
+    Invoke-Native $venvPython @('-c', "from paddleocr import PaddleOCR; PaddleOCR(text_detection_model_name='PP-OCRv5_mobile_det', text_recognition_model_name='PP-OCRv5_mobile_rec', use_textline_orientation=True, lang='ch', enable_mkldnn=False)")
   } finally {
     Remove-Item Env:PADDLE_PDX_CACHE_HOME -ErrorAction SilentlyContinue
   }
@@ -158,3 +158,24 @@ if ($response.schema_version -ne 1 -or $response.result.status -ne 'ok') {
   throw "Engine health check failed: $responseLine"
 }
 Write-Host "==> Engine build OK: $exePath (schema_version $($response.schema_version), engine_version $($response.result.engine_version))"
+
+# Exercise the real OCR path inside the bundle. The plain health check does
+# not import paddle, so a missing runtime dependency (e.g. setuptools) would
+# otherwise only surface for users importing screenshots.
+Write-Host '==> Smoke-testing bundled OCR (alipay synthetic fixture)'
+$ocrFixture = Join-Path $engineDir 'tests\fixtures\ocr\alipay_synthetic.png'
+$ocrParams = @{ paths = @($ocrFixture); template = 'alipay' } | ConvertTo-Json -Compress
+$ocrRequest = '{"jsonrpc":"2.0","id":"ocr-smoke-1","method":"ocr.parse_screenshots","params":' + $ocrParams + ',"schema_version":1}'
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+  $ocrLine = $ocrRequest | & $exePath 2>$null | Select-Object -First 1
+} finally {
+  $ErrorActionPreference = $previous
+}
+if (-not $ocrLine) { throw 'Engine OCR smoke test produced no response.' }
+$ocrResponse = $ocrLine | ConvertFrom-Json
+if ($ocrResponse.error -or $null -eq $ocrResponse.result.rows) {
+  throw "Engine OCR smoke test failed: $ocrLine"
+}
+Write-Host "==> Engine OCR smoke OK ($($ocrResponse.result.rows.Count) rows recognized)"

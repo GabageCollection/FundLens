@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+
 import 'process_data_engine_client.dart';
 
 /// [EngineProcessHandle] backed by a real child [Process].
@@ -65,13 +68,35 @@ final class LocalEngineProcessAdapter implements ProcessAdapter {
     return '$engineDirectory/.venv/$scriptsDir/$executable';
   }
 
+  /// Environment for the dev engine child process.
+  ///
+  /// `PADDLE_PDX_CACHE_HOME` points at `<engineDirectory>/models`, the same
+  /// staging directory `tools/build_engine.ps1` populates, so the dev engine
+  /// reuses those OCR models instead of downloading its own copy into the
+  /// per-user PaddleX cache — a download that routinely outlived the OCR
+  /// request timeout and made screenshot imports time out on every attempt.
+  /// An explicit user setting wins, mirroring the PyInstaller runtime hook's
+  /// `setdefault` semantics.
+  @visibleForTesting
+  Map<String, String> debugProcessEnvironment(
+    Map<String, String> parentEnvironment,
+  ) {
+    final environment = <String, String>{'PYTHONPATH': 'src'};
+    final userCacheHome = parentEnvironment['PADDLE_PDX_CACHE_HOME'];
+    environment['PADDLE_PDX_CACHE_HOME'] =
+        (userCacheHome != null && userCacheHome.isNotEmpty)
+            ? userCacheHome
+            : p.join(engineDirectory, 'models');
+    return environment;
+  }
+
   @override
   Future<EngineProcessHandle> start() async {
     final process = await Process.start(
       _resolvedPython,
       const ['-m', 'fundlens_engine'],
       workingDirectory: engineDirectory,
-      environment: {'PYTHONPATH': 'src'},
+      environment: debugProcessEnvironment(Platform.environment),
     );
     return IoEngineProcessHandle(process);
   }

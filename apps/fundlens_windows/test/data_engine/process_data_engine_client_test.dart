@@ -296,6 +296,32 @@ void main() {
     expect(await second, isNotNull);
   });
 
+  test('timeout of a queued request fails it without touching the child', () async {
+    final first = client.call('health.check', const {});
+    final second = client.call('health.check', const {},
+        timeout: const Duration(milliseconds: 50));
+    await flush();
+    final process = adapter.processes.single;
+    final firstId = (jsonDecode(process.written.single) as Map<String, Object?>)['id'] as String;
+
+    // The queued request's own timeout fires while it is still waiting.
+    await expectLater(
+      second,
+      throwsA(isA<DataEngineException>().having((e) => e.code, 'code', 'engine.timeout')),
+    );
+    expect(process.killed, isFalse);
+    expect(await client.debugQueuedIds(), isEmpty);
+
+    // The active request still completes normally on the same child.
+    process.emit(jsonEncode({
+      'jsonrpc': '2.0',
+      'id': firstId,
+      'result': {'status': 'ok', 'engine_version': '0.1.0'},
+      'schema_version': 1,
+    }));
+    expect(await first, isNotNull);
+  });
+
   test('stderr lines are redacted before logging', () async {
     final logged = <String>[];
     final loggingClient = ProcessDataEngineClient(adapter: adapter, stderrLogger: logged.add);

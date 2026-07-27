@@ -234,8 +234,15 @@ final class ProcessDataEngineClient implements DataEngineClient {
 
   /// Terminates the child for a user-driven abort (cancel/timeout). This is
   /// not a crash: the restart budget is untouched and the next call starts a
-  /// fresh child.
+  /// fresh child. A request still waiting in the queue is simply failed —
+  /// its timeout fires before it ever becomes active.
   void _abortActive(_PendingRequest request, DataEngineException error) {
+    final queuedIndex = _queue.indexWhere((r) => identical(r, request));
+    if (queuedIndex >= 0) {
+      _queue.removeAt(queuedIndex);
+      _fail(request, error);
+      return;
+    }
     if (!identical(_active, request)) return;
     final child = _child;
     _active = null;

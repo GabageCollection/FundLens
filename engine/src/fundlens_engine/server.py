@@ -38,8 +38,12 @@ def ocr_parse_screenshots(params: dict[str, Any]) -> dict[str, Any]:
     from .ocr.paddle_backend import PaddleBackend
     from .ocr.service import parse_screenshots
 
-    backend = _ocr_backend if _ocr_backend is not None else PaddleBackend()
-    return parse_screenshots(params, backend)
+    # PaddleOCR construction is expensive; keep one backend per process so
+    # back-to-back screenshot requests reuse the loaded models.
+    global _ocr_backend
+    if _ocr_backend is None:
+        _ocr_backend = PaddleBackend()
+    return parse_screenshots(params, _ocr_backend)
 
 
 def product_match_candidates(params: dict[str, Any]) -> dict[str, Any]:

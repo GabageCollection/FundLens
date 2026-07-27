@@ -13,6 +13,9 @@ dependencies = [
   "Pillow>=10,<13",
   "akshare>=1.17,<2",
   "baostock>=0.8.9,<1",
+  # paddle.utils.cpp_extension imports setuptools at paddle import time;
+  # without it the bundled engine cannot start OCR.
+  "setuptools>=70",
 ]
 
 [project.optional-dependencies]
