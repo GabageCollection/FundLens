@@ -41,7 +41,8 @@ def test_ths_cost_mismatch_is_blocking_and_never_silently_chosen(
     fake_ocr_tokens: FakeOcrTokens,
 ) -> None:
     tokens = fake_ocr_tokens.ths_page()
-    tokens[11] = tok("60.000", 0.95, 520, 200, 130, 28)  # 成本价 inconsistent with 市值−盈亏
+    index = next(i for i, t in enumerate(tokens) if t.text == "53.700")
+    tokens[index] = tok("60.000", 0.95, 730, 290, 90, 28)  # 成本价与 市值−盈亏 不一致
     rows = parse_ths(tokens)
     normalize_rows(rows, "ths")
     issues = [i for i in rows[0].issues if i.code == "import.cost_mismatch"]
