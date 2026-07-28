@@ -100,8 +100,8 @@ class _TopHoldingRow extends StatelessWidget {
     return Container(
       height: 44,
       decoration: const BoxDecoration(
-        color: FundLensTokens.paper,
-        border: Border(bottom: BorderSide(color: FundLensTokens.divider)),
+        color: FundLensTokens.surface,
+        border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(

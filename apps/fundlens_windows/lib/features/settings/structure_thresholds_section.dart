@@ -222,9 +222,9 @@ class SettingsSectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: FundLensTokens.paper,
+        color: FundLensTokens.surface,
         borderRadius: BorderRadius.circular(FundLensTokens.radiusMedium),
-        border: Border.all(color: FundLensTokens.divider),
+        border: Border.all(color: FundLensTokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -190,14 +190,14 @@ void main() {
   });
 
   test('focus indicator colors meet 3:1 contrast on their surfaces', () {
-    // Navigation rail focus ring: Paper on Graphite.
+    // Sidebar focus ring: Surface on warm-black sidebar.
     expect(
-      _contrastRatio(FundLensTokens.paper, FundLensTokens.graphite),
+      _contrastRatio(FundLensTokens.surface, FundLensTokens.sidebar),
       greaterThanOrEqualTo(3.0),
     );
-    // Spectrum focus outline: Lens Indigo on Paper.
+    // Spectrum focus outline: Terracotta accent on card surface.
     expect(
-      _contrastRatio(FundLensTokens.lensIndigo, FundLensTokens.paper),
+      _contrastRatio(FundLensTokens.accent, FundLensTokens.surface),
       greaterThanOrEqualTo(3.0),
     );
   });

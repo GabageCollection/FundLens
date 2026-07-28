@@ -361,7 +361,7 @@ class _HoldingGridState extends State<HoldingGrid> {
     final headerStyle = theme.textTheme.bodySmall;
 
     return DecoratedBox(
-      decoration: const BoxDecoration(color: FundLensTokens.paper),
+      decoration: const BoxDecoration(color: FundLensTokens.surface),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

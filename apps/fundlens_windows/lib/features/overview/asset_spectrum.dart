@@ -19,18 +19,6 @@ const assetClassLabels = <AssetClass, String>{
   AssetClass.other: '其他',
 };
 
-/// Fixed segment palette. Colors are decorative only; class name, amount and
-/// share are always also available as text and semantics.
-const assetClassColors = <AssetClass, Color>{
-  AssetClass.cash: Color(0xFF65706C),
-  AssetClass.deposit: Color(0xFF3E7CB1),
-  AssetClass.equity: Color(0xFF625BD4),
-  AssetClass.fixedIncome: Color(0xFF2E8162),
-  AssetClass.mixed: Color(0xFFC58A40),
-  AssetClass.gold: Color(0xFFC5B040),
-  AssetClass.other: Color(0xFF9AA39F),
-};
-
 /// Formats a 0..1 share as a one-decimal percentage, e.g. `34.9%`.
 String formatPercent(DecimalValue share) =>
     '${(share.value.toDouble() * 100).toStringAsFixed(1)}%';
@@ -106,7 +94,7 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
         assetClass: assetClass,
         start: cumulative,
         end: cumulative + width,
-        color: assetClassColors[assetClass]!,
+        color: FundLensTokens.categoryColors[assetClass]!,
         amount: amount,
         share: share,
       ));
@@ -271,9 +259,9 @@ class _SelectedDetailRail extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
-        color: FundLensTokens.paper,
+        color: FundLensTokens.accentSoft,
         border: Border(
-          left: BorderSide(color: FundLensTokens.lensIndigo, width: 3),
+          left: BorderSide(color: FundLensTokens.accent, width: 3),
         ),
       ),
       child: Text(
@@ -299,7 +287,7 @@ class _SpectrumPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final separator = Paint()..color = FundLensTokens.paper;
+    final separator = Paint()..color = FundLensTokens.surface;
     for (var i = 0; i < segments.length; i++) {
       final segment = segments[i];
       final left = segment.start * size.width;
@@ -317,7 +305,7 @@ class _SpectrumPainter extends CustomPainter {
         canvas.drawRect(
           rect.deflate(1),
           Paint()
-            ..color = FundLensTokens.lensIndigo
+            ..color = FundLensTokens.accent
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2,
         );

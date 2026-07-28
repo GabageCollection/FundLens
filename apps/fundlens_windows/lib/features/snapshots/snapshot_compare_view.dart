@@ -223,7 +223,7 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
     final color = value.isNegative
         ? FundLensTokens.loss
         : value.isZero
-            ? FundLensTokens.graphite
+            ? FundLensTokens.ink
             : FundLensTokens.profit;
     return Text(
       formatSignedAmount(value),
@@ -246,9 +246,9 @@ class _ChangeBadge extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: FundLensTokens.frost,
+        color: FundLensTokens.surfaceAlt,
         borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
-        border: Border.all(color: FundLensTokens.divider),
+        border: Border.all(color: FundLensTokens.border),
       ),
       child: Text(label, style: Theme.of(context).textTheme.bodySmall),
     );
