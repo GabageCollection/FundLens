@@ -131,3 +131,48 @@ def test_alipay_missing_current_value_is_blocking() -> None:
         i.code == "ocr.field_missing" and i.field == "current_value" and i.severity == "blocking"
         for i in rows[0].issues
     )
+
+
+def test_alipay_truncated_fragment_with_garbled_name_is_dropped(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """截图底部截断的持仓只剩乱码名称（低置信度）、数值全缺，是 OCR 碎块而非可读持仓。"""
+    tokens = fake_ocr_tokens.alipay_page() + [
+        tok("出会术生业", 0.29, 40, 590, 200, 32),
+    ]
+    rows = parse_alipay(tokens)
+    assert [r.fields["product_name"].raw_text for r in rows] == [
+        "脱敏安心债券A",
+        "脱敏远山混合C",
+    ]
+
+
+def test_alipay_truncated_fragment_with_tags_line_is_dropped(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """截断持仓的标签行可读但名称乱码、数值全缺时，同样是碎块，不得生成阻断行。"""
+    tokens = fake_ocr_tokens.alipay_page() + [
+        tok("出会术生业", 0.29, 40, 590, 200, 32),
+        tok("基金", 0.92, 40, 640, 60, 24),
+        tok("稳健理财", 0.92, 120, 640, 110, 24),
+    ]
+    rows = parse_alipay(tokens)
+    assert [r.fields["product_name"].raw_text for r in rows] == [
+        "脱敏安心债券A",
+        "脱敏远山混合C",
+    ]
+
+
+def test_alipay_clear_name_without_numbers_stays_blocking(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """名称清晰但数值缺失（可能真被截断）仍保留阻断行，由人工确认处理。"""
+    tokens = fake_ocr_tokens.alipay_page() + [
+        tok("脱敏截断债券C", 0.97, 40, 590, 200, 32),
+    ]
+    rows = parse_alipay(tokens)
+    assert len(rows) == 3
+    assert any(
+        i.code == "ocr.field_missing" and i.field == "current_value" and i.severity == "blocking"
+        for i in rows[2].issues
+    )

@@ -104,6 +104,18 @@ def _finalize(row: DraftRow) -> None:
     _add_confidence_issues(row)
 
 
+def _is_garbled_fragment(row: DraftRow) -> bool:
+    """截图底部截断的 OCR 碎块：名称低置信乱码且没有任何数值字段。
+
+    这类碎块不是可读持仓（数值根本不在截图里），生成阻断行只会逼用户
+    每次手动删除。名称清晰但数值缺失的行不属于此类——数值可能真被截断，
+    必须保留阻断由人工确认。
+    """
+    name = row.fields.get("product_name")
+    has_numbers = any(field in row.fields for field in _NUMBER_SLOTS.values())
+    return name is not None and not has_numbers and name.confidence < NAME_THRESHOLD
+
+
 def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
     lines = group_into_lines(t for t in tokens if not is_noise(t))
     anchored = anchor_columns(lines, ANCHORS)
@@ -144,6 +156,7 @@ def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
             current.fields["product_name"] = make_field("product_name", texts, page_index)
             state = "tags"
 
+    rows = [row for row in rows if not _is_garbled_fragment(row)]
     for row in rows:
         _finalize(row)
     return rows
