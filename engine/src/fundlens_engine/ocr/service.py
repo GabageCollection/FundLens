@@ -11,7 +11,7 @@ A Tonghuashun cost mismatch yields a blocking ``import.cost_mismatch`` issue;
 neither cost is ever silently chosen.
 """
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Literal
@@ -111,6 +111,32 @@ def _normalize_ths(row: DraftRow) -> None:
                 ),
             )
         )
+    else:
+        _downgrade_corroborated_confidence(row)
+
+
+def _downgrade_corroborated_confidence(row: DraftRow) -> None:
+    """成本恒等式成立时，cost_price/quantity 的低置信阻断降级为警告。
+
+    cost_price × quantity ≈ 市值 − 盈亏 由三个独立识别的字段交叉验证，
+    恒等式成立即数学 corroborate 这两个读数；此时卡 0.90 阈值刀锋的阻断
+    只会逼用户反复确认已验证正确的值。恒等式不成立时阻断保持原样，
+    由 import.cost_mismatch 与低置信双重把关。
+    """
+    row.issues[:] = [
+        replace(
+            issue,
+            severity="warning",
+            message=issue.message + "（成本恒等式交叉验证一致，请人工确认）",
+        )
+        if (
+            issue.code == "ocr.low_confidence"
+            and issue.field in ("cost_price", "quantity")
+            and issue.severity == "blocking"
+        )
+        else issue
+        for issue in row.issues
+    ]
 
 
 def normalize_rows(rows: list[DraftRow], template: Template) -> list[DraftRow]:

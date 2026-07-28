@@ -53,6 +53,42 @@ def test_ths_cost_mismatch_is_blocking_and_never_silently_chosen(
     assert rows[0].normalized["reference_cost"] == "60000.000"
 
 
+def test_ths_corroborated_low_confidence_cost_price_is_warning_not_blocking(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """成本恒等式成立时，cost_price/quantity 低置信阻断降级为警告。
+
+    cost_price × quantity ≈ 市值 − 盈亏 由三个独立字段交叉验证；真实截图中
+    HS300ETF 成本价 4.677 置信度 0.897 卡 0.90 阈值刀锋，但恒等式已数学
+    corroborate 读数正确，不应再阻断导入。
+    """
+    tokens = fake_ocr_tokens.ths_page()
+    index = next(i for i, t in enumerate(tokens) if t.text == "2.3570")
+    tokens[index] = tok("2.3570", 0.89, *tokens[index].box)
+    rows = parse_ths(tokens)
+    normalize_rows(rows, "ths")
+    cost_issues = [
+        i for i in rows[1].issues if i.code == "ocr.low_confidence" and i.field == "cost_price"
+    ]
+    assert len(cost_issues) == 1
+    assert cost_issues[0].severity == "warning"
+    assert "交叉验证" in cost_issues[0].message
+    assert not [i for i in rows[1].issues if i.severity == "blocking"]
+
+
+def test_ths_mismatched_low_confidence_cost_price_stays_blocking(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """恒等式不成立时低置信阻断不得降级——两个独立证据互相矛盾。"""
+    tokens = fake_ocr_tokens.ths_page()
+    index = next(i for i, t in enumerate(tokens) if t.text == "53.700")
+    tokens[index] = tok("60.000", 0.89, 730, 290, 90, 28)
+    rows = parse_ths(tokens)
+    normalize_rows(rows, "ths")
+    blocking = [i for i in rows[0].issues if i.severity == "blocking"]
+    assert {i.code for i in blocking} == {"ocr.low_confidence", "import.cost_mismatch"}
+
+
 def test_normalization_handles_full_width_punctuation() -> None:
     tokens = [
         tok("名称/金额", 0.97, 40, 160, 120, 26),
