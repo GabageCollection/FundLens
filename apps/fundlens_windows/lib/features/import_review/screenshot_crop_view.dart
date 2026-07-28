@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../theme/fundlens_theme.dart';
 import 'import_review_controller.dart';
 
 /// Left panel: shows the selected source screenshot and, for the focused
@@ -27,7 +28,11 @@ class ScreenshotCropView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('来源截图', style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            '来源截图',
+            style:
+                Theme.of(context).extension<FundLensTextStyles>()!.sectionTitle,
+          ),
           const SizedBox(height: 4),
           Expanded(
             child: File(path).existsSync()

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../analysis/structure_thresholds.dart';
 
@@ -229,7 +230,10 @@ class SettingsSectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleSmall),
+          Text(
+            title,
+            style: theme.extension<FundLensTextStyles>()!.sectionTitle,
+          ),
           const SizedBox(height: 12),
           child,
         ],

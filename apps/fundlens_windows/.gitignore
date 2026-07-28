@@ -46,3 +46,6 @@ app.*.map.json
 
 # Drift generated code needed for a clean build in fresh clones
 !lib/storage/app_database.g.dart
+
+# golden test 失败时生成的对比图,不入库
+test/**/failures/

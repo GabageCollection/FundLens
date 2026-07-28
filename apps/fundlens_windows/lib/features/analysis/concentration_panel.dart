@@ -164,15 +164,42 @@ class ConcentrationPanel extends StatelessWidget {
             const SizedBox(width: 12),
           ],
           Expanded(child: Text(value ?? '—', style: numberStyle)),
-          if (status != null)
-            Text(
-              status,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: FundLensTokens.muted),
-            ),
+          if (status != null) _StatusChip(status: status),
         ],
+      ),
+    );
+  }
+}
+
+/// Pill badge for a threshold comparison: soft green when inside the
+/// threshold, soft red when outside (`.chip.ok` / `.chip.bad`).
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final breached = status.startsWith('超出') || status.startsWith('低于');
+    final background =
+        breached ? FundLensTokens.profitSoft : FundLensTokens.lossSoft;
+    final foreground = breached ? FundLensTokens.profit : FundLensTokens.loss;
+    return Container(
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        status,
+        style: TextStyle(
+          fontFamily: 'Noto Sans SC',
+          fontSize: 11.5,
+          fontWeight: FontWeight.w500,
+          color: foreground,
+        ),
       ),
     );
   }
