@@ -47,9 +47,12 @@ FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工
 
 ## 视觉约定
 
-- 设计系统：Open Design 暖墨体系（2026-07 定稿，替代旧 Graphite/Indigo 约定）。羊皮纸画布 `#F5F3EC`、卡片面 `#FFFDF8`、次级面 `#FAF8F1`、暖墨正文 `#24211B`、陶土橙强调 `#C4603E`（图形）/ `#A94E30`（文字与按钮）、Profit Red `#B6452F`（盈利）、Loss Green `#2C6E50`（亏损）、暖黑侧栏 `#26221B`；资产类别段色、soft 底色与圆角（6/10/14）以 `apps/fundlens_windows/lib/theme/fundlens_tokens.dart` 为唯一准绳。
+- 设计系统：Open Design 暖墨体系（2026-07 全局设计变量统一，替代旧 Graphite/Indigo 约定）。语义变量：画布 `--color-canvas #F6F3EC`、表面 `#FFFDF8`、侧栏 `#27231D`、主色 `#B65233`、正文 `#292722`、辅助文字 `#736E64`、边框 `#E4DED1`、盈利 `#B84B34`、亏损 `#19705D`、数据异常 `#A66A16`、禁用 `#C9C5BC`；资产类别段色与 soft 底色以 `apps/fundlens_windows/lib/theme/fundlens_tokens.dart` 为唯一准绳，组件中不得硬编码颜色。
+- 字体层级：页面标题 24/32 w600、区块标题 18/26 w600、正文 14/22、辅助 12/18（说明文字不得小于 12）、KPI 数字 20–24、表格金额 14px tabular-nums。标题用宋体（Noto Serif SC），正文用黑体（Noto Sans SC），金额比例用 IBM Plex Mono。
+- 间距体系：只允许 4/8/12/16/24/32/40/48；标题与内容间距 20–24、卡片内边距 20/24、卡片间距 16、表单项纵向间距 16、表格行高 48–56。
+- 组件规范：卡片圆角 12、1px 浅色边框、无阴影；主按钮高 40、次按钮 36–40、输入框高 40；点击区域 ≥40×40；键盘 Focus 为 2px 主色轮廓；Hover/Focus/Active/Disabled 状态必须完整。
 - 国内颜色习惯：红盈利、绿亏损；颜色之外必须提供符号和文字语义。
-- 字体角色：标题/快照日期用宋体（Noto Serif SC），界面正文用黑体（Noto Sans SC），金额比例用 IBM Plex Mono 等宽数字。
+- 禁止用渐变、发光、玻璃拟态或大量阴影制造高级感；辨识度来自账本式排版、精确的数据对齐和资产结构信息。
 
 ## 开发工作流
 
