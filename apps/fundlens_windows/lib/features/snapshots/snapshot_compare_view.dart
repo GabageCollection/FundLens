@@ -122,12 +122,14 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
   Widget _totalChange(BuildContext context, SnapshotDiff diff) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(diff.metricLabel,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              diff.metricLabel,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 4),
             _signedAmount(context, diff.totalAmountChange, large: true),
           ],
@@ -141,15 +143,17 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
       ..sort((a, b) => b.value.compareTo(a.value));
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('资产类别变化', style: Theme.of(context).textTheme.labelLarge),
-            const Divider(height: 17),
+            const Divider(height: FundLensTokens.space4),
             for (final entry in entries)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  vertical: FundLensTokens.space2,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -177,20 +181,25 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
     final beforeById = {for (final h in before.holdings) h.holdingId: h};
     final afterById = {for (final h in after.holdings) h.holdingId: h};
     final ids = diff.holdingAmountChanges.keys.toList()
-      ..sort((a, b) => diff.holdingAmountChanges[b]!
-          .compareTo(diff.holdingAmountChanges[a]!));
+      ..sort(
+        (a, b) => diff.holdingAmountChanges[b]!.compareTo(
+          diff.holdingAmountChanges[a]!,
+        ),
+      );
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('持仓变化', style: Theme.of(context).textTheme.labelLarge),
-            const Divider(height: 17),
+            const Divider(height: FundLensTokens.space4),
             for (final id in ids)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  vertical: FundLensTokens.space2,
+                ),
                 child: Row(
                   children: [
                     if (!beforeById.containsKey(id))
@@ -218,20 +227,14 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
     DecimalValue value, {
     bool large = false,
   }) {
-    final base =
-        Theme.of(context).extension<FundLensTextStyles>()!.financialNumber;
+    final styles = Theme.of(context).extension<FundLensTextStyles>()!;
+    final base = large ? styles.kpiNumber : styles.financialNumber;
     final color = value.isNegative
         ? FundLensTokens.loss
         : value.isZero
-            ? FundLensTokens.ink
-            : FundLensTokens.profit;
-    return Text(
-      formatSignedAmount(value),
-      style: base.copyWith(
-        color: color,
-        fontSize: large ? 20 : null,
-      ),
-    );
+        ? FundLensTokens.ink
+        : FundLensTokens.profit;
+    return Text(formatSignedAmount(value), style: base.copyWith(color: color));
   }
 }
 
@@ -243,8 +246,11 @@ class _ChangeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      margin: const EdgeInsets.only(right: FundLensTokens.space2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: FundLensTokens.space2,
+        vertical: FundLensTokens.space1,
+      ),
       decoration: BoxDecoration(
         color: FundLensTokens.surfaceAlt,
         borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),

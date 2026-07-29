@@ -90,14 +90,16 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
           : amount.divide(summary.totalValue);
       // Decimal share -> double geometry only here, at the render boundary.
       final width = share.value.toDouble();
-      segments.add(SpectrumSegment(
-        assetClass: assetClass,
-        start: cumulative,
-        end: cumulative + width,
-        color: FundLensTokens.categoryColors[assetClass]!,
-        amount: amount,
-        share: share,
-      ));
+      segments.add(
+        SpectrumSegment(
+          assetClass: assetClass,
+          start: cumulative,
+          end: cumulative + width,
+          color: FundLensTokens.categoryColors[assetClass]!,
+          amount: amount,
+          share: share,
+        ),
+      );
       cumulative += width;
     }
     return segments;
@@ -105,8 +107,9 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
 
   void _toggle(AssetClass assetClass) {
     final current = ref.read(selectedAssetClassProvider);
-    ref.read(selectedAssetClassProvider.notifier).state =
-        current == assetClass ? null : assetClass;
+    ref.read(selectedAssetClassProvider.notifier).state = current == assetClass
+        ? null
+        : assetClass;
   }
 
   KeyEventResult _onBarKey(FocusNode node, KeyEvent event, int segmentCount) {
@@ -137,7 +140,8 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
 
     // Keep one FocusNode per present class, dropping stale ones.
     final present = {for (final s in segments) s.assetClass};
-    for (final stale in _nodes.keys.where((c) => !present.contains(c)).toList()) {
+    for (final stale
+        in _nodes.keys.where((c) => !present.contains(c)).toList()) {
       _nodes.remove(stale)!.dispose();
     }
     for (final assetClass in present) {
@@ -163,8 +167,10 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
       children: [
         Focus(
           onKeyEvent: (node, event) => _onBarKey(node, event, segments.length),
+          // 视觉条保持 20px,上下各留 10px 透明热区,使分段点击区域达到
+          // 40px 的最小点击目标。
           child: SizedBox(
-            height: 20,
+            height: FundLensTokens.minTapTarget,
             child: TweenAnimationBuilder<double>(
               key: ValueKey(signature),
               tween: Tween(begin: 0, end: 1),
@@ -177,18 +183,24 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
                     return Stack(
                       children: [
                         Positioned.fill(
-                          child: CustomPaint(
-                            painter: _SpectrumPainter(
-                              segments: segments,
-                              progress: progress,
-                              focusedIndex: _focusedIndex,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: (FundLensTokens.minTapTarget - 20) / 2,
+                            ),
+                            child: CustomPaint(
+                              painter: _SpectrumPainter(
+                                segments: segments,
+                                progress: progress,
+                                focusedIndex: _focusedIndex,
+                              ),
                             ),
                           ),
                         ),
                         for (var i = 0; i < segments.length; i++)
                           Positioned(
                             left: segments[i].start * width,
-                            width: (segments[i].end - segments[i].start) * width,
+                            width:
+                                (segments[i].end - segments[i].start) * width,
                             top: 0,
                             bottom: 0,
                             child: Semantics(
@@ -209,12 +221,13 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
                                       ActivateIntent(),
                                 },
                                 actions: {
-                                  ActivateIntent: CallbackAction<ActivateIntent>(
-                                    onInvoke: (_) {
-                                      _toggle(segments[i].assetClass);
-                                      return null;
-                                    },
-                                  ),
+                                  ActivateIntent:
+                                      CallbackAction<ActivateIntent>(
+                                        onInvoke: (_) {
+                                          _toggle(segments[i].assetClass);
+                                          return null;
+                                        },
+                                      ),
                                 },
                                 child: GestureDetector(
                                   key: ValueKey(
@@ -291,8 +304,8 @@ class _SpectrumPainter extends CustomPainter {
     for (var i = 0; i < segments.length; i++) {
       final segment = segments[i];
       final left = segment.start * size.width;
-      final right = (segment.start +
-              (segment.end - segment.start) * progress) *
+      final right =
+          (segment.start + (segment.end - segment.start) * progress) *
           size.width;
       if (right <= left) continue;
       final rect = Rect.fromLTRB(left, 0, right, size.height);

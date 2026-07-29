@@ -32,37 +32,44 @@ class CompositionTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final numberStyle =
-        Theme.of(context).extension<FundLensTextStyles>()!.financialNumber;
+    final numberStyle = Theme.of(
+      context,
+    ).extension<FundLensTextStyles>()!.financialNumber;
     final labelStyle = Theme.of(context).textTheme.bodyMedium;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 Expanded(
-                  child: Text('名称',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(
+                    '名称',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
                 SizedBox(
                   width: 140,
-                  child: Text('金额',
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(
+                    '金额',
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
                 SizedBox(
                   width: 90,
-                  child: Text('占比',
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(
+                    '占比',
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 17),
+            const Divider(height: FundLensTokens.space4),
             for (final row in rows) ...[
               Row(
                 children: [
@@ -85,18 +92,19 @@ class CompositionTable extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: FundLensTokens.space2),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final share = double.parse(row.share.canonical)
-                      .clamp(0.0, 1.0)
-                      .toDouble();
+                  final share = double.parse(
+                    row.share.canonical,
+                  ).clamp(0.0, 1.0).toDouble();
                   return Container(
                     height: 4,
                     decoration: BoxDecoration(
                       color: FundLensTokens.surfaceAlt,
-                      borderRadius:
-                          BorderRadius.circular(FundLensTokens.radiusSmall),
+                      borderRadius: BorderRadius.circular(
+                        FundLensTokens.radiusSmall,
+                      ),
                     ),
                     alignment: Alignment.centerLeft,
                     child: Container(
@@ -104,14 +112,15 @@ class CompositionTable extends StatelessWidget {
                       height: 4,
                       decoration: BoxDecoration(
                         color: row.color ?? FundLensTokens.accent,
-                        borderRadius:
-                            BorderRadius.circular(FundLensTokens.radiusSmall),
+                        borderRadius: BorderRadius.circular(
+                          FundLensTokens.radiusSmall,
+                        ),
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FundLensTokens.space3),
             ],
           ],
         ),

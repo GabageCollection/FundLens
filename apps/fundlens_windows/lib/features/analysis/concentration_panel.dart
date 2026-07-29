@@ -32,7 +32,7 @@ class ConcentrationPanel extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -51,8 +51,9 @@ class ConcentrationPanel extends StatelessWidget {
             _factRow(
               context,
               label: '最大资产类别',
-              name:
-                  largestClass == null ? null : assetClassLabels[largestClass],
+              name: largestClass == null
+                  ? null
+                  : assetClassLabels[largestClass],
               value: largestClass == null
                   ? null
                   : formatShare(summary.largestAssetClassShare),
@@ -128,17 +129,13 @@ class ConcentrationPanel extends StatelessWidget {
   /// Comparison text for a "must not exceed" threshold; null when unset.
   String? _maxStatus(DecimalValue actual, DecimalValue? threshold) {
     if (threshold == null) return null;
-    return actual.compareTo(threshold) > 0
-        ? '超出你设置的阈值'
-        : '在你设置的阈值范围内';
+    return actual.compareTo(threshold) > 0 ? '超出你设置的阈值' : '在你设置的阈值范围内';
   }
 
   /// Comparison text for a "must not fall below" threshold; null when unset.
   String? _minStatus(DecimalValue actual, DecimalValue? threshold) {
     if (threshold == null) return null;
-    return actual.compareTo(threshold) < 0
-        ? '低于你设置的阈值'
-        : '在你设置的阈值范围内';
+    return actual.compareTo(threshold) < 0 ? '低于你设置的阈值' : '在你设置的阈值范围内';
   }
 
   Widget _factRow(
@@ -148,20 +145,20 @@ class ConcentrationPanel extends StatelessWidget {
     String? value,
     String? status,
   }) {
-    final numberStyle =
-        Theme.of(context).extension<FundLensTextStyles>()!.financialNumber;
+    final numberStyle = Theme.of(
+      context,
+    ).extension<FundLensTextStyles>()!.financialNumber;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space2),
       child: Row(
         children: [
           SizedBox(
             width: 140,
-            child:
-                Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           if (name != null) ...[
             Text(name, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(width: 12),
+            const SizedBox(width: FundLensTokens.space3),
           ],
           Expanded(child: Text(value ?? '—', style: numberStyle)),
           if (status != null) _StatusChip(status: status),
@@ -181,22 +178,23 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final breached = status.startsWith('超出') || status.startsWith('低于');
-    final background =
-        breached ? FundLensTokens.profitSoft : FundLensTokens.lossSoft;
+    final background = breached
+        ? FundLensTokens.profitSoft
+        : FundLensTokens.lossSoft;
     final foreground = breached ? FundLensTokens.profit : FundLensTokens.loss;
     return Container(
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 9),
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.space2),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(FundLensTokens.radiusPill),
       ),
       alignment: Alignment.center,
       child: Text(
         status,
         style: TextStyle(
           fontFamily: 'Noto Sans SC',
-          fontSize: 11.5,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: foreground,
         ),

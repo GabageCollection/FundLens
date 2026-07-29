@@ -21,55 +21,59 @@ class SnapshotsPage extends ConsumerWidget {
 
     return Scaffold(
       body: snapshots.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('快照加载失败：$error')),
-      data: (list) {
-        final sorted = List<PortfolioSnapshot>.of(list)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return ListView(
-          padding: const EdgeInsets.all(FundLensTokens.pagePadding),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text('历史快照',
-                      style: Theme.of(context).textTheme.titleLarge),
-                ),
-                FilledButton(
-                  onPressed: () => _createSnapshot(context, ref),
-                  child: const Text('新建快照'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (sorted.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('还没有快照'),
-              )
-            else
-              Card(
-                child: Column(
-                  children: [
-                    for (final snapshot in sorted)
-                      ListTile(
-                        title: Text(snapshot.label),
-                        subtitle: Text(_formatDate(snapshot.createdAt)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          tooltip: '删除快照',
-                          onPressed: () =>
-                              _confirmDelete(context, ref, snapshot),
-                        ),
-                      ),
-                  ],
-                ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('快照加载失败：$error')),
+        data: (list) {
+          final sorted = List<PortfolioSnapshot>.of(list)
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return ListView(
+            padding: const EdgeInsets.all(FundLensTokens.pagePadding),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '历史快照',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: () => _createSnapshot(context, ref),
+                    child: const Text('新建快照'),
+                  ),
+                ],
               ),
-            const SizedBox(height: 20),
-            SnapshotCompareView(snapshots: sorted),
-          ],
-        );
-      },
+              const SizedBox(height: FundLensTokens.titleGap),
+              if (sorted.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: FundLensTokens.space4,
+                  ),
+                  child: Text('还没有快照'),
+                )
+              else
+                Card(
+                  child: Column(
+                    children: [
+                      for (final snapshot in sorted)
+                        ListTile(
+                          title: Text(snapshot.label),
+                          subtitle: Text(_formatDate(snapshot.createdAt)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: '删除快照',
+                            onPressed: () =>
+                                _confirmDelete(context, ref, snapshot),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: FundLensTokens.cardGap),
+              SnapshotCompareView(snapshots: sorted),
+            ],
+          );
+        },
       ),
     );
   }
@@ -92,8 +96,7 @@ class SnapshotsPage extends ConsumerWidget {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text),
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
             child: const Text('确定'),
           ),
         ],

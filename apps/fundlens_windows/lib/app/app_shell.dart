@@ -4,7 +4,14 @@ import 'package:flutter/services.dart';
 import '../theme/fundlens_tokens.dart';
 
 /// The six fixed destinations of the FundLens desktop shell.
-enum AppDestination { overview, analysis, holdings, snapshots, importReview, settings }
+enum AppDestination {
+  overview,
+  analysis,
+  holdings,
+  snapshots,
+  importReview,
+  settings,
+}
 
 const destinationLabels = <AppDestination, String>{
   AppDestination.overview: '资产总览',
@@ -36,12 +43,15 @@ const destinationCrumbs = <AppDestination, String>{
 
 /// Sidebar grouping: section label followed by its destinations.
 const _navGroups = <(String, List<AppDestination>)>[
-  ('组合', [
-    AppDestination.overview,
-    AppDestination.analysis,
-    AppDestination.holdings,
-    AppDestination.snapshots,
-  ]),
+  (
+    '组合',
+    [
+      AppDestination.overview,
+      AppDestination.analysis,
+      AppDestination.holdings,
+      AppDestination.snapshots,
+    ],
+  ),
   ('数据', [AppDestination.importReview, AppDestination.settings]),
 ];
 
@@ -56,7 +66,10 @@ class SelectDestinationIntent extends Intent {
 /// search/filter state.
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.pages})
-      : assert(pages.length == AppDestination.values.length, 'AppShell requires exactly six pages');
+    : assert(
+        pages.length == AppDestination.values.length,
+        'AppShell requires exactly six pages',
+      );
 
   /// One widget per [AppDestination], in enum order.
   final List<Widget> pages;
@@ -78,8 +91,12 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final shortcuts = <ShortcutActivator, Intent>{
       for (final (index, destination) in AppDestination.values.indexed)
-        SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + index), control: true):
-            SelectDestinationIntent(destination),
+        SingleActivator(
+          LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + index),
+          control: true,
+        ): SelectDestinationIntent(
+          destination,
+        ),
     };
 
     return Shortcuts(
@@ -99,10 +116,7 @@ class _AppShellState extends State<AppShell> {
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _NavigationRegion(
-                  selected: _selected,
-                  onSelect: _select,
-                ),
+                _NavigationRegion(selected: _selected, onSelect: _select),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,7 +124,8 @@ class _AppShellState extends State<AppShell> {
                       _TopBar(
                         crumb: destinationCrumbs[_selected]!,
                         title: destinationLabels[_selected]!,
-                        onOpenDataStatus: () => _select(AppDestination.importReview),
+                        onOpenDataStatus: () =>
+                            _select(AppDestination.importReview),
                       ),
                       const Divider(height: 1),
                       Expanded(
@@ -148,17 +163,22 @@ class _NavigationRegion extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const _BrandBlock(),
-            const SizedBox(height: 8),
+            const SizedBox(height: FundLensTokens.space2),
             for (final (label, destinations) in _navGroups) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 14, 12, 6),
+                padding: const EdgeInsets.fromLTRB(
+                  FundLensTokens.space6,
+                  FundLensTokens.space3,
+                  FundLensTokens.space3,
+                  FundLensTokens.space2,
+                ),
                 child: Text(
                   label,
                   style: const TextStyle(
                     fontFamily: 'Noto Sans SC',
-                    fontSize: 11,
+                    fontSize: 12,
                     letterSpacing: 1.1,
-                    color: Color(0xFF6E6656),
+                    color: FundLensTokens.sidebarMuted,
                   ),
                 ),
               ),
@@ -184,8 +204,14 @@ class _BrandBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 14),
+      padding: const EdgeInsets.fromLTRB(
+        FundLensTokens.space6,
+        FundLensTokens.space6,
+        FundLensTokens.space6,
+        FundLensTokens.space3,
+      ),
       child: Row(
         children: [
           Container(
@@ -193,20 +219,20 @@ class _BrandBlock extends StatelessWidget {
             height: 30,
             decoration: BoxDecoration(
               color: FundLensTokens.accentStrong,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
             ),
             alignment: Alignment.center,
-            child: const Text(
+            child: Text(
               '镜',
               style: TextStyle(
                 fontFamily: 'Noto Serif SC',
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: Color(0xFFFFFFFF),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: onPrimary,
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: FundLensTokens.space3),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,8 +243,8 @@ class _BrandBlock extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Noto Serif SC',
                     fontWeight: FontWeight.w600,
-                    fontSize: 19,
-                    color: Color(0xFFF3EFE6),
+                    fontSize: 18,
+                    color: FundLensTokens.sidebarTitle,
                   ),
                 ),
                 Text(
@@ -226,9 +252,9 @@ class _BrandBlock extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Noto Sans SC',
-                    fontSize: 9.5,
+                    fontSize: 12,
                     letterSpacing: 1,
-                    color: Color(0xFF7D7462),
+                    color: FundLensTokens.sidebarMuted,
                   ),
                 ),
               ],
@@ -247,17 +273,27 @@ class _SidebarFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0x14FFFDF8))),
+      padding: const EdgeInsets.symmetric(
+        horizontal: FundLensTokens.space6,
+        vertical: FundLensTokens.space4,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: FundLensTokens.surface.withValues(alpha: 0.08),
+          ),
+        ),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(radius: 3.5, backgroundColor: FundLensTokens.sidebarInk),
-              SizedBox(width: 6),
+              CircleAvatar(
+                radius: 3.5,
+                backgroundColor: FundLensTokens.sidebarInk,
+              ),
+              SizedBox(width: FundLensTokens.space2),
               Text(
                 '行情引擎按需启动',
                 style: TextStyle(
@@ -268,13 +304,13 @@ class _SidebarFooter extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 4),
+          SizedBox(height: FundLensTokens.space1),
           Text(
             'FundLens · 数据仅保存在本机',
             style: TextStyle(
               fontFamily: 'Noto Sans SC',
-              fontSize: 11,
-              color: Color(0xFF6E6656),
+              fontSize: 12,
+              color: FundLensTokens.sidebarMuted,
             ),
           ),
         ],
@@ -284,7 +320,11 @@ class _SidebarFooter extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.destination, required this.selected, required this.onSelect});
+  const _NavItem({
+    required this.destination,
+    required this.selected,
+    required this.onSelect,
+  });
 
   final AppDestination destination;
   final bool selected;
@@ -293,10 +333,15 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = destinationLabels[destination]!;
-    final foreground = selected ? Colors.white : FundLensTokens.sidebarInk;
+    final foreground = selected
+        ? Theme.of(context).colorScheme.onPrimary
+        : FundLensTokens.sidebarInk;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      padding: const EdgeInsets.symmetric(
+        horizontal: FundLensTokens.space3,
+        vertical: FundLensTokens.space1,
+      ),
       child: FocusableActionDetector(
         onShowFocusHighlight: (_) {},
         child: Builder(
@@ -309,30 +354,47 @@ class _NavItem extends StatelessWidget {
               child: Material(
                 color: selected
                     ? FundLensTokens.sidebarActive
-                    : (focused ? Colors.white.withValues(alpha: 0.06) : Colors.transparent),
+                    : (focused
+                          ? FundLensTokens.surface.withValues(alpha: 0.06)
+                          : Colors.transparent),
                 borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
                 child: InkWell(
                   onTap: onSelect,
-                  borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
+                  borderRadius: BorderRadius.circular(
+                    FundLensTokens.radiusSmall,
+                  ),
                   child: Container(
-                    height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    height: FundLensTokens.minTapTarget,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: FundLensTokens.space3,
+                    ),
                     decoration: focused
                         ? BoxDecoration(
-                            borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
-                            border: Border.all(color: FundLensTokens.surface, width: 2),
+                            borderRadius: BorderRadius.circular(
+                              FundLensTokens.radiusSmall,
+                            ),
+                            border: Border.all(
+                              color: FundLensTokens.surface,
+                              width: FundLensTokens.focusOutlineWidth,
+                            ),
                           )
                         : null,
                     child: Row(
                       children: [
-                        Icon(destinationIcons[destination], size: 17, color: foreground),
-                        const SizedBox(width: 11),
+                        Icon(
+                          destinationIcons[destination],
+                          size: 16,
+                          color: foreground,
+                        ),
+                        const SizedBox(width: FundLensTokens.space3),
                         Text(
                           label,
                           style: TextStyle(
                             fontFamily: 'Noto Sans SC',
-                            fontSize: 13.5,
-                            fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+                            fontSize: 14,
+                            fontWeight: selected
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                             color: foreground,
                           ),
                         ),
@@ -365,17 +427,15 @@ class _TopBar extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       color: FundLensTokens.canvas,
-      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.pagePadding, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: FundLensTokens.pagePadding,
+        vertical: FundLensTokens.space3,
+      ),
       child: Row(
         children: [
           Text(crumb, style: theme.textTheme.bodySmall),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
-            ),
-          ),
+          const SizedBox(width: FundLensTokens.space3),
+          Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
           OutlinedButton.icon(
             key: const ValueKey('data-status-button'),
             onPressed: onOpenDataStatus,

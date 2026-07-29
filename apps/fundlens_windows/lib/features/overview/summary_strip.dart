@@ -32,7 +32,10 @@ class SummaryStrip extends ConsumerWidget {
     ];
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: FundLensTokens.cardPadding,
+          vertical: FundLensTokens.space4,
+        ),
         child: Row(
           children: [
             for (var i = 0; i < cells.length; i++) ...[
@@ -55,7 +58,7 @@ class _CellDivider extends StatelessWidget {
     return Container(
       width: 1,
       height: 44,
-      margin: const EdgeInsets.only(right: 20),
+      margin: const EdgeInsets.only(right: FundLensTokens.cardPadding),
       color: FundLensTokens.border,
     );
   }
@@ -70,15 +73,14 @@ class _SummaryCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final number =
-        theme.extension<FundLensTextStyles>()!.financialNumber;
+    final kpi = theme.extension<FundLensTextStyles>()!.kpiNumber;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text(value, style: number.copyWith(fontSize: 18)),
+          const SizedBox(height: FundLensTokens.space1),
+          Text(value, style: kpi),
         ],
       ),
     );
@@ -99,36 +101,34 @@ class _SignedSummaryCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final number =
-        theme.extension<FundLensTextStyles>()!.financialNumber;
+    final kpi = theme.extension<FundLensTextStyles>()!.kpiNumber;
     if (value == null) {
       return Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text('—', style: number.copyWith(fontSize: 18)),
+            const SizedBox(height: FundLensTokens.space1),
+            Text('—', style: kpi),
           ],
         ),
       );
     }
     final signed = value!;
-    final color = signed.isNegative ? FundLensTokens.loss : FundLensTokens.profit;
+    final color = signed.isNegative
+        ? FundLensTokens.loss
+        : FundLensTokens.profit;
     final text = asPercent
         ? '${signed.isNegative ? '-' : '+'}'
-            '${(signed.value.abs().toDouble() * 100).toStringAsFixed(1)}%'
+              '${(signed.value.abs().toDouble() * 100).toStringAsFixed(1)}%'
         : formatSignedAmount(signed);
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text(
-            text,
-            style: number.copyWith(fontSize: 18, color: color),
-          ),
+          const SizedBox(height: FundLensTokens.space1),
+          Text(text, style: kpi.copyWith(color: color)),
         ],
       ),
     );

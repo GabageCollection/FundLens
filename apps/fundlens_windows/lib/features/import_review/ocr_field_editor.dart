@@ -53,7 +53,8 @@ class OcrFieldEditor extends StatelessWidget {
                     _OcrFieldTile(
                       rowIndex: index,
                       field: field,
-                      focused: controller.focusedField == field.name &&
+                      focused:
+                          controller.focusedField == field.name &&
                           controller.focusedHoldingIndex == index,
                       controller: controller,
                     )
@@ -82,11 +83,11 @@ class OcrFieldEditor extends StatelessWidget {
   }
 
   String _provenance(DataOrigin origin) => switch (origin) {
-        DataOrigin.csv => 'CSV 文件',
-        DataOrigin.excel => 'Excel 文件',
-        DataOrigin.ocr => '截图 OCR',
-        DataOrigin.manual => '手动录入',
-      };
+    DataOrigin.csv => 'CSV 文件',
+    DataOrigin.excel => 'Excel 文件',
+    DataOrigin.ocr => '截图 OCR',
+    DataOrigin.manual => '手动录入',
+  };
 }
 
 class _OcrFieldTile extends StatelessWidget {
@@ -116,7 +117,6 @@ class _OcrFieldTile extends StatelessWidget {
             decoration: InputDecoration(
               labelText: fieldLabel(field.name),
               helperText: '截图 OCR · 第 ${field.pageIndex + 1} 页',
-              isDense: true,
             ),
             onTap: () => controller.focusField(field.name, rowIndex),
             onChanged: (value) =>
@@ -129,10 +129,8 @@ class _OcrFieldTile extends StatelessWidget {
           child: Text(
             '置信度 $percent%',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: lowConfidence
-                      ? Theme.of(context).colorScheme.error
-                      : null,
-                ),
+              color: lowConfidence ? Theme.of(context).colorScheme.error : null,
+            ),
           ),
         ),
       ],
@@ -163,7 +161,6 @@ class _PlainFieldTile extends StatelessWidget {
       decoration: InputDecoration(
         labelText: fieldLabel(field),
         helperText: provenance,
-        isDense: true,
       ),
       onTap: () => controller.focusField(field, index),
       onChanged: (next) => controller.updateHoldingField(index, field, next),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../theme/fundlens_tokens.dart';
 import 'holding_filters.dart';
 
 const _uuid = Uuid();
@@ -84,19 +85,22 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
     super.initState();
     final initial = widget.initial;
     _source = initial?.sourcePlatform ?? SourcePlatform.manual;
-    _instrumentType =
-        initial?.instrumentType ?? InstrumentType.offExchangeFund;
+    _instrumentType = initial?.instrumentType ?? InstrumentType.offExchangeFund;
     _assetClass = initial?.assetClass ?? AssetClass.other;
     _nameController = TextEditingController(text: initial?.productName ?? '');
     _codeController = TextEditingController(text: initial?.productCode ?? '');
-    _quantityController =
-        TextEditingController(text: initial?.quantity?.canonical ?? '');
-    _priceController =
-        TextEditingController(text: initial?.currentPrice?.canonical ?? '');
-    _amountController =
-        TextEditingController(text: initial?.currentValue.canonical ?? '');
-    _costController =
-        TextEditingController(text: initial?.costAmount?.canonical ?? '');
+    _quantityController = TextEditingController(
+      text: initial?.quantity?.canonical ?? '',
+    );
+    _priceController = TextEditingController(
+      text: initial?.currentPrice?.canonical ?? '',
+    );
+    _amountController = TextEditingController(
+      text: initial?.currentValue.canonical ?? '',
+    );
+    _costController = TextEditingController(
+      text: initial?.costAmount?.canonical ?? '',
+    );
     _dateController = TextEditingController(
       text: initial?.valuationDate == null
           ? ''
@@ -189,8 +193,9 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
       valuationMethod: quantity != null && price != null
           ? ValuationMethod.quantityTimesPrice
           : ValuationMethod.manualAmount,
-      valuationDate:
-          dateText.isEmpty ? null : DateTime.tryParse(dateText)?.toUtc(),
+      valuationDate: dateText.isEmpty
+          ? null
+          : DateTime.tryParse(dateText)?.toUtc(),
       dataOrigin: DataOrigin.manual,
       fieldProvenance: {
         ...?initial?.fieldProvenance,
@@ -253,18 +258,18 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: '产品名称'),
                   validator: (v) => _required(v, '请输入产品名称'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 TextFormField(
                   controller: _codeController,
                   decoration: const InputDecoration(labelText: '产品代码'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 Row(
                   children: [
                     Expanded(
@@ -284,7 +289,7 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 Row(
                   children: [
                     Expanded(
@@ -305,7 +310,7 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 TextFormField(
                   controller: _dateController,
                   decoration: const InputDecoration(
@@ -314,7 +319,7 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
                   ),
                   validator: _optionalDate,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: FundLensTokens.formGap),
                 TextFormField(
                   controller: _noteController,
                   decoration: const InputDecoration(labelText: '备注'),
@@ -337,10 +342,7 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
           onPressed: () => Navigator.of(context).maybePop(),
           child: const Text('取消'),
         ),
-        FilledButton(
-          onPressed: _save,
-          child: const Text('保存'),
-        ),
+        FilledButton(onPressed: _save, child: const Text('保存')),
       ],
     );
   }
