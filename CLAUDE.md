@@ -47,9 +47,9 @@ FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工
 
 ## 视觉约定
 
-- 颜色：Graphite `#121817`、Frost `#F2F5F3`、Paper `#FFFFFF`、Lens Indigo `#625BD4`、Profit Vermilion `#C54B40`（盈利）、Loss Jade `#2E8162`（亏损）。
+- 设计系统：Open Design 暖墨体系（2026-07 定稿，替代旧 Graphite/Indigo 约定）。羊皮纸画布 `#F5F3EC`、卡片面 `#FFFDF8`、次级面 `#FAF8F1`、暖墨正文 `#24211B`、陶土橙强调 `#C4603E`（图形）/ `#A94E30`（文字与按钮）、Profit Red `#B6452F`（盈利）、Loss Green `#2C6E50`（亏损）、暖黑侧栏 `#26221B`；资产类别段色、soft 底色与圆角（6/10/14）以 `apps/fundlens_windows/lib/theme/fundlens_tokens.dart` 为唯一准绳。
 - 国内颜色习惯：红盈利、绿亏损；颜色之外必须提供符号和文字语义。
-- 字体角色：标题/快照日期用宋体，界面正文用黑体，金额比例用 IBM Plex Mono 等宽数字。
+- 字体角色：标题/快照日期用宋体（Noto Serif SC），界面正文用黑体（Noto Sans SC），金额比例用 IBM Plex Mono 等宽数字。
 
 ## 开发工作流
 

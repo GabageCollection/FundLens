@@ -16,26 +16,47 @@ class SummaryStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(portfolioSummaryProvider);
+    final cells = <Widget>[
+      _SummaryCell(label: '总资产', value: summary.totalValue.canonical),
+      _SummaryCell(label: '覆盖成本', value: summary.totalCost.canonical),
+      _SignedSummaryCell(label: '浮动盈亏', value: summary.totalFloatingProfit),
+      _SignedSummaryCell(
+        label: '总收益率',
+        value: summary.totalReturn,
+        asPercent: true,
+      ),
+      _SummaryCell(
+        label: '收益覆盖率',
+        value: formatPercent(summary.returnCoverage),
+      ),
+    ];
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
-            _SummaryCell(label: '总资产', value: summary.totalValue.canonical),
-            _SummaryCell(label: '覆盖成本', value: summary.totalCost.canonical),
-            _SignedSummaryCell(label: '浮动盈亏', value: summary.totalFloatingProfit),
-            _SignedSummaryCell(
-              label: '总收益率',
-              value: summary.totalReturn,
-              asPercent: true,
-            ),
-            _SummaryCell(
-              label: '收益覆盖率',
-              value: formatPercent(summary.returnCoverage),
-            ),
+            for (var i = 0; i < cells.length; i++) ...[
+              if (i > 0) const _CellDivider(),
+              cells[i],
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 1px vertical rule between KPI cells (`.kpi + .kpi` border in the design).
+class _CellDivider extends StatelessWidget {
+  const _CellDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 44,
+      margin: const EdgeInsets.only(right: 20),
+      color: FundLensTokens.border,
     );
   }
 }

@@ -11,6 +11,7 @@ final class CompositionRow {
     required this.label,
     required this.amount,
     required this.share,
+    this.color,
   });
 
   final String label;
@@ -18,6 +19,9 @@ final class CompositionRow {
 
   /// Share of the total in the range 0..1.
   final DecimalValue share;
+
+  /// Decorative share-bar color; falls back to the accent when null.
+  final Color? color;
 }
 
 /// Exact amount/share table with a thin proportional bar per row.
@@ -90,7 +94,7 @@ class CompositionTable extends StatelessWidget {
                   return Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: FundLensTokens.frost,
+                      color: FundLensTokens.surfaceAlt,
                       borderRadius:
                           BorderRadius.circular(FundLensTokens.radiusSmall),
                     ),
@@ -99,7 +103,7 @@ class CompositionTable extends StatelessWidget {
                       width: constraints.maxWidth * share,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: FundLensTokens.lensIndigo,
+                        color: row.color ?? FundLensTokens.accent,
                         borderRadius:
                             BorderRadius.circular(FundLensTokens.radiusSmall),
                       ),

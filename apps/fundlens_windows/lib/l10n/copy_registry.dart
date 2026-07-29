@@ -14,6 +14,10 @@ const allChineseCopy = <String>[
   '历史快照',
   '导入与识别',
   '设置与备份',
+  // Shell chrome.
+  '数据',
+  '行情引擎按需启动',
+  'FundLens · 数据仅保存在本机',
   // Common actions.
   '添加持仓',
   '编辑持仓',

@@ -70,7 +70,10 @@ class _OverviewContent extends ConsumerWidget {
           const SizedBox(height: 16),
           const StructureObservations(),
           const SizedBox(height: 16),
-          Text('金额最高的持仓', style: theme.textTheme.labelLarge),
+          Text(
+            '金额最高的持仓',
+            style: theme.extension<FundLensTextStyles>()!.sectionTitle,
+          ),
           const SizedBox(height: 8),
           for (final holding in visible)
             _TopHoldingRow(holding: holding),
@@ -100,8 +103,8 @@ class _TopHoldingRow extends StatelessWidget {
     return Container(
       height: 44,
       decoration: const BoxDecoration(
-        color: FundLensTokens.paper,
-        border: Border(bottom: BorderSide(color: FundLensTokens.divider)),
+        color: FundLensTokens.surface,
+        border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
