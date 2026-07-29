@@ -30,14 +30,19 @@ class StructureObservations extends ConsumerWidget {
       children: [
         for (final observation in observations)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(
+              vertical: FundLensTokens.space1,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 5,
                   height: 5,
-                  margin: const EdgeInsets.only(top: 8, right: 10),
+                  margin: const EdgeInsets.only(
+                    top: FundLensTokens.space2,
+                    right: FundLensTokens.space3,
+                  ),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: FundLensTokens.accent,

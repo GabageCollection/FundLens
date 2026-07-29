@@ -36,7 +36,7 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('资产分析', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 20),
+          const SizedBox(height: FundLensTokens.titleGap),
           SegmentedButton<AnalysisDimension>(
             segments: const [
               ButtonSegment(
@@ -57,9 +57,9 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> {
               setState(() => _dimension = selection.first);
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: FundLensTokens.cardGap),
           CompositionTable(rows: _rowsFor(summary)),
-          const SizedBox(height: 20),
+          const SizedBox(height: FundLensTokens.cardGap),
           ConcentrationPanel(
             summary: summary,
             quality: quality,
@@ -77,36 +77,39 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> {
         total.isZero ? DecimalValue.zero : amount.divide(total);
 
     final rows = switch (_dimension) {
-      AnalysisDimension.assetClass => summary.byAssetClass.entries
-          .map(
-            (entry) => CompositionRow(
-              label: assetClassLabels[entry.key]!,
-              amount: entry.value,
-              share: shareOf(entry.value),
-              color: FundLensTokens.categoryColors[entry.key],
-            ),
-          )
-          .toList(),
-      AnalysisDimension.instrumentType => summary.byInstrumentType.entries
-          .map(
-            (entry) => CompositionRow(
-              label: instrumentTypeLabels[entry.key]!,
-              amount: entry.value,
-              share: shareOf(entry.value),
-              color: _instrumentTypeColor(entry.key),
-            ),
-          )
-          .toList(),
-      AnalysisDimension.source => summary.bySource.entries
-          .map(
-            (entry) => CompositionRow(
-              label: sourcePlatformLabels[entry.key]!,
-              amount: entry.value,
-              share: shareOf(entry.value),
-              color: FundLensTokens.categoryColors[AssetClass.other],
-            ),
-          )
-          .toList(),
+      AnalysisDimension.assetClass =>
+        summary.byAssetClass.entries
+            .map(
+              (entry) => CompositionRow(
+                label: assetClassLabels[entry.key]!,
+                amount: entry.value,
+                share: shareOf(entry.value),
+                color: FundLensTokens.categoryColors[entry.key],
+              ),
+            )
+            .toList(),
+      AnalysisDimension.instrumentType =>
+        summary.byInstrumentType.entries
+            .map(
+              (entry) => CompositionRow(
+                label: instrumentTypeLabels[entry.key]!,
+                amount: entry.value,
+                share: shareOf(entry.value),
+                color: _instrumentTypeColor(entry.key),
+              ),
+            )
+            .toList(),
+      AnalysisDimension.source =>
+        summary.bySource.entries
+            .map(
+              (entry) => CompositionRow(
+                label: sourcePlatformLabels[entry.key]!,
+                amount: entry.value,
+                share: shareOf(entry.value),
+                color: FundLensTokens.categoryColors[AssetClass.other],
+              ),
+            )
+            .toList(),
     };
     rows.sort((a, b) => b.amount.compareTo(a.amount));
     return rows;

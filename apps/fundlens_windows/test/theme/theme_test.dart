@@ -6,25 +6,27 @@ import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 
 void main() {
   test('financial semantic colors follow the approved China convention', () {
-    expect(FundLensTokens.profit, const Color(0xFFB6452F));
-    expect(FundLensTokens.loss, const Color(0xFF2C6E50));
+    expect(FundLensTokens.profit, const Color(0xFFB84B34));
+    expect(FundLensTokens.loss, const Color(0xFF19705D));
   });
 
   test('base tokens match the warm-ink palette', () {
-    expect(FundLensTokens.canvas, const Color(0xFFF5F3EC));
+    expect(FundLensTokens.canvas, const Color(0xFFF6F3EC));
     expect(FundLensTokens.surface, const Color(0xFFFFFDF8));
     expect(FundLensTokens.surfaceAlt, const Color(0xFFFAF8F1));
-    expect(FundLensTokens.ink, const Color(0xFF24211B));
+    expect(FundLensTokens.ink, const Color(0xFF292722));
     expect(FundLensTokens.inkSoft, const Color(0xFF4C4639));
-    expect(FundLensTokens.muted, const Color(0xFF6E675A));
-    expect(FundLensTokens.border, const Color(0xFFE5E0D1));
+    expect(FundLensTokens.muted, const Color(0xFF736E64));
+    expect(FundLensTokens.border, const Color(0xFFE4DED1));
     expect(FundLensTokens.borderStrong, const Color(0xFFD5CFBC));
-    expect(FundLensTokens.accent, const Color(0xFFC4603E));
-    expect(FundLensTokens.accentStrong, const Color(0xFFA94E30));
+    expect(FundLensTokens.accent, const Color(0xFFB65233));
+    expect(FundLensTokens.accentStrong, const Color(0xFFB65233));
     expect(FundLensTokens.accentSoft, const Color(0xFFF6E4DA));
-    expect(FundLensTokens.sidebar, const Color(0xFF26221B));
+    expect(FundLensTokens.warn, const Color(0xFFA66A16));
+    expect(FundLensTokens.disabled, const Color(0xFFC9C5BC));
+    expect(FundLensTokens.sidebar, const Color(0xFF27231D));
     expect(FundLensTokens.sidebarInk, const Color(0xFFB6AD9C));
-    expect(FundLensTokens.sidebarActive, const Color(0xFFA94E30));
+    expect(FundLensTokens.sidebarActive, const Color(0xFFB65233));
     expect(FundLensTokens.navWidth, 232);
   });
 
@@ -40,7 +42,7 @@ void main() {
     );
     expect(
       FundLensTokens.categoryColors[AssetClass.equity],
-      const Color(0xFFC4603E),
+      const Color(0xFFB65233),
     );
     expect(
       FundLensTokens.categoryColors[AssetClass.fixedIncome],
@@ -69,13 +71,25 @@ void main() {
     expect(theme.textTheme.bodyMedium?.fontFamily, 'Noto Sans SC');
   });
 
-  test('page titles use Noto Serif SC and financial numbers use IBM Plex Mono', () {
+  test('type scale follows the 24/18/14/12 hierarchy', () {
     final theme = FundLensTheme.light;
     expect(theme.textTheme.titleLarge?.fontFamily, 'Noto Serif SC');
+    expect(theme.textTheme.titleLarge?.fontSize, 24);
+    expect(theme.textTheme.titleLarge?.height, closeTo(32 / 24, 1e-9));
+    expect(theme.textTheme.bodyMedium?.fontSize, 14);
+    expect(theme.textTheme.bodyMedium?.height, closeTo(22 / 14, 1e-9));
+    expect(theme.textTheme.bodySmall?.fontSize, 12);
+    expect(theme.textTheme.bodySmall?.height, closeTo(18 / 12, 1e-9));
+
     final styles = theme.extension<FundLensTextStyles>();
     expect(styles, isNotNull);
-    expect(styles!.financialNumber.fontFamily, 'IBM Plex Mono');
+    expect(styles!.sectionTitle.fontSize, 18);
+    expect(styles.sectionTitle.height, closeTo(26 / 18, 1e-9));
+    expect(styles.financialNumber.fontFamily, 'IBM Plex Mono');
+    expect(styles.financialNumber.fontSize, 14);
     expect(styles.financialNumber.fontFeatures, isNotEmpty);
+    expect(styles.kpiNumber.fontSize, 22);
+    expect(styles.kpiNumber.fontFeatures, isNotEmpty);
   });
 
   test('error color is defined separately from profit semantics', () {
@@ -84,19 +98,81 @@ void main() {
     expect(theme.colorScheme.errorContainer, FundLensTokens.profitSoft);
   });
 
-  test('dividers are 1px and cards use 14px radius with 1px border', () {
-    final theme = FundLensTheme.light;
-    expect(theme.dividerTheme.thickness, 1);
-    expect(theme.cardTheme.elevation, 0);
-    final shape = theme.cardTheme.shape! as RoundedRectangleBorder;
-    expect(shape.borderRadius, BorderRadius.circular(14));
-    expect(shape.side.color, FundLensTokens.border);
-    expect(shape.side.width, 1);
+  test(
+    'dividers are 1px and cards use 12px radius with 1px border, no shadow',
+    () {
+      final theme = FundLensTheme.light;
+      expect(theme.dividerTheme.thickness, 1);
+      expect(theme.cardTheme.elevation, 0);
+      final shape = theme.cardTheme.shape! as RoundedRectangleBorder;
+      expect(shape.borderRadius, BorderRadius.circular(12));
+      expect(shape.side.color, FundLensTokens.border);
+      expect(shape.side.width, 1);
+    },
+  );
+
+  test('radii follow the 6/8/10/12 scale', () {
+    expect(FundLensTokens.radiusSmall, 6);
+    expect(FundLensTokens.radiusControl, 8);
+    expect(FundLensTokens.radiusMedium, 10);
+    expect(FundLensTokens.radiusCard, 12);
   });
 
-  test('radii follow the 6/10/14 scale', () {
-    expect(FundLensTokens.radiusSmall, 6);
-    expect(FundLensTokens.radiusMedium, 10);
-    expect(FundLensTokens.radiusLarge, 14);
+  test('buttons and inputs are 40px high with 2px focus outline', () {
+    final theme = FundLensTheme.light;
+
+    final filled = theme.filledButtonTheme.style!;
+    expect(
+      filled.minimumSize!.resolve({}),
+      const Size(64, FundLensTokens.buttonHeight),
+    );
+    expect(FundLensTokens.buttonHeight, 40);
+    final focusedSide = filled.side!.resolve({WidgetState.focused});
+    expect(focusedSide?.width, FundLensTokens.focusOutlineWidth);
+    expect(focusedSide?.color, FundLensTokens.accent);
+    expect(
+      filled.backgroundColor!.resolve({WidgetState.disabled}),
+      FundLensTokens.disabled,
+    );
+
+    final outlined = theme.outlinedButtonTheme.style!;
+    expect(
+      outlined.minimumSize!.resolve({}),
+      const Size(64, FundLensTokens.buttonHeight),
+    );
+
+    final input = theme.inputDecorationTheme;
+    expect(input.constraints?.minHeight, FundLensTokens.inputHeight);
+    expect(FundLensTokens.inputHeight, 40);
+    final focused = input.focusedBorder! as OutlineInputBorder;
+    expect(focused.borderSide.width, FundLensTokens.focusOutlineWidth);
+    expect(focused.borderSide.color, FundLensTokens.accent);
+  });
+
+  test('no text style in the scale is smaller than 12px', () {
+    final theme = FundLensTheme.light;
+    final styles = [
+      theme.textTheme.displayLarge,
+      theme.textTheme.displayMedium,
+      theme.textTheme.displaySmall,
+      theme.textTheme.headlineLarge,
+      theme.textTheme.headlineMedium,
+      theme.textTheme.headlineSmall,
+      theme.textTheme.titleLarge,
+      theme.textTheme.titleMedium,
+      theme.textTheme.titleSmall,
+      theme.textTheme.bodyLarge,
+      theme.textTheme.bodyMedium,
+      theme.textTheme.bodySmall,
+      theme.textTheme.labelLarge,
+      theme.textTheme.labelMedium,
+      theme.textTheme.labelSmall,
+      theme.chipTheme.labelStyle,
+    ];
+    for (final style in styles) {
+      if (style?.fontSize != null) {
+        expect(style!.fontSize, greaterThanOrEqualTo(12));
+      }
+    }
   });
 }

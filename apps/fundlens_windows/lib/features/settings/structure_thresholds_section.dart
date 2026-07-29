@@ -23,38 +23,41 @@ class _StructureThresholdsSectionState
     extends ConsumerState<StructureThresholdsSection> {
   bool _editing = false;
 
-  static const _fields = <
-      ({
-    String key,
-    String label,
-    DecimalValue? Function(StructureThresholds) read,
-    StructureThresholds Function(StructureThresholds, DecimalValue?) write,
-  })>[
-    (
-      key: 'maxSingleHoldingShare',
-      label: '单一持仓占比上限',
-      read: _readMaxSingle,
-      write: _writeMaxSingle,
-    ),
-    (
-      key: 'maxAssetClassShare',
-      label: '单一类别占比上限',
-      read: _readMaxClass,
-      write: _writeMaxClass,
-    ),
-    (
-      key: 'minCashAndDepositShare',
-      label: '现金及存款占比下限',
-      read: _readMinCash,
-      write: _writeMinCash,
-    ),
-    (
-      key: 'maxEquityExposureShare',
-      label: '权益仓位占比上限',
-      read: _readMaxEquity,
-      write: _writeMaxEquity,
-    ),
-  ];
+  static const _fields =
+      <
+        ({
+          String key,
+          String label,
+          DecimalValue? Function(StructureThresholds) read,
+          StructureThresholds Function(StructureThresholds, DecimalValue?)
+          write,
+        })
+      >[
+        (
+          key: 'maxSingleHoldingShare',
+          label: '单一持仓占比上限',
+          read: _readMaxSingle,
+          write: _writeMaxSingle,
+        ),
+        (
+          key: 'maxAssetClassShare',
+          label: '单一类别占比上限',
+          read: _readMaxClass,
+          write: _writeMaxClass,
+        ),
+        (
+          key: 'minCashAndDepositShare',
+          label: '现金及存款占比下限',
+          read: _readMinCash,
+          write: _writeMinCash,
+        ),
+        (
+          key: 'maxEquityExposureShare',
+          label: '权益仓位占比上限',
+          read: _readMaxEquity,
+          write: _writeMaxEquity,
+        ),
+      ];
 
   static DecimalValue? _readMaxSingle(StructureThresholds t) =>
       t.maxSingleHoldingShare;
@@ -68,46 +71,42 @@ class _StructureThresholdsSectionState
   static StructureThresholds _writeMaxSingle(
     StructureThresholds t,
     DecimalValue? v,
-  ) =>
-      StructureThresholds(
-        maxSingleHoldingShare: v,
-        maxAssetClassShare: t.maxAssetClassShare,
-        minCashAndDepositShare: t.minCashAndDepositShare,
-        maxEquityExposureShare: t.maxEquityExposureShare,
-      );
+  ) => StructureThresholds(
+    maxSingleHoldingShare: v,
+    maxAssetClassShare: t.maxAssetClassShare,
+    minCashAndDepositShare: t.minCashAndDepositShare,
+    maxEquityExposureShare: t.maxEquityExposureShare,
+  );
 
   static StructureThresholds _writeMaxClass(
     StructureThresholds t,
     DecimalValue? v,
-  ) =>
-      StructureThresholds(
-        maxSingleHoldingShare: t.maxSingleHoldingShare,
-        maxAssetClassShare: v,
-        minCashAndDepositShare: t.minCashAndDepositShare,
-        maxEquityExposureShare: t.maxEquityExposureShare,
-      );
+  ) => StructureThresholds(
+    maxSingleHoldingShare: t.maxSingleHoldingShare,
+    maxAssetClassShare: v,
+    minCashAndDepositShare: t.minCashAndDepositShare,
+    maxEquityExposureShare: t.maxEquityExposureShare,
+  );
 
   static StructureThresholds _writeMinCash(
     StructureThresholds t,
     DecimalValue? v,
-  ) =>
-      StructureThresholds(
-        maxSingleHoldingShare: t.maxSingleHoldingShare,
-        maxAssetClassShare: t.maxAssetClassShare,
-        minCashAndDepositShare: v,
-        maxEquityExposureShare: t.maxEquityExposureShare,
-      );
+  ) => StructureThresholds(
+    maxSingleHoldingShare: t.maxSingleHoldingShare,
+    maxAssetClassShare: t.maxAssetClassShare,
+    minCashAndDepositShare: v,
+    maxEquityExposureShare: t.maxEquityExposureShare,
+  );
 
   static StructureThresholds _writeMaxEquity(
     StructureThresholds t,
     DecimalValue? v,
-  ) =>
-      StructureThresholds(
-        maxSingleHoldingShare: t.maxSingleHoldingShare,
-        maxAssetClassShare: t.maxAssetClassShare,
-        minCashAndDepositShare: t.minCashAndDepositShare,
-        maxEquityExposureShare: v,
-      );
+  ) => StructureThresholds(
+    maxSingleHoldingShare: t.maxSingleHoldingShare,
+    maxAssetClassShare: t.maxAssetClassShare,
+    minCashAndDepositShare: t.minCashAndDepositShare,
+    maxEquityExposureShare: v,
+  );
 
   static bool _hasAny(StructureThresholds t) {
     return t.maxSingleHoldingShare != null ||
@@ -133,8 +132,10 @@ class _StructureThresholdsSectionState
       share = percent.divide(DecimalValue.parse('100'));
     }
     final current = ref.read(structureThresholdsProvider);
-    ref.read(structureThresholdsProvider.notifier).state =
-        write(current, share);
+    ref.read(structureThresholdsProvider.notifier).state = write(
+      current,
+      share,
+    );
   }
 
   @override
@@ -149,10 +150,7 @@ class _StructureThresholdsSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '阈值完全可选；未设置时资产分析只显示实际值，不做判断。',
-            style: theme.textTheme.bodySmall,
-          ),
+          Text('阈值完全可选；未设置时资产分析只显示实际值，不做判断。', style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
           if (!editing)
             FilledButton.tonal(
@@ -184,10 +182,7 @@ class _StructureThresholdsSectionState
                         key: ValueKey('threshold-${field.key}'),
                         initialValue: _percentText(field.read(thresholds)),
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          suffixText: '%',
-                          isDense: true,
-                        ),
+                        decoration: const InputDecoration(suffixText: '%'),
                         onChanged: (text) => _onChanged(text, field.write),
                       ),
                     ),
@@ -220,11 +215,11 @@ class SettingsSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: FundLensTokens.cardGap),
+      padding: const EdgeInsets.all(FundLensTokens.cardPadding),
       decoration: BoxDecoration(
         color: FundLensTokens.surface,
-        borderRadius: BorderRadius.circular(FundLensTokens.radiusMedium),
+        borderRadius: BorderRadius.circular(FundLensTokens.radiusCard),
         border: Border.all(color: FundLensTokens.border),
       ),
       child: Column(
@@ -234,7 +229,7 @@ class SettingsSectionCard extends StatelessWidget {
             title,
             style: theme.extension<FundLensTextStyles>()!.sectionTitle,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FundLensTokens.space3),
           child,
         ],
       ),

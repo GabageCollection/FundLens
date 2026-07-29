@@ -22,17 +22,15 @@ class OverviewPage extends ConsumerWidget {
     final state = ref.watch(portfolioStateProvider);
     return switch (state) {
       PortfolioLoading() => const Center(child: CircularProgressIndicator()),
-      PortfolioDegraded(:final error) => Center(
-          child: Text('数据暂时不可用：$error'),
-        ),
+      PortfolioDegraded(:final error) => Center(child: Text('数据暂时不可用：$error')),
       PortfolioEmpty() => Center(
-          child: FilledButton.icon(
-            key: const ValueKey('overview-add-first-asset'),
-            onPressed: () => _addFirstAsset(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('添加第一项资产'),
-          ),
+        child: FilledButton.icon(
+          key: const ValueKey('overview-add-first-asset'),
+          onPressed: () => _addFirstAsset(context, ref),
+          icon: const Icon(Icons.add),
+          label: const Text('添加第一项资产'),
         ),
+      ),
       PortfolioReady() => const _OverviewContent(),
     };
   }
@@ -63,21 +61,20 @@ class _OverviewContent extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('资产总览', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.titleGap),
           const SummaryStrip(),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.cardGap),
           const AssetSpectrum(),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.cardGap),
           const StructureObservations(),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.cardGap),
           Text(
             '金额最高的持仓',
             style: theme.extension<FundLensTextStyles>()!.sectionTitle,
           ),
-          const SizedBox(height: 8),
-          for (final holding in visible)
-            _TopHoldingRow(holding: holding),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.space2),
+          for (final holding in visible) _TopHoldingRow(holding: holding),
+          const SizedBox(height: FundLensTokens.cardGap),
           Text(
             freshness == null
                 ? '行情新鲜度：无自动行情持仓'
@@ -101,12 +98,12 @@ class _TopHoldingRow extends StatelessWidget {
     final number = theme.extension<FundLensTextStyles>()!.financialNumber;
     final profit = holding.currentFloatingProfit;
     return Container(
-      height: 44,
+      height: 48,
       decoration: const BoxDecoration(
         color: FundLensTokens.surface,
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.space3),
       child: Row(
         children: [
           Expanded(

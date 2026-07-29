@@ -8,6 +8,7 @@ import '../../backup/backup_cipher.dart';
 import '../../backup/backup_format.dart';
 import '../../backup/backup_service.dart';
 import '../../backup/database_restore_service.dart';
+import '../../theme/fundlens_tokens.dart';
 import 'structure_thresholds_section.dart';
 
 /// Backup service used by the settings backup section.
@@ -18,12 +19,14 @@ final backupServiceProvider = Provider<BackupService?>((ref) => null);
 
 /// Restore service used by the settings backup section; see
 /// [backupServiceProvider].
-final databaseRestoreServiceProvider =
-    Provider<DatabaseRestoreService?>((ref) => null);
+final databaseRestoreServiceProvider = Provider<DatabaseRestoreService?>(
+  (ref) => null,
+);
 
 /// File picker abstraction so tests never touch the OS dialog.
-final backupFilePickerProvider =
-    Provider<BackupFilePicker>((ref) => const FilePickerBackupFilePicker());
+final backupFilePickerProvider = Provider<BackupFilePicker>(
+  (ref) => const FilePickerBackupFilePicker(),
+);
 
 /// Picks backup save/open locations, restricted to the FundLens backup
 /// extension.
@@ -47,7 +50,8 @@ final class FilePickerBackupFilePicker implements BackupFilePicker {
     final directory = await file_picker.FilePicker.platform.getDirectoryPath();
     if (directory == null) return null;
     final now = DateTime.now();
-    final stamp = '${now.year.toString().padLeft(4, '0')}'
+    final stamp =
+        '${now.year.toString().padLeft(4, '0')}'
         '${now.month.toString().padLeft(2, '0')}'
         '${now.day.toString().padLeft(2, '0')}';
     return p.join(directory, 'fundlens-$stamp$kFundLensBackupExtension');
@@ -115,7 +119,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
   Future<void> _create() async {
     final service = ref.read(backupServiceProvider);
     if (service == null || _busy || !_passwordsMatch) return;
-    final picked = await ref.read(backupFilePickerProvider).pickBackupSaveLocation();
+    final picked = await ref
+        .read(backupFilePickerProvider)
+        .pickBackupSaveLocation();
     if (picked == null) return;
     final destination = picked.endsWith(kFundLensBackupExtension)
         ? picked
@@ -146,9 +152,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('恢复备份'),
-        content: Text(
-          '将用备份文件“$fileName”替换当前数据。替换前会在本机保留当前数据的恢复副本。',
-        ),
+        content: Text('将用备份文件“$fileName”替换当前数据。替换前会在本机保留当前数据的恢复副本。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -216,8 +220,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 '备份功能当前不可用。',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.error),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
           SizedBox(
@@ -227,13 +232,10 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               controller: _createPassword,
               obscureText: true,
               enabled: available && !_busy,
-              decoration: const InputDecoration(
-                labelText: '备份密码',
-                isDense: true,
-              ),
+              decoration: const InputDecoration(labelText: '备份密码'),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: FundLensTokens.formGap),
           SizedBox(
             width: 280,
             child: TextField(
@@ -243,19 +245,17 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               enabled: available && !_busy,
               decoration: InputDecoration(
                 labelText: '再次输入备份密码',
-                isDense: true,
                 errorText: _showMismatch ? '两次输入的密码不一致' : null,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FundLensTokens.space3),
           FilledButton.tonal(
             key: const ValueKey('backup-create-button'),
-            onPressed:
-                available && !_busy && _passwordsMatch ? _create : null,
+            onPressed: available && !_busy && _passwordsMatch ? _create : null,
             child: const Text('创建加密备份'),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: FundLensTokens.space6),
           SizedBox(
             width: 280,
             child: TextField(
@@ -263,13 +263,10 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               controller: _restorePassword,
               obscureText: true,
               enabled: available && !_busy,
-              decoration: const InputDecoration(
-                labelText: '备份密码',
-                isDense: true,
-              ),
+              decoration: const InputDecoration(labelText: '备份密码'),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FundLensTokens.space3),
           OutlinedButton(
             key: const ValueKey('backup-restore-button'),
             onPressed: available && !_busy && _restorePassword.text.isNotEmpty
@@ -278,7 +275,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             child: const Text('选择备份文件并恢复'),
           ),
           if (_busy) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: FundLensTokens.space3),
             const Row(
               children: [
                 SizedBox(

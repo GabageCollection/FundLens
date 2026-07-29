@@ -40,16 +40,15 @@ class HoldingsPage extends ConsumerWidget {
                 child: TextField(
                   decoration: const InputDecoration(
                     hintText: '搜索名称或代码',
-                    isDense: true,
                     prefixIcon: Icon(Icons.search),
                   ),
                   onChanged: (value) {
-                    ref.read(holdingFilterProvider.notifier).state =
-                        filter.copyWith(query: value);
+                    ref.read(holdingFilterProvider.notifier).state = filter
+                        .copyWith(query: value);
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: FundLensTokens.space3),
               SegmentedButton<HoldingColumnPreset>(
                 segments: const [
                   ButtonSegment(
@@ -67,11 +66,11 @@ class HoldingsPage extends ConsumerWidget {
                 ],
                 selected: {filter.preset},
                 onSelectionChanged: (selection) {
-                  ref.read(holdingFilterProvider.notifier).state =
-                      filter.copyWith(preset: selection.first);
+                  ref.read(holdingFilterProvider.notifier).state = filter
+                      .copyWith(preset: selection.first);
                 },
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: FundLensTokens.space3),
               FilledButton.icon(
                 onPressed: () => _addHolding(context, ref),
                 icon: const Icon(Icons.add),
@@ -79,12 +78,9 @@ class HoldingsPage extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: FundLensTokens.titleGap),
           Expanded(
-            child: HoldingGrid(
-              holdings: holdings,
-              preset: filter.preset,
-            ),
+            child: HoldingGrid(holdings: holdings, preset: filter.preset),
           ),
         ],
       ),

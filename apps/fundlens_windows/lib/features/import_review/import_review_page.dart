@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../importing/import_models.dart';
+import '../../theme/fundlens_tokens.dart';
 import 'data_issue_list.dart';
 import 'import_diff_panel.dart';
 import 'import_review_controller.dart';
@@ -31,37 +32,38 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
   Widget build(BuildContext context) {
     final controller = ref.watch(importReviewControllerProvider);
     final state = controller.state;
-    return Scaffold(
-      appBar: AppBar(title: const Text('导入与识别')),
-      body: switch (state) {
-        ImportIdle() => const _IdleBody(),
-        ImportParsing() => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (state.progress != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 96),
-                    child: LinearProgressIndicator(value: state.progress),
-                  )
-                else
-                  const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(
-                  state.currentStep != null && state.totalSteps != null
-                      ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
-                      : '正在解析，首次截图识别需要加载模型，可能需要几分钟',
+    // 页面标题由 AppShell 顶栏统一提供,这里不再嵌套 AppBar;
+    // 保留无 AppBar 的 Scaffold 以提供 Material 祖先与画布底色。
+    final body = switch (state) {
+      ImportIdle() => const _IdleBody(),
+      ImportParsing() => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (state.progress != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: FundLensTokens.space12 * 2,
                 ),
-              ],
+                child: LinearProgressIndicator(value: state.progress),
+              )
+            else
+              const CircularProgressIndicator(),
+            const SizedBox(height: FundLensTokens.space4),
+            Text(
+              state.currentStep != null && state.totalSteps != null
+                  ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
+                  : '正在解析，首次截图识别需要加载模型，可能需要几分钟',
             ),
-          ),
-        ImportEditing() => _EditingBody(controller: controller),
-        ImportCommitting() =>
-          const Center(child: CircularProgressIndicator()),
-        ImportCommitted() => _CommittedBody(report: state.report),
-        ImportFailed() => _FailedBody(state: state),
-      },
-    );
+          ],
+        ),
+      ),
+      ImportEditing() => _EditingBody(controller: controller),
+      ImportCommitting() => const Center(child: CircularProgressIndicator()),
+      ImportCommitted() => _CommittedBody(report: state.report),
+      ImportFailed() => _FailedBody(state: state),
+    };
+    return Scaffold(body: body);
   }
 }
 
@@ -129,8 +131,7 @@ class _EditingBody extends StatelessWidget {
   Future<void> _confirmCommit(BuildContext context) async {
     final state = controller.state;
     if (state is! ImportEditing) return;
-    if (controller.mode == ImportMode.full &&
-        state.plan.removeIds.isNotEmpty) {
+    if (controller.mode == ImportMode.full && state.plan.removeIds.isNotEmpty) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -163,14 +164,8 @@ class _EditingBody extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: SegmentedButton<ImportMode>(
             segments: const [
-              ButtonSegment(
-                value: ImportMode.partial,
-                label: Text('部分持仓'),
-              ),
-              ButtonSegment(
-                value: ImportMode.full,
-                label: Text('全量持仓'),
-              ),
+              ButtonSegment(value: ImportMode.partial, label: Text('部分持仓')),
+              ButtonSegment(value: ImportMode.full, label: Text('全量持仓')),
             ],
             selected: {controller.mode},
             onSelectionChanged: (selection) =>
