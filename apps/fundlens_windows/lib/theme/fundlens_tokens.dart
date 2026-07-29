@@ -1,92 +1,152 @@
 import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
-/// Fixed design tokens for the FundLens warm-ink desktop UI.
+/// FundLens 暖墨设计系统的唯一设计变量来源。
 ///
-/// Values mirror the approved Open Design system (`assets/fundlens.css`):
-/// parchment canvas, terracotta accent, serif display type. Financial
-/// semantics follow the China convention — profit is red, loss is green —
-/// and every signed figure must also carry an explicit `+`/`-` sign.
+/// 所有页面与组件必须使用这里的语义变量,不得在组件中散落硬编码的
+/// 颜色、字号、间距、圆角或按钮尺寸。金融语义遵循国内习惯——红涨绿跌,
+/// 但任何盈亏状态都必须同时提供 `+`/`-`、图标或文字,不能只依赖颜色。
 abstract final class FundLensTokens {
-  // ---- Surfaces ----
-  /// Parchment app canvas.
-  static const canvas = Color(0xFFF5F3EC);
+  // ---- 颜色:画布与表面 ----
+  /// 页面背景(羊皮纸画布)。
+  static const canvas = Color(0xFFF6F3EC);
 
-  /// Card surface.
+  /// 卡片和表格背景。
   static const surface = Color(0xFFFFFDF8);
 
-  /// Secondary surface: table headers, share-bar tracks.
+  /// 次级表面:表头、占比条轨道、分组底色。
   static const surfaceAlt = Color(0xFFFAF8F1);
 
-  // ---- Text ----
-  /// Primary text (warm ink).
-  static const ink = Color(0xFF24211B);
+  // ---- 颜色:文字 ----
+  /// 主要文字(暖墨)。
+  static const ink = Color(0xFF292722);
+
+  /// 次级正文(表内说明、次级标签)。
   static const inkSoft = Color(0xFF4C4639);
 
-  /// Auxiliary text; keeps ≥4.5:1 contrast on canvas/surface.
-  static const muted = Color(0xFF6E675A);
+  /// 辅助文字;在 canvas/surface 上保持 ≥4.5:1 对比度。
+  static const muted = Color(0xFF736E64);
 
-  // ---- Borders ----
-  static const border = Color(0xFFE5E0D1);
+  // ---- 颜色:边框 ----
+  /// 常规边框与分隔线。
+  static const border = Color(0xFFE4DED1);
+
+  /// 强调边框:输入框常态、卡片 hover。
   static const borderStrong = Color(0xFFD5CFBC);
 
-  // ---- Terracotta accent ----
-  /// Graphics and large-area emphasis (charts, spectrum highlights).
-  static const accent = Color(0xFFC4603E);
+  // ---- 颜色:主色(陶土橙) ----
+  /// 图形强调(图表、资产光谱高亮)。
+  static const accent = Color(0xFFB65233);
 
-  /// Text-level accent and primary button fill; contrast-safe on surface.
-  static const accentStrong = Color(0xFFA94E30);
+  /// 主按钮填充与文字级强调;在 surface 上对比度安全。
+  static const accentStrong = Color(0xFFB65233);
 
-  /// Accent-tinted fill for selected rails and chips.
+  /// 主色浅底:选中导航、chip 底色。
   static const accentSoft = Color(0xFFF6E4DA);
 
-  // ---- Financial semantics (China convention: red profit, green loss) ----
-  static const profit = Color(0xFFB6452F);
+  // ---- 颜色:金融语义(国内习惯:红盈利、绿亏损) ----
+  /// 上涨与盈利。
+  static const profit = Color(0xFFB84B34);
   static const profitSoft = Color(0xFFF8E7E1);
-  static const loss = Color(0xFF2C6E50);
+
+  /// 下跌与亏损。
+  static const loss = Color(0xFF19705D);
   static const lossSoft = Color(0xFFE2EFE8);
 
-  // ---- Warning ----
-  static const warn = Color(0xFF8A6416);
+  // ---- 颜色:数据异常警告 ----
+  static const warn = Color(0xFFA66A16);
   static const warnSoft = Color(0xFFF6ECD4);
 
-  // ---- Sidebar ----
-  static const sidebar = Color(0xFF26221B);
-  static const sidebarInk = Color(0xFFB6AD9C);
-  static const sidebarActive = Color(0xFFA94E30);
+  // ---- 颜色:禁用状态 ----
+  static const disabled = Color(0xFFC9C5BC);
 
-  /// Decorative segment color per asset class. Colors are decorative only;
-  /// class name, amount and share are always also presented as text.
+  // ---- 颜色:侧边栏 ----
+  static const sidebar = Color(0xFF27231D);
+
+  /// 侧边栏未选中文字。
+  static const sidebarInk = Color(0xFFB6AD9C);
+
+  /// 侧边栏弱提示文字(分组标签、页脚次行)。
+  static const sidebarMuted = Color(0xFF6E6656);
+
+  /// 侧边栏品牌字标。
+  static const sidebarTitle = Color(0xFFF3EFE6);
+
+  /// 侧边栏选中态(与主色一致)。
+  static const sidebarActive = Color(0xFFB65233);
+
+  /// 各资产类别的装饰段色。颜色仅作装饰,类别名称、金额与占比
+  /// 必须同时以文字呈现。
   static const categoryColors = <AssetClass, Color>{
     AssetClass.cash: Color(0xFF8A8272),
     AssetClass.deposit: Color(0xFF3E7CB1),
-    AssetClass.equity: Color(0xFFC4603E),
+    AssetClass.equity: Color(0xFFB65233),
     AssetClass.fixedIncome: Color(0xFF2E7D5B),
     AssetClass.mixed: Color(0xFFC58A40),
     AssetClass.gold: Color(0xFFBFA134),
     AssetClass.other: Color(0xFFA9A294),
   };
 
-  // ---- Layout ----
+  // ---- 间距体系(只允许这些值) ----
+  static const double space1 = 4;
+  static const double space2 = 8;
+  static const double space3 = 12;
+  static const double space4 = 16;
+  static const double space6 = 24;
+  static const double space8 = 32;
+  static const double space10 = 40;
+  static const double space12 = 48;
+
+  // ---- 布局 ----
   static const double navWidth = 232;
-  static const double pagePadding = 28;
+
+  /// 页面外边距。
+  static const double pagePadding = 24;
+
+  /// 页面标题与内容间距。
+  static const double titleGap = 24;
+
+  /// 卡片内边距(大卡片可用 [space6] = 24)。
+  static const double cardPadding = 20;
+
+  /// 卡片间距。
+  static const double cardGap = 16;
+
+  /// 表单项纵向间距。
+  static const double formGap = 16;
+
+  /// 表格行高(48–56)。
   static const double rowHeight = 56;
 
+  // ---- 圆角 ----
+  /// 小控件:chip、tooltip。
   static const double radiusSmall = 6;
-  static const double radiusMedium = 10;
-  static const double radiusLarge = 14;
 
-  /// Soft card shadow: `0 1px 2px` + `0 4px 16px` in ink at ~5-6% alpha.
-  static final cardShadow = <BoxShadow>[
-    BoxShadow(
-      color: ink.withValues(alpha: 0.05),
-      blurRadius: 2,
-      offset: const Offset(0, 1),
-    ),
-    BoxShadow(
-      color: ink.withValues(alpha: 0.06),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
-    ),
-  ];
+  /// 胶囊形状态 chip(设计系统中唯一允许的胶囊圆角)。
+  static const double radiusPill = 999;
+
+  /// 表单控件:按钮、输入框。
+  static const double radiusControl = 8;
+
+  /// 对话框。
+  static const double radiusMedium = 10;
+
+  /// 卡片统一圆角 12px。
+  static const double radiusCard = 12;
+
+  // ---- 组件尺寸 ----
+  /// 主按钮高度。
+  static const double buttonHeight = 40;
+
+  /// 输入框高度。
+  static const double inputHeight = 40;
+
+  /// 最小点击区域(宽与高均不得小于该值)。
+  static const double minTapTarget = 40;
+
+  /// 键盘 Focus 轮廓宽度。
+  static const double focusOutlineWidth = 2;
+
+  /// 普通卡片:1px 浅色边框、无阴影。
+  static const cardBorder = BorderSide(color: border);
 }
