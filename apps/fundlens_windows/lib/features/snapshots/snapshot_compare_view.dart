@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/grid_row.dart';
 import '../analysis/analysis_labels.dart';
 
 /// Two-snapshot comparison: total amount change, per-class changes and
@@ -54,9 +55,11 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        GridRow(
+          collapseBelow: 720,
           children: [
-            Expanded(
+            GridCol(
+              span: 6,
               child: _selector(
                 context,
                 label: '较早快照',
@@ -65,8 +68,8 @@ class _SnapshotCompareViewState extends ConsumerState<SnapshotCompareView> {
                 onChanged: (id) => setState(() => _beforeId = id),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            GridCol(
+              span: 6,
               child: _selector(
                 context,
                 label: '较晚快照',

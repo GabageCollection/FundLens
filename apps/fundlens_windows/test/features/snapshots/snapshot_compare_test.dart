@@ -7,6 +7,7 @@ import 'package:fundlens_windows/features/snapshots/snapshot_deletion.dart';
 import 'package:fundlens_windows/features/snapshots/snapshots_page.dart';
 import 'package:fundlens_windows/storage/snapshot_repository.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
+import 'package:fundlens_windows/widgets/page_scaffold.dart';
 
 final class FakeSnapshotRepository implements SnapshotRepository {
   FakeSnapshotRepository(this.snapshots);
@@ -98,6 +99,18 @@ Widget snapshotHarness({
 }
 
 void main() {
+  testWidgets('快照页使用 dense 档 PageScaffold,新建快照在页头', (tester) async {
+    final repository = FakeSnapshotRepository([snapshotJune(), snapshotJuly()]);
+    await tester.pumpWidget(snapshotHarness(repository: repository));
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<PageScaffold>(find.byType(PageScaffold));
+    expect(scaffold.tier, PageWidthTier.dense);
+    expect(find.text('历史快照'), findsOneWidget);
+    expect(find.text('新建快照'), findsOneWidget);
+  });
+
+
   testWidgets('snapshot comparison labels the delta as amount change',
       (tester) async {
     final repository = FakeSnapshotRepository([snapshotJune(), snapshotJuly()]);

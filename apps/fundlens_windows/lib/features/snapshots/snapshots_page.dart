@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/page_scaffold.dart';
 import 'snapshot_compare_view.dart';
 import 'snapshot_deletion.dart';
 
@@ -19,7 +20,16 @@ class SnapshotsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshots = ref.watch(snapshotsProvider);
 
-    return Scaffold(
+    return PageScaffold(
+      tier: PageWidthTier.dense,
+      crumb: '组合',
+      title: '历史快照',
+      actions: [
+        FilledButton(
+          onPressed: () => _createSnapshot(context, ref),
+          child: const Text('新建快照'),
+        ),
+      ],
       body: snapshots.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('快照加载失败：$error')),
@@ -27,23 +37,8 @@ class SnapshotsPage extends ConsumerWidget {
           final sorted = List<PortfolioSnapshot>.of(list)
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return ListView(
-            padding: const EdgeInsets.all(FundLensTokens.pagePadding),
+            padding: EdgeInsets.zero,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '历史快照',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: () => _createSnapshot(context, ref),
-                    child: const Text('新建快照'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: FundLensTokens.titleGap),
               if (sorted.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(
