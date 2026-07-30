@@ -40,8 +40,9 @@ String formatAmount(DecimalValue value) {
   var integer = parts.first;
   if (integer.startsWith('-')) integer = integer.substring(1);
   final grouped = _groupThousands(integer);
-  final fraction =
-      parts.length > 1 ? parts[1].padRight(2, '0').substring(0, 2) : '00';
+  final fraction = parts.length > 1
+      ? parts[1].padRight(2, '0').substring(0, 2)
+      : '00';
   return '${negative ? '-' : ''}$grouped.$fraction';
 }
 

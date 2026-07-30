@@ -40,89 +40,103 @@ class CompositionTable extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(FundLensTokens.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '名称',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                SizedBox(
-                  width: 140,
-                  child: Text(
-                    '金额',
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                SizedBox(
-                  width: 90,
-                  child: Text(
-                    '占比',
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: FundLensTokens.space4),
-            for (final row in rows) ...[
-              Row(
-                children: [
-                  Expanded(child: Text(row.label, style: labelStyle)),
-                  SizedBox(
-                    width: 140,
-                    child: Text(
-                      formatAmount(row.amount),
-                      textAlign: TextAlign.right,
-                      style: numberStyle,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 90,
-                    child: Text(
-                      formatShare(row.share),
-                      textAlign: TextAlign.right,
-                      style: numberStyle,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: FundLensTokens.space2),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final share = double.parse(
-                    row.share.canonical,
-                  ).clamp(0.0, 1.0).toDouble();
-                  return Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: FundLensTokens.surfaceAlt,
-                      borderRadius: BorderRadius.circular(
-                        FundLensTokens.radiusSmall,
-                      ),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      width: constraints.maxWidth * share,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: row.color ?? FundLensTokens.accent,
-                        borderRadius: BorderRadius.circular(
-                          FundLensTokens.radiusSmall,
+        // 列宽有下限(520):容器过窄时横向滚动,不压缩金额/占比列。
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth < 520
+                ? 520.0
+                : constraints.maxWidth;
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: width,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '名称',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ),
-                      ),
+                        SizedBox(
+                          width: 140,
+                          child: Text(
+                            '金额',
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        SizedBox(
+                          width: 90,
+                          child: Text(
+                            '占比',
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
+                    const Divider(height: FundLensTokens.space4),
+                    for (final row in rows) ...[
+                      Row(
+                        children: [
+                          Expanded(child: Text(row.label, style: labelStyle)),
+                          SizedBox(
+                            width: 140,
+                            child: Text(
+                              formatAmount(row.amount),
+                              textAlign: TextAlign.right,
+                              style: numberStyle,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 90,
+                            child: Text(
+                              formatShare(row.share),
+                              textAlign: TextAlign.right,
+                              style: numberStyle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: FundLensTokens.space2),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final share = double.parse(
+                            row.share.canonical,
+                          ).clamp(0.0, 1.0).toDouble();
+                          return Container(
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: FundLensTokens.surfaceAlt,
+                              borderRadius: BorderRadius.circular(
+                                FundLensTokens.radiusSmall,
+                              ),
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              width: constraints.maxWidth * share,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: row.color ?? FundLensTokens.accent,
+                                borderRadius: BorderRadius.circular(
+                                  FundLensTokens.radiusSmall,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: FundLensTokens.space3),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: FundLensTokens.space3),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );
