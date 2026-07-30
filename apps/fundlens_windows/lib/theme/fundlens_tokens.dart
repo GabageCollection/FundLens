@@ -97,8 +97,35 @@ abstract final class FundLensTokens {
   static const double space10 = 40;
   static const double space12 = 48;
 
-  // ---- 布局 ----
-  static const double navWidth = 232;
+  // ---- 布局:侧边栏 ----
+  /// 完整侧边栏宽度。
+  static const double navWidth = 216;
+
+  /// 折叠态图标栏宽度。
+  static const double navRailWidth = 64;
+
+  /// ≥该宽度完整显示侧栏(逻辑像素)。
+  static const double navFullBreakpoint = 1280;
+
+  /// <该宽度切换为抽屉导航(逻辑像素)。
+  static const double navDrawerBreakpoint = 768;
+
+  // ---- 布局:正文容器最大宽度 ----
+  /// 普通页面(总览、分析)。
+  static const double contentMaxStandard = 1440;
+
+  /// 数据密集页面(全部持仓、历史快照)。
+  static const double contentMaxDense = 1680;
+
+  /// 表单页面(设置、导入与识别),取 1040–1200 中间值。
+  static const double contentMaxForm = 1120;
+
+  // ---- 布局:12 列栅格 ----
+  /// 栅格列间距。
+  static const double gridGutter = 16;
+
+  /// 容器低于该宽度时栅格降为单列堆叠。
+  static const double gridCollapseBelow = 960;
 
   /// 页面外边距。
   static const double pagePadding = 24;
