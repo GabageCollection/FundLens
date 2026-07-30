@@ -36,13 +36,29 @@ class SummaryStrip extends ConsumerWidget {
           horizontal: FundLensTokens.cardPadding,
           vertical: FundLensTokens.space4,
         ),
-        child: Row(
-          children: [
-            for (var i = 0; i < cells.length; i++) ...[
-              if (i > 0) const _CellDivider(),
-              cells[i],
-            ],
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 宽屏:分隔线 + 等宽单元格;窄于 760 时两列堆叠,去掉分隔线。
+            if (constraints.maxWidth >= 760) {
+              return Row(
+                children: [
+                  for (var i = 0; i < cells.length; i++) ...[
+                    if (i > 0) const _CellDivider(),
+                    Expanded(child: cells[i]),
+                  ],
+                ],
+              );
+            }
+            final cellWidth = (constraints.maxWidth - FundLensTokens.space4) / 2;
+            return Wrap(
+              spacing: FundLensTokens.space4,
+              runSpacing: FundLensTokens.space4,
+              children: [
+                for (final cell in cells)
+                  SizedBox(width: cellWidth, child: cell),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -74,15 +90,13 @@ class _SummaryCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final kpi = theme.extension<FundLensTextStyles>()!.kpiNumber;
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodySmall),
-          const SizedBox(height: FundLensTokens.space1),
-          Text(value, style: kpi),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.bodySmall),
+        const SizedBox(height: FundLensTokens.space1),
+        Text(value, style: kpi),
+      ],
     );
   }
 }
@@ -103,15 +117,13 @@ class _SignedSummaryCell extends StatelessWidget {
     final theme = Theme.of(context);
     final kpi = theme.extension<FundLensTextStyles>()!.kpiNumber;
     if (value == null) {
-      return Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: theme.textTheme.bodySmall),
-            const SizedBox(height: FundLensTokens.space1),
-            Text('—', style: kpi),
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall),
+          const SizedBox(height: FundLensTokens.space1),
+          Text('—', style: kpi),
+        ],
       );
     }
     final signed = value!;
@@ -122,15 +134,13 @@ class _SignedSummaryCell extends StatelessWidget {
         ? '${signed.isNegative ? '-' : '+'}'
               '${(signed.value.abs().toDouble() * 100).toStringAsFixed(1)}%'
         : formatSignedAmount(signed);
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodySmall),
-          const SizedBox(height: FundLensTokens.space1),
-          Text(text, style: kpi.copyWith(color: color)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.bodySmall),
+        const SizedBox(height: FundLensTokens.space1),
+        Text(text, style: kpi.copyWith(color: color)),
+      ],
     );
   }
 }

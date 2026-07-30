@@ -7,6 +7,7 @@ import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/page_scaffold.dart';
 import '../holdings/holding_editor_dialog.dart';
 import 'asset_spectrum.dart';
 import 'structure_observations.dart';
@@ -20,19 +21,24 @@ class OverviewPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(portfolioStateProvider);
-    return switch (state) {
-      PortfolioLoading() => const Center(child: CircularProgressIndicator()),
-      PortfolioDegraded(:final error) => Center(child: Text('数据暂时不可用：$error')),
-      PortfolioEmpty() => Center(
-        child: FilledButton.icon(
-          key: const ValueKey('overview-add-first-asset'),
-          onPressed: () => _addFirstAsset(context, ref),
-          icon: const Icon(Icons.add),
-          label: const Text('添加第一项资产'),
+    return PageScaffold(
+      tier: PageWidthTier.standard,
+      crumb: '组合',
+      title: '资产总览',
+      body: switch (state) {
+        PortfolioLoading() => const Center(child: CircularProgressIndicator()),
+        PortfolioDegraded(:final error) => Center(child: Text('数据暂时不可用：$error')),
+        PortfolioEmpty() => Center(
+          child: FilledButton.icon(
+            key: const ValueKey('overview-add-first-asset'),
+            onPressed: () => _addFirstAsset(context, ref),
+            icon: const Icon(Icons.add),
+            label: const Text('添加第一项资产'),
+          ),
         ),
-      ),
-      PortfolioReady() => const _OverviewContent(),
-    };
+        PortfolioReady() => const _OverviewContent(),
+      },
+    );
   }
 
   Future<void> _addFirstAsset(BuildContext context, WidgetRef ref) async {
@@ -56,12 +62,10 @@ class _OverviewContent extends ConsumerWidget {
     final freshness = dataQuality.quoteFreshness;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(FundLensTokens.pagePadding),
+      padding: const EdgeInsets.only(bottom: FundLensTokens.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('资产总览', style: theme.textTheme.titleLarge),
-          const SizedBox(height: FundLensTokens.titleGap),
           const SummaryStrip(),
           const SizedBox(height: FundLensTokens.cardGap),
           const AssetSpectrum(),
