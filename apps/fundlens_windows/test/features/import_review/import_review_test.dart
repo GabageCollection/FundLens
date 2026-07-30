@@ -3,10 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/features/import_review/import_review_controller.dart';
 import 'package:fundlens_windows/importing/import_models.dart';
+import 'package:fundlens_windows/widgets/page_scaffold.dart';
 
 import 'import_review_harness.dart';
 
 void main() {
+  testWidgets('导入页使用 form 档 PageScaffold', (tester) async {
+    await pumpImportHarness(tester);
+    final scaffold = tester.widget<PageScaffold>(find.byType(PageScaffold));
+    expect(scaffold.tier, PageWidthTier.form);
+    expect(find.text('导入与识别'), findsOneWidget);
+  });
+
   testWidgets('screenshot import defaults to partial mode', (tester) async {
     final engine = FakeDataEngineClient()
       ..responses['ocr.parse_screenshots'] = alipayOcrResponse();

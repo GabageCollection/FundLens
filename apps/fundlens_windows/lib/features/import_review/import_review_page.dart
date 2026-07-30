@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../importing/import_models.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/page_scaffold.dart';
 import 'data_issue_list.dart';
 import 'import_diff_panel.dart';
 import 'import_review_controller.dart';
@@ -32,8 +33,6 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
   Widget build(BuildContext context) {
     final controller = ref.watch(importReviewControllerProvider);
     final state = controller.state;
-    // 页面标题由 AppShell 顶栏统一提供,这里不再嵌套 AppBar;
-    // 保留无 AppBar 的 Scaffold 以提供 Material 祖先与画布底色。
     final body = switch (state) {
       ImportIdle() => const _IdleBody(),
       ImportParsing() => Center(
@@ -63,7 +62,12 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
       ImportCommitted() => _CommittedBody(report: state.report),
       ImportFailed() => _FailedBody(state: state),
     };
-    return Scaffold(body: body);
+    return PageScaffold(
+      tier: PageWidthTier.form,
+      crumb: '数据',
+      title: '导入与识别',
+      body: body,
+    );
   }
 }
 
@@ -173,27 +177,32 @@ class _EditingBody extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: ScreenshotCropView(controller: controller)),
-              Expanded(
-                flex: 2,
-                child: Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= FundLensTokens.gridCollapseBelow) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
-                      flex: 3,
-                      child: OcrFieldEditor(controller: controller),
+                        child: ScreenshotCropView(controller: controller)),
+                    Expanded(flex: 2, child: _editorColumn()),
+                  ],
+                );
+              }
+              // 窄屏:裁剪区与编辑列纵向堆叠,统一滚动
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 320,
+                      child: ScreenshotCropView(controller: controller),
                     ),
-                    Expanded(
-                      flex: 2,
-                      child: DataIssueList(controller: controller),
-                    ),
-                    ImportDiffPanel(controller: controller),
+                    const SizedBox(height: FundLensTokens.space3),
+                    SizedBox(height: 640, child: _editorColumn()),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
         Padding(
@@ -215,6 +224,16 @@ class _EditingBody extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _editorColumn() {
+    return Column(
+      children: [
+        Expanded(flex: 3, child: OcrFieldEditor(controller: controller)),
+        Expanded(flex: 2, child: DataIssueList(controller: controller)),
+        ImportDiffPanel(controller: controller),
       ],
     );
   }

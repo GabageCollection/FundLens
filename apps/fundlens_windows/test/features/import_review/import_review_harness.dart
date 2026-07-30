@@ -230,6 +230,10 @@ Future<ImportReviewController> pumpImportHarness(
         tempStore: tempStore ?? FakeScreenshotTempStore(),
         draftStore: draftStore ?? InMemoryImportDraftStore(),
       );
+  // 桌面宽屏画布,保证编辑态走 >=960 的左右分栏布局。
+  tester.view.physicalSize = const Size(1440, 900);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
