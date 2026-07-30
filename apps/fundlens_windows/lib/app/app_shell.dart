@@ -81,6 +81,9 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   AppDestination _selected = AppDestination.overview;
 
+  /// 768–1279 区间用户手动折叠状态,会话内保持。
+  bool _navCollapsed = false;
+
   void _select(AppDestination destination) {
     if (_selected != destination) {
       setState(() => _selected = destination);
@@ -112,33 +115,65 @@ class _AppShellState extends State<AppShell> {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _NavigationRegion(selected: _selected, onSelect: _select),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _TopBar(
-                        crumb: destinationCrumbs[_selected]!,
-                        title: destinationLabels[_selected]!,
-                        onOpenDataStatus: () =>
-                            _select(AppDestination.importReview),
-                      ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: IndexedStack(
-                          index: _selected.index,
-                          children: widget.pages,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final drawerMode = width < FundLensTokens.navDrawerBreakpoint;
+              final collapsible =
+                  !drawerMode && width < FundLensTokens.navFullBreakpoint;
+              final collapsed = collapsible && _navCollapsed;
+
+              return Scaffold(
+                drawer: drawerMode
+                    ? Drawer(
+                        width: FundLensTokens.navWidth,
+                        child: _NavigationRegion(
+                          selected: _selected,
+                          collapsed: false,
+                          onSelect: (destination) {
+                            _select(destination);
+                            Navigator.of(context).maybePop();
+                          },
                         ),
+                      )
+                    : null,
+                body: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!drawerMode)
+                      _NavigationRegion(
+                        selected: _selected,
+                        collapsed: collapsed,
+                        onSelect: _select,
                       ),
-                    ],
-                  ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _TopBar(
+                            drawerMode: drawerMode,
+                            collapsible: collapsible,
+                            collapsed: collapsed,
+                            onToggleCollapse: () => setState(
+                              () => _navCollapsed = !_navCollapsed,
+                            ),
+                            onOpenDataStatus: () =>
+                                _select(AppDestination.importReview),
+                          ),
+                          const Divider(height: 1),
+                          Expanded(
+                            child: IndexedStack(
+                              index: _selected.index,
+                              children: widget.pages,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -147,51 +182,74 @@ class _AppShellState extends State<AppShell> {
 }
 
 class _NavigationRegion extends StatelessWidget {
-  const _NavigationRegion({required this.selected, required this.onSelect});
+  const _NavigationRegion({
+    required this.selected,
+    required this.collapsed,
+    required this.onSelect,
+  });
 
   final AppDestination selected;
+
+  /// 折叠为 64px 图标栏:隐藏分组标签、文字与页脚,图标 + Tooltip。
+  final bool collapsed;
+
   final ValueChanged<AppDestination> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // 内容按目标态即时切换并固定在目标宽度布局,宽度动画由外层裁剪,
+    // 避免展开/折叠过渡期间 Row 子内容瞬时溢出(overflow 异常)。
+    final contentWidth =
+        collapsed ? FundLensTokens.navRailWidth : FundLensTokens.navWidth;
+    return AnimatedContainer(
       key: const ValueKey('app-nav'),
-      width: FundLensTokens.navWidth,
+      duration: const Duration(milliseconds: 150),
+      width: contentWidth,
       color: FundLensTokens.sidebar,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _BrandBlock(),
-            const SizedBox(height: FundLensTokens.space2),
-            for (final (label, destinations) in _navGroups) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  FundLensTokens.space6,
-                  FundLensTokens.space3,
-                  FundLensTokens.space3,
-                  FundLensTokens.space2,
-                ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontFamily: 'Noto Sans SC',
-                    fontSize: 12,
-                    letterSpacing: 1.1,
-                    color: FundLensTokens.sidebarMuted,
+      clipBehavior: Clip.hardEdge,
+      child: OverflowBox(
+        alignment: Alignment.centerLeft,
+        minWidth: contentWidth,
+        maxWidth: contentWidth,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _BrandBlock(collapsed: collapsed),
+              const SizedBox(height: FundLensTokens.space2),
+              for (final (label, destinations) in _navGroups) ...[
+                if (!collapsed)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      FundLensTokens.space6,
+                      FundLensTokens.space3,
+                      FundLensTokens.space3,
+                      FundLensTokens.space2,
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'Noto Sans SC',
+                        fontSize: 12,
+                        letterSpacing: 1.1,
+                        color: FundLensTokens.sidebarMuted,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(height: FundLensTokens.space3),
+                for (final destination in destinations)
+                  _NavItem(
+                    destination: destination,
+                    selected: destination == selected,
+                    collapsed: collapsed,
+                    onSelect: () => onSelect(destination),
                   ),
-                ),
-              ),
-              for (final destination in destinations)
-                _NavItem(
-                  destination: destination,
-                  selected: destination == selected,
-                  onSelect: () => onSelect(destination),
-                ),
+              ],
+              const Spacer(),
+              if (!collapsed) const _SidebarFooter(),
             ],
-            const Spacer(),
-            const _SidebarFooter(),
-          ],
+          ),
         ),
       ),
     );
@@ -200,11 +258,41 @@ class _NavigationRegion extends StatelessWidget {
 
 /// Brand mark: terracotta「镜」badge + serif wordmark + latin subtitle.
 class _BrandBlock extends StatelessWidget {
-  const _BrandBlock();
+  const _BrandBlock({this.collapsed = false});
+
+  /// 折叠态只渲染居中的「镜」badge,隐藏文字标。
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final badge = Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: FundLensTokens.accentStrong,
+        borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '镜',
+        style: TextStyle(
+          fontFamily: 'Noto Serif SC',
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: onPrimary,
+        ),
+      ),
+    );
+    if (collapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(
+          top: FundLensTokens.space6,
+          bottom: FundLensTokens.space3,
+        ),
+        child: Center(child: badge),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         FundLensTokens.space6,
@@ -214,24 +302,7 @@ class _BrandBlock extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: FundLensTokens.accentStrong,
-              borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '镜',
-              style: TextStyle(
-                fontFamily: 'Noto Serif SC',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: onPrimary,
-              ),
-            ),
-          ),
+          badge,
           const SizedBox(width: FundLensTokens.space3),
           const Expanded(
             child: Column(
@@ -323,11 +394,15 @@ class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.destination,
     required this.selected,
+    required this.collapsed,
     required this.onSelect,
   });
 
   final AppDestination destination;
   final bool selected;
+
+  /// 折叠态图标居中、不渲染文字,以 Tooltip 提供标签语义。
+  final bool collapsed;
   final VoidCallback onSelect;
 
   @override
@@ -363,42 +438,50 @@ class _NavItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(
                     FundLensTokens.radiusSmall,
                   ),
-                  child: Container(
-                    height: FundLensTokens.minTapTarget,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: FundLensTokens.space3,
-                    ),
-                    decoration: focused
-                        ? BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              FundLensTokens.radiusSmall,
-                            ),
-                            border: Border.all(
-                              color: FundLensTokens.surface,
-                              width: FundLensTokens.focusOutlineWidth,
-                            ),
-                          )
-                        : null,
-                    child: Row(
-                      children: [
-                        Icon(
-                          destinationIcons[destination],
-                          size: 16,
-                          color: foreground,
-                        ),
-                        const SizedBox(width: FundLensTokens.space3),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans SC',
-                            fontSize: 14,
-                            fontWeight: selected
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                  child: Tooltip(
+                    message: collapsed ? label : '',
+                    child: Container(
+                      height: FundLensTokens.minTapTarget,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: FundLensTokens.space3,
+                      ),
+                      decoration: focused
+                          ? BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                FundLensTokens.radiusSmall,
+                              ),
+                              border: Border.all(
+                                color: FundLensTokens.surface,
+                                width: FundLensTokens.focusOutlineWidth,
+                              ),
+                            )
+                          : null,
+                      child: Row(
+                        mainAxisAlignment: collapsed
+                            ? MainAxisAlignment.center
+                            : MainAxisAlignment.start,
+                        children: [
+                          Icon(
+                            destinationIcons[destination],
+                            size: 16,
                             color: foreground,
                           ),
-                        ),
-                      ],
+                          if (!collapsed) ...[
+                            const SizedBox(width: FundLensTokens.space3),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans SC',
+                                fontSize: 14,
+                                fontWeight: selected
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                                color: foreground,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -411,20 +494,26 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+/// Global action strip: drawer / collapse toggles on the left, data status
+/// and account avatar on the right. Page title and breadcrumb moved down
+/// into each page's PageHeader (Task 6–10).
 class _TopBar extends StatelessWidget {
   const _TopBar({
-    required this.crumb,
-    required this.title,
+    required this.drawerMode,
+    required this.collapsible,
+    required this.collapsed,
+    required this.onToggleCollapse,
     required this.onOpenDataStatus,
   });
 
-  final String crumb;
-  final String title;
+  final bool drawerMode;
+  final bool collapsible;
+  final bool collapsed;
+  final VoidCallback onToggleCollapse;
   final VoidCallback onOpenDataStatus;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
       color: FundLensTokens.canvas,
       padding: const EdgeInsets.symmetric(
@@ -433,9 +522,23 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(crumb, style: theme.textTheme.bodySmall),
-          const SizedBox(width: FundLensTokens.space3),
-          Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+          if (drawerMode)
+            IconButton(
+              key: const ValueKey('nav-drawer-button'),
+              icon: const Icon(Icons.menu),
+              tooltip: '打开导航',
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          if (collapsible)
+            IconButton(
+              key: const ValueKey('nav-collapse-toggle'),
+              icon: Icon(
+                collapsed ? Icons.chevron_right : Icons.chevron_left,
+              ),
+              tooltip: collapsed ? '展开导航' : '折叠导航',
+              onPressed: onToggleCollapse,
+            ),
+          const Spacer(),
           OutlinedButton.icon(
             key: const ValueKey('data-status-button'),
             onPressed: onOpenDataStatus,

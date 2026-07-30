@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_windows/app/app_shell.dart';
 import 'package:fundlens_windows/app/fundlens_app.dart';
+import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 
 Widget buildTestApp() {
   return FundLensApp(
@@ -84,5 +85,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(FocusManager.instance.primaryFocus, isNotNull);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('≥1280 完整侧栏宽度为 216', (tester) async {
+    await pumpAtSize(tester, const Size(1440, 900));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('app-nav'))).width,
+      FundLensTokens.navWidth,
+    );
+  });
+
+  testWidgets('768–1279 可手动折叠为 64px 图标栏', (tester) async {
+    await pumpAtSize(tester, const Size(1100, 800));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('app-nav'))).width,
+      FundLensTokens.navWidth,
+    );
+    await tester.tap(find.byKey(const ValueKey('nav-collapse-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('app-nav'))).width,
+      FundLensTokens.navRailWidth,
+    );
+    // 折叠后文字标签隐藏
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('app-nav')),
+        matching: find.text('资产总览'),
+      ),
+      findsNothing,
+    );
+    // 再次点击恢复
+    await tester.tap(find.byKey(const ValueKey('nav-collapse-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('app-nav'))).width,
+      FundLensTokens.navWidth,
+    );
+  });
+
+  testWidgets('<768 切换为抽屉导航', (tester) async {
+    await pumpAtSize(tester, const Size(700, 800));
+    expect(find.byKey(const ValueKey('app-nav')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('nav-drawer-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('app-nav')), findsOneWidget);
+    await tester.tap(find.text('全部持仓'));
+    await tester.pumpAndSettle();
+    expect(find.text('page-holdings'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('顶栏不再渲染页面标题(下沉到 PageHeader)', (tester) async {
+    await pumpAtSize(tester, const Size(1440, 900));
+    // 替身页面只含 page-<name> 文本;侧栏导航项必然含「资产总览」标签,
+    // 因此全局应恰好只剩这 1 个 —— 若顶栏仍渲染标题则会出现第 2 个。
+    expect(find.text('资产总览'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('app-nav')),
+        matching: find.text('资产总览'),
+      ),
+      findsOneWidget,
+    );
   });
 }
