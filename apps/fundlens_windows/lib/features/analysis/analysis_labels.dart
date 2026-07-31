@@ -67,3 +67,12 @@ String formatSignedAmount(DecimalValue value) {
   if (value.isNegative) return formatAmount(value);
   return '+${formatAmount(value)}';
 }
+
+/// 坐标轴紧凑刻度:≥1 万显示 `12.3万`,仅用于渲染。
+String formatAxisAmount(DecimalValue value) {
+  final number = value.value.toDouble();
+  if (number.abs() >= 10000) {
+    return '${(number / 10000).toStringAsFixed(1)}万';
+  }
+  return number.toStringAsFixed(0);
+}
