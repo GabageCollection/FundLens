@@ -27,7 +27,15 @@ void main() {
     expect(FundLensTokens.sidebar, const Color(0xFF27231D));
     expect(FundLensTokens.sidebarInk, const Color(0xFFB6AD9C));
     expect(FundLensTokens.sidebarActive, const Color(0xFFB65233));
-    expect(FundLensTokens.navWidth, 232);
+    expect(FundLensTokens.navWidth, 216);
+    expect(FundLensTokens.navRailWidth, 64);
+    expect(FundLensTokens.navFullBreakpoint, 1280);
+    expect(FundLensTokens.navDrawerBreakpoint, 768);
+    expect(FundLensTokens.contentMaxStandard, 1440);
+    expect(FundLensTokens.contentMaxDense, 1680);
+    expect(FundLensTokens.contentMaxForm, 1120);
+    expect(FundLensTokens.gridGutter, 16);
+    expect(FundLensTokens.gridCollapseBelow, 960);
   });
 
   test('category colors cover all seven asset classes', () {

@@ -4,6 +4,8 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/grid_row.dart';
+import '../../widgets/page_scaffold.dart';
 import 'analysis_labels.dart';
 import 'composition_table.dart';
 import 'concentration_panel.dart';
@@ -30,43 +32,45 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> {
     final holdings = ref.watch(holdingsProvider).value ?? <Holding>[];
     final thresholds = ref.watch(structureThresholdsProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(FundLensTokens.pagePadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('资产分析', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: FundLensTokens.titleGap),
-          SegmentedButton<AnalysisDimension>(
-            segments: const [
-              ButtonSegment(
-                value: AnalysisDimension.assetClass,
-                label: Text('资产类别'),
+    return PageScaffold(
+      tier: PageWidthTier.standard,
+      crumb: '组合',
+      title: '资产分析',
+      actions: [
+        SegmentedButton<AnalysisDimension>(
+          segments: const [
+            ButtonSegment(
+              value: AnalysisDimension.assetClass,
+              label: Text('资产类别'),
+            ),
+            ButtonSegment(
+              value: AnalysisDimension.instrumentType,
+              label: Text('产品类型'),
+            ),
+            ButtonSegment(value: AnalysisDimension.source, label: Text('来源平台')),
+          ],
+          selected: {_dimension},
+          onSelectionChanged: (selection) {
+            setState(() => _dimension = selection.first);
+          },
+        ),
+      ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: FundLensTokens.pagePadding),
+        child: GridRow(
+          children: [
+            GridCol(span: 7, child: CompositionTable(rows: _rowsFor(summary))),
+            GridCol(
+              span: 5,
+              child: ConcentrationPanel(
+                summary: summary,
+                quality: quality,
+                holdings: holdings,
+                thresholds: thresholds,
               ),
-              ButtonSegment(
-                value: AnalysisDimension.instrumentType,
-                label: Text('产品类型'),
-              ),
-              ButtonSegment(
-                value: AnalysisDimension.source,
-                label: Text('来源平台'),
-              ),
-            ],
-            selected: {_dimension},
-            onSelectionChanged: (selection) {
-              setState(() => _dimension = selection.first);
-            },
-          ),
-          const SizedBox(height: FundLensTokens.cardGap),
-          CompositionTable(rows: _rowsFor(summary)),
-          const SizedBox(height: FundLensTokens.cardGap),
-          ConcentrationPanel(
-            summary: summary,
-            quality: quality,
-            holdings: holdings,
-            thresholds: thresholds,
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

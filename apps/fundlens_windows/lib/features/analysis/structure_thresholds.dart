@@ -20,5 +20,6 @@ final class StructureThresholds {
   final DecimalValue? maxEquityExposureShare;
 }
 
-final structureThresholdsProvider =
-    StateProvider<StructureThresholds>((ref) => const StructureThresholds());
+final structureThresholdsProvider = StateProvider<StructureThresholds>(
+  (ref) => const StructureThresholds(),
+);

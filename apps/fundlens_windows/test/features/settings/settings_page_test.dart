@@ -8,6 +8,7 @@ import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
 import 'package:fundlens_windows/features/settings/backup_section.dart';
 import 'package:fundlens_windows/features/settings/settings_page.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
+import 'package:fundlens_windows/widgets/page_scaffold.dart';
 
 final class _NoopBackupService implements BackupService {
   @override
@@ -42,6 +43,14 @@ Future<ProviderContainer> pumpSettings(
 }
 
 void main() {
+  testWidgets('设置页使用 form 档 PageScaffold', (tester) async {
+    await pumpSettings(tester);
+    final scaffold = tester.widget<PageScaffold>(find.byType(PageScaffold));
+    expect(scaffold.tier, PageWidthTier.form);
+    expect(find.text('设置与备份'), findsOneWidget);
+    expect(find.text('数据'), findsWidgets); // 面包屑
+  });
+
   testWidgets('thresholds are opt-in with no ideal defaults', (tester) async {
     await pumpSettings(tester);
     final thresholdsSection =

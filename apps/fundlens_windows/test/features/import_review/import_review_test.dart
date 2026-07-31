@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/features/import_review/import_review_controller.dart';
+import 'package:fundlens_windows/features/import_review/screenshot_crop_view.dart';
 import 'package:fundlens_windows/importing/import_models.dart';
+import 'package:fundlens_windows/widgets/page_scaffold.dart';
 
 import 'import_review_harness.dart';
 
 void main() {
+  testWidgets('导入页使用 form 档 PageScaffold', (tester) async {
+    await pumpImportHarness(tester);
+    final scaffold = tester.widget<PageScaffold>(find.byType(PageScaffold));
+    expect(scaffold.tier, PageWidthTier.form);
+    expect(find.text('导入与识别'), findsOneWidget);
+  });
+
   testWidgets('screenshot import defaults to partial mode', (tester) async {
     final engine = FakeDataEngineClient()
       ..responses['ocr.parse_screenshots'] = alipayOcrResponse();
@@ -67,6 +76,31 @@ void main() {
       find.byKey(const ValueKey('ocr-crop-current_value')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('窄屏(<960)编辑态走堆叠路径:裁剪区固定高 320 且无溢出',
+      (tester) async {
+    final engine = FakeDataEngineClient()
+      ..responses['ocr.parse_screenshots'] = alipayOcrResponse();
+    final picker = FakeImportFilePicker()
+      ..screenshots = const [
+        PickedImportFile(name: 'shot.png', path: 'originals/shot.png'),
+      ];
+    final controller = await pumpImportHarness(
+      tester,
+      engine: engine,
+      picker: picker,
+      size: const Size(800, 900),
+    );
+
+    await tester.tap(find.text('导入截图'));
+    await tester.pumpAndSettle();
+
+    expect(controller.state, isA<ImportEditing>());
+    // 窄屏堆叠路径生效:裁剪区与编辑列在统一滚动容器内纵向排列。
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    expect(tester.getSize(find.byType(ScreenshotCropView)).height, 320);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('CSV import parses rows and shows the diff', (tester) async {

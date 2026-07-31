@@ -221,6 +221,7 @@ Future<ImportReviewController> pumpImportHarness(
   FakeScreenshotTempStore? tempStore,
   InMemoryImportDraftStore? draftStore,
   ImportReviewController? controller,
+  Size size = const Size(1440, 900),
 }) async {
   final effectiveController = controller ??
       ImportReviewController(
@@ -230,6 +231,11 @@ Future<ImportReviewController> pumpImportHarness(
         tempStore: tempStore ?? FakeScreenshotTempStore(),
         draftStore: draftStore ?? InMemoryImportDraftStore(),
       );
+  // 桌面画布尺寸默认 1440×900(>=960 走宽屏左右分栏),
+  // 可通过 size 传入窄画布以覆盖 <960 的堆叠布局。
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
