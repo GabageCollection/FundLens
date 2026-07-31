@@ -113,7 +113,7 @@ List<ConclusionItem> buildAnalysisConclusions({
     name: '数据质量',
     result: formatShare(quality.dataCompleteness),
     status: complete ? ConclusionStatus.normal : ConclusionStatus.attention,
-    explanation: complete ? '持仓字段完整,可直接进行结构分析。' : '存在缺字段的持仓,建议核对数据状态。',
+    explanation: complete ? '持仓字段完整,可直接进行结构分析。' : '存在缺字段的持仓,请核对数据状态。',
     action: complete ? null : AppDestination.importReview,
     actionLabel: complete ? null : '查看数据状态',
   );
