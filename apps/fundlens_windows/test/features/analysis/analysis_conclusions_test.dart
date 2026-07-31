@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/app/app_shell.dart';
 import 'package:fundlens_windows/features/analysis/analysis_conclusions.dart';
 import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
+import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
 Holding fixtureHolding({
   required String id,
@@ -214,5 +216,99 @@ void main() {
       '收益覆盖',
       '行情新鲜度',
     ]);
+  });
+
+  testWidgets('结论卡显示五项的名称/结果/解释与状态标签', (tester) async {
+    final items = [
+      ConclusionItem(
+        name: '资产结构',
+        result: '0.0%',
+        status: ConclusionStatus.warning,
+        explanation: '全部资产暂时被归入"其他",请补充资产类别后再进行结构分析。',
+        action: AppDestination.holdings,
+        actionLabel: '补充资产分类',
+      ),
+      ConclusionItem(name: '集中度', result: '持仓h-1 100.0%', explanation: '未设置集中度阈值,仅展示实际占比。'),
+      ConclusionItem(
+        name: '数据质量',
+        result: '100.0%',
+        status: ConclusionStatus.normal,
+        explanation: '持仓字段完整,可直接进行结构分析。',
+      ),
+      ConclusionItem(name: '收益覆盖', result: '100.0%', explanation: '全部资产均纳入收益统计。'),
+      ConclusionItem(name: '行情新鲜度', result: '—', explanation: '没有自动行情持仓,不涉及行情新鲜度。'),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: FundLensTheme.light,
+        home: Scaffold(
+          body: AnalysisConclusionsCard(items: items),
+        ),
+      ),
+    );
+    expect(find.text('资产结构'), findsOneWidget);
+    expect(find.text('0.0%'), findsOneWidget);
+    expect(find.text('需要处理'), findsOneWidget); // warning chip 文案
+    expect(find.textContaining('补充资产类别'), findsOneWidget);
+    expect(find.text('补充资产分类'), findsOneWidget); // 修复入口按钮
+    expect(find.text('正常'), findsOneWidget); // 数据质量 normal chip
+    expect(find.textContaining('持仓字段完整'), findsOneWidget);
+  });
+
+  testWidgets('状态 chip 在无状态时不渲染', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: FundLensTheme.light,
+        home: Scaffold(
+          body: AnalysisConclusionsCard(
+            items: [
+              ConclusionItem(
+                name: '集中度',
+                result: '50.0%',
+                explanation: '未设置集中度阈值,仅展示实际占比。',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(find.text('正常'), findsNothing);
+    expect(find.text('需要处理'), findsNothing);
+  });
+
+  testWidgets('点击修复入口发出 SelectDestinationIntent', (tester) async {
+    AppDestination? dispatched;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: FundLensTheme.light,
+        home: Actions(
+          actions: {
+            SelectDestinationIntent: CallbackAction<SelectDestinationIntent>(
+              onInvoke: (intent) {
+                dispatched = intent.destination;
+                return null;
+              },
+            ),
+          },
+          child: Scaffold(
+            body: AnalysisConclusionsCard(
+              items: [
+                ConclusionItem(
+                  name: '资产结构',
+                  result: '0.0%',
+                  status: ConclusionStatus.warning,
+                  explanation: '全部资产暂时被归入"其他"。',
+                  action: AppDestination.holdings,
+                  actionLabel: '补充资产分类',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('补充资产分类'));
+    await tester.pump();
+    expect(dispatched, AppDestination.holdings);
   });
 }

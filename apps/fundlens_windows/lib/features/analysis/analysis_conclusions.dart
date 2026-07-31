@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../app/app_shell.dart';
+import '../../theme/fundlens_theme.dart';
+import '../../theme/fundlens_tokens.dart';
 import 'analysis_labels.dart';
 import 'structure_thresholds.dart';
 
@@ -176,4 +179,147 @@ Holding? _largestHolding(List<Holding> holdings) {
     }
   }
   return best;
+}
+
+/// 分析结论卡:五项结论,每项 = 名称 + 结果 + 状态标签 + 一句话解释,
+/// 必要时附修复入口按钮(跳转目标页,不包含投资行为措辞)。
+class AnalysisConclusionsCard extends StatelessWidget {
+  const AnalysisConclusionsCard({super.key, required this.items});
+
+  final List<ConclusionItem> items;
+
+  void _go(BuildContext context, AppDestination destination) {
+    Actions.maybeInvoke(context, SelectDestinationIntent(destination));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '分析结论',
+              style: theme.extension<FundLensTextStyles>()!.sectionTitle,
+            ),
+            const SizedBox(height: FundLensTokens.space3),
+            for (final item in items)
+              _ConclusionRow(
+                item: item,
+                onAction: item.action == null
+                    ? null
+                    : () => _go(context, item.action!),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConclusionRow extends StatelessWidget {
+  const _ConclusionRow({required this.item, this.onAction});
+
+  final ConclusionItem item;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final numberStyle = theme.extension<FundLensTextStyles>()!.financialNumber;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 84,
+                child: Text(item.name, style: theme.textTheme.bodyMedium),
+              ),
+              Expanded(
+                child: Text(
+                  item.result,
+                  style: numberStyle,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (item.status != null) _StatusChip(item: item),
+            ],
+          ),
+          const SizedBox(height: FundLensTokens.space1),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 84),
+              Expanded(
+                child: Text(
+                  item.explanation,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              if (onAction != null)
+                TextButton(
+                  onPressed: onAction,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: FundLensTokens.space2,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(item.actionLabel!),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 状态胶囊标签:正常(绿)/提示(琥珀)/需要处理(红),颜色之外必有文字。
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.item});
+
+  final ConclusionItem item;
+
+  (Color, Color) get _colors => switch (item.status!) {
+        ConclusionStatus.normal => (FundLensTokens.lossSoft, FundLensTokens.loss),
+        ConclusionStatus.attention => (FundLensTokens.warnSoft, FundLensTokens.warn),
+        ConclusionStatus.warning => (FundLensTokens.profitSoft, FundLensTokens.profit),
+      };
+
+  String get _label => switch (item.status!) {
+        ConclusionStatus.normal => '正常',
+        ConclusionStatus.attention => '提示',
+        ConclusionStatus.warning => '需要处理',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final (background, foreground) = _colors;
+    return Container(
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.space2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(FundLensTokens.radiusPill),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _label,
+        style: TextStyle(
+          fontFamily: 'Noto Sans SC',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: foreground,
+        ),
+      ),
+    );
+  }
 }
