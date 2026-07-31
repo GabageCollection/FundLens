@@ -31,16 +31,6 @@ const destinationIcons = <AppDestination, IconData>{
   AppDestination.settings: Icons.settings_outlined,
 };
 
-/// Breadcrumb group shown in the top bar, per destination.
-const destinationCrumbs = <AppDestination, String>{
-  AppDestination.overview: '组合',
-  AppDestination.analysis: '组合',
-  AppDestination.holdings: '组合',
-  AppDestination.snapshots: '组合',
-  AppDestination.importReview: '数据',
-  AppDestination.settings: '数据',
-};
-
 /// Sidebar grouping: section label followed by its destinations.
 const _navGroups = <(String, List<AppDestination>)>[
   (
@@ -154,9 +144,8 @@ class _AppShellState extends State<AppShell> {
                             drawerMode: drawerMode,
                             collapsible: collapsible,
                             collapsed: collapsed,
-                            onToggleCollapse: () => setState(
-                              () => _navCollapsed = !_navCollapsed,
-                            ),
+                            onToggleCollapse: () =>
+                                setState(() => _navCollapsed = !_navCollapsed),
                             onOpenDataStatus: () =>
                                 _select(AppDestination.importReview),
                           ),
@@ -199,8 +188,9 @@ class _NavigationRegion extends StatelessWidget {
   Widget build(BuildContext context) {
     // 内容按目标态即时切换并固定在目标宽度布局,宽度动画由外层裁剪,
     // 避免展开/折叠过渡期间 Row 子内容瞬时溢出(overflow 异常)。
-    final contentWidth =
-        collapsed ? FundLensTokens.navRailWidth : FundLensTokens.navWidth;
+    final contentWidth = collapsed
+        ? FundLensTokens.navRailWidth
+        : FundLensTokens.navWidth;
     return AnimatedContainer(
       key: const ValueKey('app-nav'),
       duration: const Duration(milliseconds: 150),
@@ -494,9 +484,8 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// Global action strip: drawer / collapse toggles on the left, data status
-/// and account avatar on the right. Page title and breadcrumb moved down
-/// into each page's PageHeader (Task 6–10).
+/// 顶部全局操作条：左侧为抽屉/折叠切换，右侧为数据状态与账户头像。
+/// 页面标题与面包屑已下沉至各页面的 PageHeader（Task 6–10）。
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.drawerMode,
@@ -532,9 +521,7 @@ class _TopBar extends StatelessWidget {
           if (collapsible)
             IconButton(
               key: const ValueKey('nav-collapse-toggle'),
-              icon: Icon(
-                collapsed ? Icons.chevron_right : Icons.chevron_left,
-              ),
+              icon: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left),
               tooltip: collapsed ? '展开导航' : '折叠导航',
               onPressed: onToggleCollapse,
             ),

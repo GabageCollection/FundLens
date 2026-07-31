@@ -25,12 +25,14 @@ final class FakeSnapshotRepository implements SnapshotRepository {
   @override
   Future<String> createFromCurrent({required String label}) async {
     lastCreatedLabel = label;
-    snapshots.add(PortfolioSnapshot(
-      id: 's-created',
-      label: label,
-      createdAt: DateTime.utc(2026, 7, 20),
-      holdings: const [],
-    ));
+    snapshots.add(
+      PortfolioSnapshot(
+        id: 's-created',
+        label: label,
+        createdAt: DateTime.utc(2026, 7, 20),
+        holdings: const [],
+      ),
+    );
     return 's-created';
   }
 
@@ -57,30 +59,30 @@ SnapshotHolding snapshotHolding({
 }
 
 PortfolioSnapshot snapshotJune() => PortfolioSnapshot(
-      id: 's-june',
-      label: '六月末',
-      createdAt: DateTime.utc(2026, 6, 30),
-      holdings: [
-        snapshotHolding(
-          holdingId: 'h-1',
-          productName: '基金甲',
-          currentValue: '1000.00',
-        ),
-      ],
-    );
+  id: 's-june',
+  label: '六月末',
+  createdAt: DateTime.utc(2026, 6, 30),
+  holdings: [
+    snapshotHolding(
+      holdingId: 'h-1',
+      productName: '基金甲',
+      currentValue: '1000.00',
+    ),
+  ],
+);
 
 PortfolioSnapshot snapshotJuly() => PortfolioSnapshot(
-      id: 's-july',
-      label: '七月中',
-      createdAt: DateTime.utc(2026, 7, 15),
-      holdings: [
-        snapshotHolding(
-          holdingId: 'h-2',
-          productName: '基金乙',
-          currentValue: '2000.00',
-        ),
-      ],
-    );
+  id: 's-july',
+  label: '七月中',
+  createdAt: DateTime.utc(2026, 7, 15),
+  holdings: [
+    snapshotHolding(
+      holdingId: 'h-2',
+      productName: '基金乙',
+      currentValue: '2000.00',
+    ),
+  ],
+);
 
 Widget snapshotHarness({
   required FakeSnapshotRepository repository,
@@ -89,12 +91,10 @@ Widget snapshotHarness({
   return ProviderScope(
     overrides: [
       snapshotRepositoryProvider.overrideWithValue(repository),
-      if (onDelete != null) snapshotDeletionProvider.overrideWithValue(onDelete),
+      if (onDelete != null)
+        snapshotDeletionProvider.overrideWithValue(onDelete),
     ],
-    child: MaterialApp(
-      theme: FundLensTheme.light,
-      home: const SnapshotsPage(),
-    ),
+    child: MaterialApp(theme: FundLensTheme.light, home: const SnapshotsPage()),
   );
 }
 
@@ -110,9 +110,9 @@ void main() {
     expect(find.text('新建快照'), findsOneWidget);
   });
 
-
-  testWidgets('snapshot comparison labels the delta as amount change',
-      (tester) async {
+  testWidgets('snapshot comparison labels the delta as amount change', (
+    tester,
+  ) async {
     final repository = FakeSnapshotRepository([snapshotJune(), snapshotJuly()]);
     await tester.pumpWidget(snapshotHarness(repository: repository));
     await tester.pumpAndSettle();
@@ -121,8 +121,9 @@ void main() {
     expect(find.textContaining('快照收益'), findsNothing);
   });
 
-  testWidgets('comparison is disabled with fewer than two snapshots',
-      (tester) async {
+  testWidgets('comparison is disabled with fewer than two snapshots', (
+    tester,
+  ) async {
     final repository = FakeSnapshotRepository([snapshotJune()]);
     await tester.pumpWidget(snapshotHarness(repository: repository));
     await tester.pumpAndSettle();
@@ -160,14 +161,17 @@ void main() {
     expect(find.text('七月末'), findsOneWidget);
   });
 
-  testWidgets('deletion names the date and label and requires confirmation',
-      (tester) async {
+  testWidgets('deletion names the date and label and requires confirmation', (
+    tester,
+  ) async {
     final repository = FakeSnapshotRepository([snapshotJune(), snapshotJuly()]);
     final deleted = <String>[];
-    await tester.pumpWidget(snapshotHarness(
-      repository: repository,
-      onDelete: (id) async => deleted.add(id),
-    ));
+    await tester.pumpWidget(
+      snapshotHarness(
+        repository: repository,
+        onDelete: (id) async => deleted.add(id),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.delete_outline).first);
