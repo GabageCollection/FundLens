@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
@@ -10,11 +9,15 @@ import '../../theme/fundlens_tokens.dart';
 import '../../widgets/page_scaffold.dart';
 import '../holdings/holding_editor_dialog.dart';
 import 'asset_spectrum.dart';
-import 'structure_observations.dart';
+import 'insight_list.dart';
 import 'summary_strip.dart';
+import 'top_holdings_table.dart';
+import 'trend_chart.dart';
 
-/// 资产总览 page: summary strip, interactive Asset Spectrum, factual
-/// structure observations, top holdings and quote freshness.
+/// 资产总览 page:直接回答五个问题——
+/// 当前有多少资产(KPI)、最近如何变化(净值趋势)、资产集中在哪里
+/// (资产结构带)、哪些持仓贡献盈亏(最高持仓表)、需要处理哪些数据或
+/// 风险问题(风险与数据提醒)。
 class OverviewPage extends ConsumerWidget {
   const OverviewPage({super.key});
 
@@ -48,19 +51,11 @@ class OverviewPage extends ConsumerWidget {
   }
 }
 
-class _OverviewContent extends ConsumerWidget {
+class _OverviewContent extends StatelessWidget {
   const _OverviewContent();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final holdings = ref.watch(filteredHoldingsProvider);
-    final topHoldings = [...holdings]
-      ..sort((a, b) => b.currentValue.compareTo(a.currentValue));
-    final visible = topHoldings.take(5).toList(growable: false);
-    final dataQuality = ref.watch(dataQualityProvider);
-    final freshness = dataQuality.quoteFreshness;
-
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: FundLensTokens.pagePadding),
       child: Column(
@@ -68,85 +63,61 @@ class _OverviewContent extends ConsumerWidget {
         children: [
           const SummaryStrip(),
           const SizedBox(height: FundLensTokens.cardGap),
-          const AssetSpectrum(),
+          const _StructureBandCard(),
           const SizedBox(height: FundLensTokens.cardGap),
-          const StructureObservations(),
-          const SizedBox(height: FundLensTokens.cardGap),
-          Text(
-            '金额最高的持仓',
-            style: theme.extension<FundLensTextStyles>()!.sectionTitle,
+          // 主体 8+4:左侧净值趋势,右侧风险与数据提醒;窄屏堆叠。
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= FundLensTokens.gridCollapseBelow) {
+                return const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 8, child: PortfolioTrendChart()),
+                    SizedBox(width: FundLensTokens.gridGutter),
+                    Expanded(flex: 4, child: OverviewInsightList()),
+                  ],
+                );
+              }
+              return const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PortfolioTrendChart(),
+                  SizedBox(height: FundLensTokens.cardGap),
+                  OverviewInsightList(),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: FundLensTokens.space2),
-          for (final holding in visible) _TopHoldingRow(holding: holding),
           const SizedBox(height: FundLensTokens.cardGap),
-          Text(
-            freshness == null
-                ? '行情新鲜度：无自动行情持仓'
-                : '行情新鲜度：${formatPercent(freshness)}',
-            style: theme.textTheme.bodySmall,
-          ),
+          const TopHoldingsTable(),
         ],
       ),
     );
   }
 }
 
-class _TopHoldingRow extends StatelessWidget {
-  const _TopHoldingRow({required this.holding});
-
-  final Holding holding;
+/// 资产结构带卡:按资产类别把总资产显示为比例分段带 + 图例。
+class _StructureBandCard extends StatelessWidget {
+  const _StructureBandCard();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final number = theme.extension<FundLensTextStyles>()!.financialNumber;
-    final profit = holding.currentFloatingProfit;
-    return Container(
-      height: 48,
-      decoration: const BoxDecoration(
-        color: FundLensTokens.surface,
-        border: Border(bottom: BorderSide(color: FundLensTokens.border)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.space3),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              holding.productName,
-              style: theme.textTheme.bodyMedium,
-              overflow: TextOverflow.ellipsis,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(FundLensTokens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '资产结构',
+              style: Theme.of(
+                context,
+              ).extension<FundLensTextStyles>()!.sectionTitle,
             ),
-          ),
-          Expanded(
-            child: Text(
-              assetClassLabels[holding.assetClass]!,
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              holding.currentValue.canonical,
-              style: number,
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: profit == null
-                ? const SizedBox.shrink()
-                : Text(
-                    formatSignedAmount(profit),
-                    style: number.copyWith(
-                      color: profit.isNegative
-                          ? FundLensTokens.loss
-                          : FundLensTokens.profit,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-          ),
-        ],
+            const SizedBox(height: FundLensTokens.space3),
+            const AssetSpectrum(),
+          ],
+        ),
       ),
     );
   }

@@ -193,15 +193,16 @@ void main() {
   testWidgets('summary strip shows floating profit with explicit + sign',
       (tester) async {
     await pumpOverview(tester);
-    expect(find.textContaining('+1000'), findsWidgets);
+    expect(find.textContaining('+¥1,000.00'), findsWidgets);
     expect(find.text('总资产'), findsOneWidget);
     expect(find.text('收益覆盖率'), findsOneWidget);
   });
 
-  testWidgets('observations are factual shares without advice', (tester) async {
+  testWidgets('insights state measured facts without advice', (tester) async {
     await pumpOverview(tester);
-    expect(find.textContaining('最大单项占总资产'), findsOneWidget);
-    expect(find.textContaining('50.0%'), findsWidgets);
+    // twoClassHoldings:权益占 50% → 单项集中度提醒;现金缺成本 → 数据提醒。
+    expect(find.textContaining('集中度较高'), findsWidgets);
+    expect(find.textContaining('缺少成本数据'), findsOneWidget);
     for (final forbidden in ['建议', '应当', '调仓', '再平衡', '买入', '卖出']) {
       expect(find.textContaining(forbidden), findsNothing);
     }

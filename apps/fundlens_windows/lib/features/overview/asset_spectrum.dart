@@ -6,6 +6,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/portfolio_providers.dart';
 import '../../application/selection_state.dart';
 import '../../theme/fundlens_tokens.dart';
+import 'overview_formatters.dart';
 
 /// Chinese labels for the seven asset classes, shown on the spectrum and in
 /// semantics so segments are never identified by color alone.
@@ -40,8 +41,10 @@ final class SpectrumSegment {
     required this.color,
     required this.amount,
     required this.share,
+    this.isMergedAggregate = false,
   });
 
+  /// 合并段为 [AssetClass.other] 且 [isMergedAggregate] 为 true。
   final AssetClass assetClass;
   final double start;
   final double end;
@@ -49,8 +52,59 @@ final class SpectrumSegment {
   final DecimalValue amount;
   final DecimalValue share;
 
+  /// 超过 6 个类别时,占比最小的类别合并为“其他”聚合段;
+  /// 聚合段不可点击筛选(它不代表单一类别)。
+  final bool isMergedAggregate;
+
   String get semanticsLabel =>
-      '${assetClassLabels[assetClass]} 金额 ${amount.canonical} 占比 ${formatPercent(share)}';
+      '${assetClassLabels[assetClass]} 金额 ¥${amount.canonical} 占比 ${formatPercent(share)}';
+}
+
+/// 类别超过 6 项时,把占比最小的类别合并为一个“其他”聚合段,
+/// 保持结构带可读;不超过 6 项时原样返回。
+List<SpectrumSegment> mergeSpectrumSegments(List<SpectrumSegment> segments) {
+  if (segments.length <= 6) return segments;
+  final sorted = [...segments]
+    ..sort((a, b) => b.share.compareTo(a.share));
+  final kept = sorted.take(5).toList();
+  final merged = sorted.skip(5).toList();
+  final mergedAmount = merged.fold<DecimalValue>(
+    DecimalValue.zero,
+    (sum, s) => sum + s.amount,
+  );
+  final mergedShare = merged.fold<DecimalValue>(
+    DecimalValue.zero,
+    (sum, s) => sum + s.share,
+  );
+  // 按占比降序重排,聚合段固定在最右。
+  final result = <SpectrumSegment>[];
+  var cumulative = 0.0;
+  for (final segment in kept) {
+    final width = segment.share.value.toDouble();
+    result.add(
+      SpectrumSegment(
+        assetClass: segment.assetClass,
+        start: cumulative,
+        end: cumulative + width,
+        color: segment.color,
+        amount: segment.amount,
+        share: segment.share,
+      ),
+    );
+    cumulative += width;
+  }
+  result.add(
+    SpectrumSegment(
+      assetClass: AssetClass.other,
+      start: cumulative,
+      end: cumulative + mergedShare.value.toDouble(),
+      color: FundLensTokens.categoryColors[AssetClass.other]!,
+      amount: mergedAmount,
+      share: mergedShare,
+      isMergedAggregate: true,
+    ),
+  );
+  return List.unmodifiable(result);
 }
 
 /// Interactive Asset Spectrum.
@@ -112,6 +166,22 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
         : assetClass;
   }
 
+  /// 结构带空状态:没有有效金额数据时给出明确说明,而不是灰色占位条。
+  Widget _buildEmptyState(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        vertical: FundLensTokens.space6,
+        horizontal: FundLensTokens.space3,
+      ),
+      child: Text(
+        '暂无有效资产数据,添加或更新持仓后展示资产结构。',
+        style: Theme.of(context).textTheme.bodySmall,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   KeyEventResult _onBarKey(FocusNode node, KeyEvent event, int segmentCount) {
     if (event is! KeyDownEvent || segmentCount == 0) {
       return KeyEventResult.ignored;
@@ -135,11 +205,15 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
   Widget build(BuildContext context) {
     final summary = ref.watch(portfolioSummaryProvider);
     final selected = ref.watch(selectedAssetClassProvider);
-    final segments = _segments(summary);
-    if (segments.isEmpty) return const SizedBox.shrink();
+    final segments = mergeSpectrumSegments(_segments(summary));
+    if (segments.isEmpty) return _buildEmptyState(context);
 
-    // Keep one FocusNode per present class, dropping stale ones.
-    final present = {for (final s in segments) s.assetClass};
+    // Keep one FocusNode per present segment, dropping stale ones. 聚合段
+    // 不可聚焦,只为真实类别保留 FocusNode。
+    final present = {
+      for (final s in segments)
+        if (!s.isMergedAggregate) s.assetClass,
+    };
     for (final stale
         in _nodes.keys.where((c) => !present.contains(c)).toList()) {
       _nodes.remove(stale)!.dispose();
@@ -203,46 +277,60 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
                                 (segments[i].end - segments[i].start) * width,
                             top: 0,
                             bottom: 0,
-                            child: Semantics(
-                              label: segments[i].semanticsLabel,
-                              button: true,
-                              child: FocusableActionDetector(
-                                focusNode: _nodes[segments[i].assetClass],
-                                mouseCursor: SystemMouseCursors.click,
-                                onShowFocusHighlight: (highlighted) {
-                                  setState(() {
-                                    _focusedIndex = highlighted ? i : -1;
-                                  });
-                                },
-                                shortcuts: const {
-                                  SingleActivator(LogicalKeyboardKey.enter):
-                                      ActivateIntent(),
-                                  SingleActivator(LogicalKeyboardKey.space):
-                                      ActivateIntent(),
-                                },
-                                actions: {
-                                  ActivateIntent:
-                                      CallbackAction<ActivateIntent>(
-                                        onInvoke: (_) {
-                                          _toggle(segments[i].assetClass);
-                                          return null;
-                                        },
+                            child: segments[i].isMergedAggregate
+                                // 聚合段只读:Hover 展示合并后的详细数据。
+                                ? Tooltip(
+                                    message: segments[i].semanticsLabel,
+                                    child: const SizedBox.expand(),
+                                  )
+                                : Semantics(
+                                    label: segments[i].semanticsLabel,
+                                    button: true,
+                                    child: FocusableActionDetector(
+                                      focusNode:
+                                          _nodes[segments[i].assetClass],
+                                      mouseCursor: SystemMouseCursors.click,
+                                      onShowFocusHighlight: (highlighted) {
+                                        setState(() {
+                                          _focusedIndex = highlighted ? i : -1;
+                                        });
+                                      },
+                                      shortcuts: const {
+                                        SingleActivator(
+                                          LogicalKeyboardKey.enter,
+                                        ): ActivateIntent(),
+                                        SingleActivator(
+                                          LogicalKeyboardKey.space,
+                                        ): ActivateIntent(),
+                                      },
+                                      actions: {
+                                        ActivateIntent:
+                                            CallbackAction<ActivateIntent>(
+                                              onInvoke: (_) {
+                                                _toggle(
+                                                  segments[i].assetClass,
+                                                );
+                                                return null;
+                                              },
+                                            ),
+                                      },
+                                      child: Tooltip(
+                                        message: segments[i].semanticsLabel,
+                                        child: GestureDetector(
+                                          key: ValueKey(
+                                            'spectrum-${segments[i].assetClass.name}',
+                                          ),
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {
+                                            _nodes[segments[i].assetClass]!
+                                                .requestFocus();
+                                            _toggle(segments[i].assetClass);
+                                          },
+                                          child: const SizedBox.expand(),
+                                        ),
                                       ),
-                                },
-                                child: GestureDetector(
-                                  key: ValueKey(
-                                    'spectrum-${segments[i].assetClass.name}',
+                                    ),
                                   ),
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () {
-                                    _nodes[segments[i].assetClass]!
-                                        .requestFocus();
-                                    _toggle(segments[i].assetClass);
-                                  },
-                                  child: const SizedBox.expand(),
-                                ),
-                              ),
-                            ),
                           ),
                       ],
                     );
@@ -252,11 +340,65 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
             ),
           ),
         ),
+        const SizedBox(height: FundLensTokens.space2),
+        // 图例:每个分段的类别名称、占比和金额,颜色之外必有文字。
+        for (final segment in segments) _SegmentLegendRow(segment: segment),
         if (selectedSegment != null) ...[
           const SizedBox(height: 8),
           _SelectedDetailRail(segment: selectedSegment),
         ],
       ],
+    );
+  }
+}
+
+/// 结构带图例行:色点 + 类别名称 + 金额与占比(右对齐)。
+class _SegmentLegendRow extends StatelessWidget {
+  const _SegmentLegendRow({required this.segment});
+
+  final SpectrumSegment segment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final number = theme.textTheme.bodySmall?.copyWith(
+      fontFamily: 'IBM Plex Mono',
+      color: FundLensTokens.inkSoft,
+    );
+    return SizedBox(
+      height: 28,
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: segment.color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: FundLensTokens.space2),
+          Expanded(
+            child: Text(
+              assetClassLabels[segment.assetClass]!,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          Text(
+            formatCurrency(segment.amount),
+            style: number,
+          ),
+          const SizedBox(width: FundLensTokens.space4),
+          SizedBox(
+            width: 52,
+            child: Text(
+              formatPercent(segment.share),
+              style: number,
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

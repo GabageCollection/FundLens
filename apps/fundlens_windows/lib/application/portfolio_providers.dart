@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
+import '../features/overview/trend_chart.dart';
 import '../importing/import_models.dart';
 import 'app_dependencies.dart';
 import 'portfolio_state.dart';
@@ -53,6 +54,29 @@ final filteredHoldingsProvider = Provider<List<Holding>>((ref) {
 
 final snapshotsProvider = FutureProvider<List<PortfolioSnapshot>>((ref) {
   return ref.watch(snapshotRepositoryProvider).getAll();
+});
+
+/// 净值趋势点:每个历史快照一点,加上当前持仓的实时点(仅当当前有资产)。
+///
+/// 快照为不可变历史,当前点来自实时汇总;不提供快照之外的任何历史。
+final trendPointsProvider = Provider<List<TrendPoint>>((ref) {
+  final snapshots =
+      ref.watch(snapshotsProvider).value ?? const <PortfolioSnapshot>[];
+  final points = [
+    for (final snapshot in snapshots) trendPointFromSnapshot(snapshot),
+  ];
+  final summary = ref.watch(portfolioSummaryProvider);
+  if (!summary.totalValue.isZero) {
+    points.add(
+      TrendPoint(
+        at: DateTime.now(),
+        totalValue: summary.totalValue,
+        coveredCost: summary.totalCost,
+      ),
+    );
+  }
+  points.sort((a, b) => a.at.compareTo(b.at));
+  return List.unmodifiable(points);
 });
 
 /// Data issues derived from the current holdings.
