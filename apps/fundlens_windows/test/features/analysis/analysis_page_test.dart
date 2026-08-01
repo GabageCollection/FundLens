@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/features/analysis/analysis_page.dart';
-import 'package:fundlens_windows/features/analysis/composition_table.dart';
 import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
 import 'package:fundlens_windows/storage/holding_repository.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
@@ -44,6 +44,7 @@ Holding fixtureHolding({
   required InstrumentType instrumentType,
   required SourcePlatform sourcePlatform,
   required String currentValue,
+  String? costAmount,
 }) {
   final now = DateTime.utc(2026, 7, 1);
   return Holding(
@@ -54,6 +55,7 @@ Holding fixtureHolding({
     productName: productName,
     currency: 'CNY',
     currentValue: DecimalValue.parse(currentValue),
+    costAmount: costAmount == null ? null : DecimalValue.parse(costAmount),
     valuationMethod: ValuationMethod.manualAmount,
     dataOrigin: DataOrigin.manual,
     fieldProvenance: const {},
@@ -62,41 +64,40 @@ Holding fixtureHolding({
   );
 }
 
-Widget analysisHarness({
-  StructureThresholds thresholds = const StructureThresholds(),
-}) {
-  final holdings = [
-    fixtureHolding(
-      id: 'h-1',
-      productName: '成长基金',
-      assetClass: AssetClass.equity,
-      instrumentType: InstrumentType.offExchangeFund,
-      sourcePlatform: SourcePlatform.alipay,
-      currentValue: '1000.00',
-    ),
-    fixtureHolding(
-      id: 'h-2',
-      productName: '定期存款',
-      assetClass: AssetClass.deposit,
-      instrumentType: InstrumentType.bankDeposit,
-      sourcePlatform: SourcePlatform.manual,
-      currentValue: '3000.00',
-    ),
-  ];
+Widget analysisHarness({List<Holding>? holdings}) {
+  final fixture = holdings ??
+      [
+        fixtureHolding(
+          id: 'h-1',
+          productName: '成长基金',
+          assetClass: AssetClass.equity,
+          instrumentType: InstrumentType.offExchangeFund,
+          sourcePlatform: SourcePlatform.alipay,
+          currentValue: '1000.00',
+        ),
+        fixtureHolding(
+          id: 'h-2',
+          productName: '定期存款',
+          assetClass: AssetClass.deposit,
+          instrumentType: InstrumentType.bankDeposit,
+          sourcePlatform: SourcePlatform.manual,
+          currentValue: '3000.00',
+          costAmount: '3000.00',
+        ),
+      ];
   return ProviderScope(
     overrides: [
       holdingRepositoryProvider.overrideWithValue(
-        FakeHoldingRepository(holdings),
+        FakeHoldingRepository(fixture),
       ),
       portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
       dataQualityCalculatorProvider.overrideWithValue(DataQualityCalculator()),
-      structureThresholdsProvider.overrideWith((ref) => thresholds),
+      structureThresholdsProvider.overrideWith((ref) => const StructureThresholds()),
     ],
     child: MaterialApp(theme: FundLensTheme.light, home: const AnalysisPage()),
   );
 }
 
-/// 复用文件内 providers overrides 搭建方式的可选尺寸泵入辅助。
 Future<void> pumpAnalysis(WidgetTester tester, {Size? size}) async {
   if (size != null) {
     tester.view.physicalSize = size;
@@ -117,82 +118,114 @@ void main() {
     }
   });
 
-  testWidgets('asset class table shows exact amount and share', (tester) async {
+  testWidgets('资产类别图表显示金额与占比', (tester) async {
     await tester.pumpWidget(analysisHarness());
     await tester.pumpAndSettle();
-
-    expect(find.text('资产类别'), findsOneWidget);
-    expect(find.text('3,000.00'), findsOneWidget);
-    expect(find.text('1,000.00'), findsOneWidget);
+    expect(find.text('资产类别'), findsOneWidget); // Tab
+    expect(find.text('¥3,000.00'), findsOneWidget);
+    expect(find.text('¥1,000.00'), findsOneWidget);
     expect(find.text('75.0%'), findsWidgets);
     expect(find.text('25.0%'), findsWidgets);
   });
 
-  testWidgets('source view groups holdings by platform', (tester) async {
+  testWidgets('来源平台 Tab 切换后显示平台图例', (tester) async {
     await tester.pumpWidget(analysisHarness());
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('来源平台'));
     await tester.pumpAndSettle();
-
     expect(find.text('手工录入'), findsOneWidget);
     expect(find.text('支付宝'), findsOneWidget);
   });
 
-  testWidgets('largest holding and structure facts are factual', (
-    tester,
-  ) async {
+  testWidgets('Tabs 支持键盘左右切换', (tester) async {
     await tester.pumpWidget(analysisHarness());
     await tester.pumpAndSettle();
-
-    expect(find.text('最大单项持仓'), findsOneWidget);
-    expect(find.text('定期存款'), findsWidgets);
-    expect(find.text('现金及存款占比'), findsOneWidget);
-    expect(find.text('权益敞口占比'), findsOneWidget);
-    expect(find.text('数据完整度'), findsOneWidget);
-    // No threshold set: no status judgment is shown.
-    expect(find.text('超出你设置的阈值'), findsNothing);
+    // Flutter TabBar 键盘交互:Tab 键聚焦 Tab → 左右方向键移动焦点 → Enter 激活。
+    // (原生 TabBar 无"方向键直接切 tab"行为,故按官方焦点模型驱动。)
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    // 已切到"产品类型":图表显示产品类型标签
+    expect(find.text('场外基金'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('来源平台'), findsOneWidget);
+    expect(find.text('手工录入'), findsOneWidget);
   });
 
-  testWidgets('comparison appears only against a user-set threshold', (
-    tester,
-  ) async {
+  testWidgets('切换维度时图表区高度不变(布局稳定)', (tester) async {
+    await tester.pumpWidget(analysisHarness());
+    await tester.pumpAndSettle();
+    final before = tester.getSize(
+      find.byKey(const ValueKey('analysis-chart-area')),
+    );
+    await tester.tap(find.text('来源平台'));
+    await tester.pumpAndSettle();
+    final after = tester.getSize(
+      find.byKey(const ValueKey('analysis-chart-area')),
+    );
+    expect(after.height, before.height);
+    await tester.tap(find.text('产品类型'));
+    await tester.pumpAndSettle();
+    final afterSecond = tester.getSize(
+      find.byKey(const ValueKey('analysis-chart-area')),
+    );
+    expect(afterSecond.height, before.height);
+  });
+
+  testWidgets('分析结论卡显示五项结论与状态', (tester) async {
+    await tester.pumpWidget(analysisHarness());
+    await tester.pumpAndSettle();
+    expect(find.text('分析结论'), findsOneWidget);
+    expect(find.text('资产结构'), findsOneWidget);
+    expect(find.text('集中度'), findsOneWidget);
+    expect(find.text('数据质量'), findsOneWidget);
+    expect(find.text('收益覆盖'), findsOneWidget);
+    expect(find.text('行情新鲜度'), findsOneWidget);
+    expect(find.text('正常'), findsWidgets);
+  });
+
+  testWidgets('全部资产为"其他"时输出数据质量警告而非误导性结论', (tester) async {
     await tester.pumpWidget(
       analysisHarness(
-        thresholds: StructureThresholds(
-          maxSingleHoldingShare: DecimalValue.parse('0.20'),
-        ),
+        holdings: [
+          fixtureHolding(
+            id: 'h-1',
+            productName: '未分类产品',
+            assetClass: AssetClass.other,
+            instrumentType: InstrumentType.offExchangeFund,
+            sourcePlatform: SourcePlatform.alipay,
+            currentValue: '5000.00',
+          ),
+        ],
       ),
     );
     await tester.pumpAndSettle();
-
-    expect(find.text('超出你设置的阈值'), findsOneWidget);
+    expect(find.text('需要处理'), findsOneWidget);
+    expect(find.text('补充资产分类'), findsOneWidget);
+    expect(find.textContaining('请补充资产类别'), findsOneWidget);
+    expect(find.text('最大资产类别'), findsNothing);
   });
 
-  testWidgets('分析页使用 standard 档 PageScaffold,维度切换移入页头', (tester) async {
+  testWidgets('无持仓时显示空状态与添加入口', (tester) async {
+    await tester.pumpWidget(analysisHarness(holdings: []));
+    await tester.pumpAndSettle();
+    expect(find.text('添加第一项资产'), findsOneWidget);
+  });
+
+  testWidgets('分析页使用 standard 档 PageScaffold', (tester) async {
     await pumpAnalysis(tester);
     expect(find.byType(PageScaffold), findsOneWidget);
     expect(find.text('资产分析'), findsOneWidget);
-    expect(
-      find.text('资产类别'),
-      findsOneWidget,
-    ); // SegmentedButton 在 PageHeader actions
   });
 
-  testWidgets('构成表在窄屏下横向滚动不压缩列', (tester) async {
+  testWidgets('窄屏(760px)下堆叠且不溢出', (tester) async {
     await pumpAnalysis(tester, size: const Size(760, 900));
     expect(tester.takeException(), isNull);
-    // 构成表行不溢出:存在横向滚动视图
-    expect(
-      find.descendant(
-        of: find.byType(CompositionTable),
-        matching: find.byWidgetPredicate(
-          (w) =>
-              w is SingleChildScrollView &&
-              w.scrollDirection == Axis.horizontal,
-        ),
-      ),
-      findsWidgets,
-    );
   });
 }
