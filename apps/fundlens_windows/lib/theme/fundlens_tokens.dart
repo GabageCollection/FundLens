@@ -87,6 +87,14 @@ abstract final class FundLensTokens {
     AssetClass.other: Color(0xFFA9A294),
   };
 
+  /// 图表用品牌陶土同系深浅(经 dataviz validate_palette 校验,浅档
+  /// 读作灰色故只保留两档):堆叠比例条第 1/2 段;条形图统一用
+  /// [accent],聚合"其他"行用 [muted]。
+  static const chartBarShades = <Color>[
+    Color(0xFFB65233),
+    Color(0xFFD3896D),
+  ];
+
   // ---- 间距体系(只允许这些值) ----
   static const double space1 = 4;
   static const double space2 = 8;
