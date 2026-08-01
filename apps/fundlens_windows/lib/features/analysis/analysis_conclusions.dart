@@ -115,7 +115,7 @@ List<ConclusionItem> buildAnalysisConclusions({
   final qualityItem = ConclusionItem(
     name: '数据质量',
     result: formatShare(quality.dataCompleteness),
-    status: complete ? ConclusionStatus.normal : ConclusionStatus.attention,
+    status: complete ? ConclusionStatus.normal : ConclusionStatus.warning,
     explanation: complete ? '持仓字段完整,可直接进行结构分析。' : '存在缺字段的持仓,请核对数据状态。',
     action: complete ? null : AppDestination.importReview,
     actionLabel: complete ? null : '查看数据状态',
@@ -270,7 +270,6 @@ class _ConclusionRow extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: FundLensTokens.space2,
                     ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(item.actionLabel!),
                 ),
