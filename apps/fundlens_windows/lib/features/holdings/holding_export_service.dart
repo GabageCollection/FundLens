@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:fundlens_core/fundlens_core.dart';
 
 import 'holding_filters.dart';
-import 'holding_grid.dart';
+import 'holding_status.dart';
 
 /// Exports the currently visible (sorted/filtered) holdings to CSV.
 ///

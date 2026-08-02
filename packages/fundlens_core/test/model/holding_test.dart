@@ -64,4 +64,50 @@ void main() {
       expect(holding.currentFloatingProfit?.canonical, '200');
     },
   );
+
+  test('holding copyWith updates only the given fields', () {
+    final now = DateTime.utc(2026, 7, 1);
+    final later = DateTime.utc(2026, 8, 2, 9, 30);
+    final original = Holding(
+      id: 'h-1',
+      sourcePlatform: SourcePlatform.alipay,
+      instrumentType: InstrumentType.offExchangeFund,
+      assetClass: AssetClass.equity,
+      productName: '测试基金',
+      currency: 'CNY',
+      currentValue: DecimalValue.parse('1500'),
+      costAmount: DecimalValue.parse('1200'),
+      valuationMethod: ValuationMethod.automaticQuote,
+      dataOrigin: DataOrigin.excel,
+      fieldProvenance: const {
+        'currentValue': FieldProvenance(
+          kind: ProvenanceKind.original,
+          source: '导入',
+        ),
+      },
+      createdAt: now,
+      updatedAt: now,
+    );
+    final updated = original.copyWith(
+      assetClass: AssetClass.gold,
+      fieldProvenance: {
+        ...original.fieldProvenance,
+        'assetClass': const FieldProvenance(
+          kind: ProvenanceKind.userCorrected,
+          source: '批量修改',
+        ),
+      },
+      updatedAt: later,
+    );
+    expect(updated.assetClass, AssetClass.gold);
+    expect(updated.updatedAt, later);
+    expect(
+      updated.fieldProvenance['assetClass']!.kind,
+      ProvenanceKind.userCorrected,
+    );
+    // 未传字段保持不变。
+    expect(updated.sourcePlatform, SourcePlatform.alipay);
+    expect(updated.currentValue.canonical, '1500');
+    expect(updated.fieldProvenance['currentValue']!.kind, ProvenanceKind.original);
+  });
 }

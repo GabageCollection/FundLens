@@ -86,4 +86,41 @@ final class Holding {
   DecimalValue? get effectiveCostAmount =>
       costAmount ??
       (holdingProfit == null ? null : currentValue - holdingProfit!);
+
+  /// 定向拷贝:仅支持批量操作需要的非空字段。
+  /// 未传的字段保持原值;可空字段不在此列(批量操作不清空数据)。
+  Holding copyWith({
+    SourcePlatform? sourcePlatform,
+    AssetClass? assetClass,
+    Map<String, FieldProvenance>? fieldProvenance,
+    DateTime? updatedAt,
+  }) {
+    return Holding(
+      id: id,
+      sourcePlatform: sourcePlatform ?? this.sourcePlatform,
+      instrumentType: instrumentType,
+      assetClass: assetClass ?? this.assetClass,
+      productName: productName,
+      productCode: productCode,
+      currency: currency,
+      quantity: quantity,
+      availableQuantity: availableQuantity,
+      currentPrice: currentPrice,
+      costPrice: costPrice,
+      currentValue: currentValue,
+      costAmount: costAmount,
+      holdingProfit: holdingProfit,
+      holdingReturn: holdingReturn,
+      dailyProfit: dailyProfit,
+      cumulativeProfit: cumulativeProfit,
+      platformTags: platformTags,
+      valuationMethod: valuationMethod,
+      valuationDate: valuationDate,
+      dataOrigin: dataOrigin,
+      fieldProvenance: fieldProvenance ?? this.fieldProvenance,
+      note: note,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
