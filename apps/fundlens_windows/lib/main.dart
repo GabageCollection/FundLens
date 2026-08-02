@@ -22,9 +22,10 @@ import 'data_engine/process_data_engine_client.dart';
 import 'features/holdings/holding_actions.dart';
 import 'features/import_review/import_review_controller.dart';
 import 'features/import_review/import_source_panel.dart';
+import 'features/settings/app_info_section.dart';
 import 'features/settings/backup_section.dart';
 import 'features/settings/persisted_settings.dart';
-import 'features/settings/update_section.dart';
+import 'features/settings/privacy_section.dart';
 import 'market/quote_refresh_service.dart';
 import 'security/temporary_import_store.dart';
 import 'storage/app_database.dart';
@@ -65,12 +66,16 @@ Future<void> main() async {
 
   // Temporary screenshot copies live in per-job directories; orphans left
   // by a crash are swept on startup. Failures are nonblocking privacy
-  // issues and retried on the next launch.
+  // issues and retried on the next launch; the outcome feeds the privacy
+  // section's 临时清理 row.
+  final tempPrivacyIssues = <String>[];
   final importTempStore = TemporaryImportStore(
     root: Directory(p.join(supportDir.path, 'import_tmp')),
-    onPrivacyIssue: debugPrint,
+    onPrivacyIssue: (code) {
+      debugPrint('privacy issue: $code');
+      tempPrivacyIssues.add(code);
+    },
   );
-  unawaited(importTempStore.sweepOrphans());
 
   // Explicit container so settings can be loaded before the first frame and
   // startup automation can run after `runApp` without depending on a page.
@@ -121,6 +126,10 @@ Future<void> main() async {
           currentVersion: packageInfo.version,
         ),
       ),
+      appInfoProvider.overrideWithValue((
+        version: packageInfo.version,
+        buildNumber: packageInfo.buildNumber,
+      )),
       updateServiceProvider.overrideWithValue(
         UpdateService(
           tempDirectory: Directory(p.join(supportDir.path, 'updates')),
@@ -148,6 +157,13 @@ Future<void> main() async {
   );
 
   unawaited(runStartupAutomation(container));
+  unawaited(() async {
+    final removed = await importTempStore.sweepOrphans();
+    container.read(tempCleanupResultProvider.notifier).state = TempCleanupResult(
+      removedJobs: removed,
+      issueReported: tempPrivacyIssues.isNotEmpty,
+    );
+  }());
 }
 
 /// Locates the repository `engine/` directory relative to the current

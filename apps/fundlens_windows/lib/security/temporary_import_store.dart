@@ -76,29 +76,35 @@ final class TemporaryImportStore implements ScreenshotTempStore {
     }
   }
 
-  /// Removes orphaned job directories older than [orphanMaxAge].
+  /// Removes orphaned job directories older than [orphanMaxAge] and returns
+  /// how many were removed.
   ///
   /// Entries that are not `job-*` directories are left untouched; failures
   /// are reported as privacy issues and retried on the next launch.
-  Future<void> sweepOrphans() async {
-    if (!await root.exists()) return;
+  Future<int> sweepOrphans() async {
+    if (!await root.exists()) return 0;
     final cutoff = _clock().subtract(orphanMaxAge);
+    var removed = 0;
     await for (final entity in root.list()) {
       if (entity is! Directory) continue;
       if (!p.basename(entity.path).startsWith('job-')) continue;
       final modified = (await entity.stat()).modified;
       if (modified.isAfter(cutoff)) continue;
-      await _removeDirectory(entity);
+      if (await _removeDirectory(entity)) removed++;
     }
+    return removed;
   }
 
-  Future<void> _removeDirectory(Directory dir) async {
-    if (!await dir.exists()) return;
+  /// Returns true when [dir] was actually removed. Failures are nonblocking:
+  /// the directory stays and cleanup is retried later.
+  Future<bool> _removeDirectory(Directory dir) async {
+    if (!await dir.exists()) return false;
     try {
       await _deleteDirectory(dir);
+      return true;
     } catch (_) {
-      // Nonblocking: the directory stays and cleanup is retried later.
       onPrivacyIssue?.call(cleanupFailedIssue);
+      return false;
     }
   }
 

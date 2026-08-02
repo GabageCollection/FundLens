@@ -33,8 +33,9 @@ final class _NoopRestoreService implements DatabaseRestoreService {
 Future<ProviderContainer> pumpSettings(
   WidgetTester tester, {
   List<Override> overrides = const [],
+  double width = 1280,
 }) async {
-  tester.view.physicalSize = const Size(1280, 1000);
+  tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
@@ -102,11 +103,43 @@ void main() {
     expect(find.textContaining('行情引擎不可用'), findsOneWidget);
   });
 
-  testWidgets('privacy section states local-only processing', (tester) async {
+  testWidgets('privacy section lists the local-only facts as rows',
+      (tester) async {
     await pumpSettings(tester);
-    expect(find.textContaining('仅在本机处理'), findsOneWidget);
-    expect(find.textContaining('临时副本'), findsOneWidget);
-    expect(find.textContaining('脱敏'), findsOneWidget);
+    final privacySection = find.byKey(const ValueKey('privacy-section'));
+    expect(privacySection, findsOneWidget);
+    expect(find.text('本机存储'), findsOneWidget);
+    expect(find.text('本地加密'), findsOneWidget);
+    expect(find.text('日志脱敏'), findsOneWidget);
+    expect(find.text('网络范围'), findsOneWidget);
+  });
+
+  testWidgets('app info section shows the running version', (tester) async {
+    await pumpSettings(tester);
+    final appInfo = find.byKey(const ValueKey('app-info-section'));
+    expect(appInfo, findsOneWidget);
+    expect(
+      find.descendant(of: appInfo, matching: find.text('应用信息')),
+      findsOneWidget,
+    );
+    expect(find.text('检查更新'), findsOneWidget);
+  });
+
+  testWidgets('two-column layout above the collapse breakpoint',
+      (tester) async {
+    await pumpSettings(tester, width: 1280);
+    final market = tester.getRect(find.byKey(const ValueKey('market-section')));
+    final asset = tester.getRect(find.byKey(const ValueKey('asset-rules-section')));
+    expect(market.top, closeTo(asset.top, 2));
+    expect(asset.left, greaterThanOrEqualTo(market.right));
+  });
+
+  testWidgets('single stacked column below the collapse breakpoint',
+      (tester) async {
+    await pumpSettings(tester, width: 800);
+    final market = tester.getRect(find.byKey(const ValueKey('market-section')));
+    final asset = tester.getRect(find.byKey(const ValueKey('asset-rules-section')));
+    expect(asset.top, greaterThan(market.bottom));
   });
 
   testWidgets('backup section offers create and restore controls', (tester) async {

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fundlens_windows/features/settings/update_section.dart';
+import 'package:fundlens_windows/features/settings/app_info_section.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 import 'package:fundlens_windows/updates/update_checker.dart';
 import 'package:fundlens_windows/updates/update_service.dart';
@@ -15,7 +15,7 @@ Widget harness({required List<Override> overrides}) {
     overrides: overrides,
     child: MaterialApp(
       theme: FundLensTheme.light,
-      home: const Scaffold(body: UpdateSection()),
+      home: const Scaffold(body: AppInfoSection()),
     ),
   );
 }
@@ -36,16 +36,28 @@ final class _FakeInstaller implements UpdateInstaller {
 }
 
 void main() {
+  testWidgets('app info shows version and build number', (tester) async {
+    await tester.pumpWidget(harness(overrides: [
+      appInfoProvider.overrideWithValue((version: '1.0.0', buildNumber: '42')),
+    ]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('应用信息'), findsOneWidget);
+    expect(find.text('1.0.0'), findsOneWidget);
+    expect(find.text('42'), findsOneWidget);
+    expect(find.text('检查更新'), findsOneWidget);
+  });
+
   testWidgets('disabled checker explains that no update url is configured',
       (tester) async {
     await tester.pumpWidget(harness(overrides: [
+      appInfoProvider.overrideWithValue((version: '1.0.0', buildNumber: '42')),
       updateCheckerProvider.overrideWithValue(
         const UpdateChecker(manifestUrl: '', currentVersion: '1.0.0'),
       ),
     ]));
     await tester.pumpAndSettle();
 
-    expect(find.text('当前版本：1.0.0'), findsOneWidget);
     await tester.tap(find.text('检查更新'));
     await tester.pumpAndSettle();
 
@@ -65,6 +77,7 @@ void main() {
     final installer = _FakeInstaller();
 
     await tester.pumpWidget(harness(overrides: [
+      appInfoProvider.overrideWithValue((version: '1.0.0', buildNumber: '42')),
       updateCheckerProvider.overrideWithValue(
         UpdateChecker(
           manifestUrl: 'https://example.com/version.json',

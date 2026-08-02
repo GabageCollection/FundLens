@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/fundlens_tokens.dart';
 import '../../updates/update_checker.dart';
 import '../../updates/update_service.dart';
+import 'widgets/setting_info_row.dart';
 import 'widgets/settings_section_card.dart';
+
+/// Running version facts shown in the app info card. The bootstrap overrides
+/// this with the real package info; tests inject fixed values.
+final appInfoProvider = Provider<({String version, String buildNumber})>(
+  (ref) => (version: '开发版', buildNumber: ''),
+);
 
 /// Update check wiring. Overridden by the bootstrap with the real app
 /// version and a real download directory; tests inject fakes.
@@ -13,35 +21,40 @@ final updateCheckerProvider = Provider<UpdateChecker>((ref) {
 
 final updateServiceProvider = Provider<UpdateInstaller?>((ref) => null);
 
-/// Manual update check: compares the running version with the published
-/// manifest, then downloads, verifies and launches the installer on demand.
-/// Nothing here runs on its own — the network is only touched when the user
-/// taps 检查更新.
-class UpdateSection extends ConsumerStatefulWidget {
-  const UpdateSection({super.key});
+/// App info card: version and build number plus the manual update check.
+/// Nothing runs on its own — the network is only touched when the user taps
+/// 检查更新.
+class AppInfoSection extends ConsumerStatefulWidget {
+  const AppInfoSection({super.key});
 
   @override
-  ConsumerState<UpdateSection> createState() => _UpdateSectionState();
+  ConsumerState<AppInfoSection> createState() => _AppInfoSectionState();
 }
 
-class _UpdateSectionState extends ConsumerState<UpdateSection> {
+class _AppInfoSectionState extends ConsumerState<AppInfoSection> {
   bool _checking = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final checker = ref.watch(updateCheckerProvider);
+    final appInfo = ref.watch(appInfoProvider);
     return SettingsSectionCard(
-      title: '应用更新',
+      key: const ValueKey('app-info-section'),
+      title: '应用信息',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('当前版本：${checker.currentVersion}',
-              style: theme.textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text('只在点击按钮时检查更新，不会自动联网',
-              style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
+          SettingInfoRow(label: '版本', value: appInfo.version),
+          SettingInfoRow(
+            label: '构建号',
+            value: appInfo.buildNumber.isEmpty ? '—' : appInfo.buildNumber,
+          ),
+          const SizedBox(height: FundLensTokens.space3),
+          Text(
+            '只在点击按钮时检查更新，不会自动联网',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: FundLensTokens.space3),
           FilledButton.tonal(
             onPressed: _checking ? null : _checkForUpdate,
             child: Text(_checking ? '正在检查…' : '检查更新'),
