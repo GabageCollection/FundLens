@@ -96,7 +96,7 @@ ProviderContainer makeContainer({
         .overrideWithValue(snapshots ?? FakeSnapshotRepository(const [])),
     portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
     dataQualityCalculatorProvider.overrideWithValue(DataQualityCalculator()),
-    freshQuoteHoldingIdsProvider.overrideWithValue(freshQuoteHoldingIds),
+    freshQuoteHoldingIdsProvider.overrideWith((ref) => freshQuoteHoldingIds),
   ]);
 }
 

@@ -3,30 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../application/portfolio_providers.dart';
+import '../data_health/data_health_providers.dart';
 import '../holdings/holding_actions.dart';
 import 'structure_thresholds_section.dart';
 
 /// Whether the daily automatic quote refresh is enabled.
 final dailyAutoRefreshEnabledProvider = StateProvider<bool>((ref) => true);
-
-/// Factual record of the most recent quote refresh attempt.
-final class QuoteRefreshAttempt {
-  const QuoteRefreshAttempt({
-    required this.at,
-    required this.source,
-    required this.updated,
-    required this.failed,
-  });
-
-  final DateTime at;
-  final String source;
-  final int updated;
-  final int failed;
-}
-
-/// The last quote refresh attempt; null until one runs in this session.
-final lastQuoteRefreshAttemptProvider =
-    StateProvider<QuoteRefreshAttempt?>((ref) => null);
 
 /// Quote refresh settings: daily auto-refresh toggle, last attempt facts,
 /// a manual refresh action and the degraded engine state.
@@ -89,28 +71,13 @@ class MarketSettingsSection extends ConsumerWidget {
   }
 
   Future<void> _refreshNow(BuildContext context, WidgetRef ref) async {
-    final service = ref.read(quoteRefreshServiceProvider);
-    if (service == null) return;
     final holdings = ref.read(holdingsProvider).value ?? [];
-    try {
-      final report = await service.refresh(holdings);
-      final source = report.updated.isEmpty
-          ? '无更新'
-          : report.updated.first.fieldProvenance['currentPrice']?.source ??
-              '未知';
-      ref.read(lastQuoteRefreshAttemptProvider.notifier).state =
-          QuoteRefreshAttempt(
-        at: DateTime.now(),
-        source: source,
-        updated: report.updated.length + report.retained.length,
-        failed: report.failed.length,
+    // 委托统一入口:同时维护全局刷新状态、新鲜集合与最近刷新记录。
+    final report = await HoldingActions.refreshQuotes(ref.container, holdings);
+    if (report == null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('行情引擎不可用，显示的是最近一次估值')),
       );
-    } on Exception {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('行情引擎不可用，显示的是最近一次估值')),
-        );
-      }
     }
   }
 

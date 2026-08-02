@@ -267,8 +267,10 @@ class HoldingDetailDrawer extends ConsumerWidget {
                       key: const ValueKey('drawer-refresh'),
                       onPressed: canRefresh
                           ? () async {
-                              final report =
-                                  await HoldingActions.refreshQuotes(ref, [h]);
+                              final report = await HoldingActions.refreshQuotes(
+                                ref.container,
+                                [h],
+                              );
                               if (!context.mounted) return;
                               if (report == null) {
                                 // 刷新失败(网络异常等):提示重试,不显示 0 计数汇报。

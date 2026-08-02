@@ -51,8 +51,8 @@ ProviderContainer makeContainer(List<Holding> holdings) {
   return ProviderContainer(overrides: [
     holdingRepositoryProvider.overrideWithValue(FakeHoldingRepository(holdings)),
     // 默认全部行情新鲜,避免"等待更新"干扰数据状态断言。
-    freshQuoteHoldingIdsProvider.overrideWithValue(
-      {for (final h in holdings) h.id},
+    freshQuoteHoldingIdsProvider.overrideWith(
+      (ref) => {for (final h in holdings) h.id},
     ),
   ]);
 }

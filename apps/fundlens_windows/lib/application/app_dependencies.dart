@@ -57,6 +57,8 @@ final dataQualityCalculatorProvider = Provider<DataQualityCalculator>((ref) {
 ///
 /// Defaults to the empty set: without a quote refresh, every quoted holding is
 /// treated as stale (degraded), which is the safe assumption at startup.
-final freshQuoteHoldingIdsProvider = Provider<Set<String>>((ref) {
+/// Written after each successful refresh so derived freshness reflects the
+/// real last run.
+final freshQuoteHoldingIdsProvider = StateProvider<Set<String>>((ref) {
   return const <String>{};
 });

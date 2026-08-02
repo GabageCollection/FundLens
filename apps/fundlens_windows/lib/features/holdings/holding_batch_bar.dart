@@ -189,7 +189,7 @@ class HoldingBatchBar extends ConsumerWidget {
     WidgetRef ref,
     List<Holding> selected,
   ) async {
-    final report = await HoldingActions.refreshQuotes(ref, selected);
+    final report = await HoldingActions.refreshQuotes(ref.container, selected);
     if (!context.mounted) return;
     if (report == null) {
       // 刷新失败(网络异常等):canRefresh 已保证有可刷新资产且服务已接线,
