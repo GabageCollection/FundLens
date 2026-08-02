@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fundlens_core/fundlens_core.dart';
+import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/app/app_shell.dart';
 import 'package:fundlens_windows/app/fundlens_app.dart';
+import 'package:fundlens_windows/features/data_health/data_health_providers.dart';
 import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 
+import '../features/overview/asset_spectrum_test.dart' show FakeHoldingRepository;
+
+/// 顶栏已含全局数据健康按钮(ConsumerWidget),需提供最小 ProviderScope:
+/// 空持仓仓库 + 计算器 + 最近导入记录(null),其余依赖走默认值。
 Widget buildTestApp() {
-  return FundLensApp(
-    pages: [
-      for (final destination in AppDestination.values)
-        Center(child: Text('page-${destination.name}')),
+  return ProviderScope(
+    overrides: [
+      holdingRepositoryProvider.overrideWithValue(FakeHoldingRepository(const [])),
+      portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
+      lastImportRecordProvider.overrideWithValue(null),
     ],
+    child: FundLensApp(
+      pages: [
+        for (final destination in AppDestination.values)
+          Center(child: Text('page-${destination.name}')),
+      ],
+    ),
   );
 }
 
@@ -70,10 +85,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('top data-status button navigates to importReview', (tester) async {
+  testWidgets('data-status button opens popover; 查看导入记录 navigates to importReview', (tester) async {
     await pumpAtSize(tester, const Size(1440, 900));
     expect(find.text('page-importReview'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('data-status-button')));
+    await tester.pumpAndSettle();
+    // 面板打开:出现四个操作入口。
+    expect(find.text('查看导入记录'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('data-health-imports')));
     await tester.pumpAndSettle();
     expect(find.text('page-importReview'), findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../features/data_health/data_health_button.dart';
 import '../theme/fundlens_tokens.dart';
 
 /// The six fixed destinations of the FundLens desktop shell.
@@ -146,8 +147,6 @@ class _AppShellState extends State<AppShell> {
                             collapsed: collapsed,
                             onToggleCollapse: () =>
                                 setState(() => _navCollapsed = !_navCollapsed),
-                            onOpenDataStatus: () =>
-                                _select(AppDestination.importReview),
                           ),
                           const Divider(height: 1),
                           Expanded(
@@ -484,7 +483,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// 顶部全局操作条：左侧为抽屉/折叠切换，右侧为数据状态与账户头像。
+/// 顶部全局操作条：左侧为抽屉/折叠切换，右侧为数据健康入口与账户头像。
 /// 页面标题与面包屑已下沉至各页面的 PageHeader（Task 6–10）。
 class _TopBar extends StatelessWidget {
   const _TopBar({
@@ -492,14 +491,12 @@ class _TopBar extends StatelessWidget {
     required this.collapsible,
     required this.collapsed,
     required this.onToggleCollapse,
-    required this.onOpenDataStatus,
   });
 
   final bool drawerMode;
   final bool collapsible;
   final bool collapsed;
   final VoidCallback onToggleCollapse;
-  final VoidCallback onOpenDataStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -526,12 +523,7 @@ class _TopBar extends StatelessWidget {
               onPressed: onToggleCollapse,
             ),
           const Spacer(),
-          OutlinedButton.icon(
-            key: const ValueKey('data-status-button'),
-            onPressed: onOpenDataStatus,
-            icon: const Icon(Icons.fact_check_outlined, size: 16),
-            label: const Text('数据状态'),
-          ),
+          const DataHealthButton(),
           const SizedBox(width: 12),
           const CircleAvatar(
             radius: 16,

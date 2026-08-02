@@ -8,6 +8,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/app/app_shell.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/application/selection_state.dart';
+import 'package:fundlens_windows/features/data_health/data_health_providers.dart';
 import 'package:fundlens_windows/features/holdings/holding_editor_dialog.dart';
 import 'package:fundlens_windows/features/overview/overview_page.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
@@ -16,13 +17,23 @@ import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 import '../features/import_review/import_review_harness.dart';
 
 Widget shellHarness() {
-  return MaterialApp(
-    theme: FundLensTheme.light,
-    home: AppShell(
-      pages: [
-        for (final destination in AppDestination.values)
-          Center(child: Text('page-${destination.name}')),
-      ],
+  // 顶栏含数据健康按钮(ConsumerWidget),需最小 ProviderScope。
+  return ProviderScope(
+    overrides: [
+      holdingRepositoryProvider.overrideWithValue(
+        FakeHoldingRepository(const []),
+      ),
+      portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
+      lastImportRecordProvider.overrideWithValue(null),
+    ],
+    child: MaterialApp(
+      theme: FundLensTheme.light,
+      home: AppShell(
+        pages: [
+          for (final destination in AppDestination.values)
+            Center(child: Text('page-${destination.name}')),
+        ],
+      ),
     ),
   );
 }

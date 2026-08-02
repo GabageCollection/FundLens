@@ -23,6 +23,18 @@ class HoldingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 数据健康面板的"查看缺失数据/补充资产分类"预选筛选:本帧应用一次并清空。
+    // IndexedStack 保持本页存活,watch 到非空即在帧末应用,同时覆盖
+    // "先设置后挂载"与"先挂载后设置"两条时序。
+    final pendingFilter = ref.watch(pendingHoldingFilterProvider);
+    if (pendingFilter != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ref.read(holdingFilterProvider.notifier).state = pendingFilter;
+        ref.read(pendingHoldingFilterProvider.notifier).state = null;
+      });
+    }
+
     final state = ref.watch(portfolioStateProvider);
     final filter = ref.watch(holdingFilterProvider);
 

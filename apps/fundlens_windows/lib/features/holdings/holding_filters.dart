@@ -115,6 +115,10 @@ final class HoldingFilterState {
 final holdingFilterProvider =
     StateProvider<HoldingFilterState>((ref) => const HoldingFilterState());
 
+/// 待应用的预选筛选:数据健康面板等入口写入,持仓页构建时消费一次并清空。
+final pendingHoldingFilterProvider =
+    StateProvider<HoldingFilterState?>((ref) => null);
+
 /// 多选状态:选中的持仓 id 集合。筛选变化不清空,删除/取消后清空。
 final holdingSelectionProvider = StateProvider<Set<String>>((ref) => const {});
 

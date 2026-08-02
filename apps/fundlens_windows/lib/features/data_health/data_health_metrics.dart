@@ -84,7 +84,7 @@ DataHealthMetrics calculateDataHealthMetrics({
   DateTime? asOfDate;
   for (final h in holdings) {
     final date = h.valuationDate ?? h.updatedAt;
-    if (date != null && (asOfDate == null || date.isAfter(asOfDate))) {
+    if (asOfDate == null || date.isAfter(asOfDate)) {
       asOfDate = date;
     }
   }
