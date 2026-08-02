@@ -31,10 +31,12 @@ final class ImportPlanner {
     required SourcePlatform platform,
     required List<Holding> current,
     required List<DraftHolding> incoming,
+    Map<int, DuplicateResolution> resolutions = const {},
   }) {
     final inserts = <Holding>[];
     final updates = <Holding>[];
     final issues = <DataIssue>[];
+    final skipped = <DraftHolding>[];
     final matchedIds = <String>{};
 
     final samePlatform =
@@ -42,6 +44,12 @@ final class ImportPlanner {
 
     for (var i = 0; i < incoming.length; i++) {
       final draft = incoming[i];
+      final resolution =
+          resolutions[i] ?? DuplicateResolution.overwrite;
+      if (resolution == DuplicateResolution.skip) {
+        skipped.add(draft);
+        continue;
+      }
 
       // 1. Same platform + exact product code.
       Holding? match;
@@ -98,8 +106,23 @@ final class ImportPlanner {
       }
 
       if (match != null) {
-        matchedIds.add(match.id);
-        updates.add(_toHolding(draft, id: match.id, createdAt: match.createdAt));
+        switch (resolution) {
+          case DuplicateResolution.merge:
+            matchedIds.add(match.id);
+            updates.add(_mergedHolding(draft, match));
+          case DuplicateResolution.overwrite:
+            matchedIds.add(match.id);
+            updates.add(
+              _toHolding(draft, id: match.id, createdAt: match.createdAt),
+            );
+          case DuplicateResolution.keepBoth:
+            // The existing holding is left untouched and the incoming row is
+            // written as a new holding, so match.id must NOT be claimed.
+            inserts.add(_toHolding(draft, id: _idGenerator()));
+          case DuplicateResolution.skip:
+            // Handled above; kept for exhaustiveness.
+            break;
+        }
       } else {
         inserts.add(_toHolding(draft, id: _idGenerator()));
       }
@@ -122,6 +145,47 @@ final class ImportPlanner {
       removeIds: removeIds,
       unchangedIds: unchangedIds,
       issues: issues,
+      skipped: skipped,
+    );
+  }
+
+  /// Merges an incoming draft into an existing holding by summing amounts,
+  /// shares and profits. Sums only where both sides carry a value; a null on
+  /// either side keeps the other. Unit-price fields stay on the existing
+  /// side because a blended price is not well defined.
+  Holding _mergedHolding(DraftHolding draft, Holding existing) {
+    DecimalValue? sum(DecimalValue? a, DecimalValue? b) {
+      if (a == null) return b;
+      if (b == null) return a;
+      return a + b;
+    }
+
+    final now = _clock();
+    return Holding(
+      id: existing.id,
+      sourcePlatform: existing.sourcePlatform,
+      instrumentType: existing.instrumentType,
+      assetClass: existing.assetClass,
+      productName: existing.productName,
+      productCode: existing.productCode ?? draft.productCode,
+      currency: existing.currency,
+      quantity: sum(existing.quantity, draft.quantity),
+      currentPrice: existing.currentPrice,
+      costPrice: existing.costPrice,
+      currentValue: sum(existing.currentValue, draft.currentValue)!,
+      costAmount: sum(existing.costAmount, draft.costAmount),
+      holdingProfit: sum(existing.holdingProfit, draft.holdingProfit),
+      cumulativeProfit: sum(
+        existing.cumulativeProfit,
+        draft.cumulativeProfit,
+      ),
+      platformTags: existing.platformTags,
+      valuationMethod: existing.valuationMethod,
+      dataOrigin: draft.dataOrigin,
+      fieldProvenance: existing.fieldProvenance,
+      note: existing.note,
+      createdAt: existing.createdAt,
+      updatedAt: now,
     );
   }
 

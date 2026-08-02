@@ -6,6 +6,17 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import 'import_models.dart';
 
+/// A raw, not-yet-mapped tabular sheet: headings plus data rows, with all
+/// trailing fully-empty rows stripped. This is the input to
+/// [TabularImportParser.guessColumnMapping] and
+/// [TabularImportParser.parseTable] — the two-phase field-mapping workflow.
+final class TabularTable {
+  const TabularTable({required this.headings, required this.dataRows});
+
+  final List<String> headings;
+  final List<List<String>> dataRows;
+}
+
 /// Parses CSV and Excel holdings into an [ImportDraft].
 ///
 /// Accepts both canonical English and Chinese column headings, rejects
@@ -13,6 +24,13 @@ import 'import_models.dart';
 /// [DecimalValue] (never `double`), preserves unknown columns in
 /// [DraftHolding.metadata], and reports blocking issues for missing product
 /// name / current value or invalid signs.
+///
+/// Supports two entry modes:
+/// - one-shot `parseCsv` / `parseExcel` (legacy, used by tests and the
+///   bundled template check), and
+/// - two-phase `parseCsvTable` / `parseExcelTable` → `guessColumnMapping`
+///   → `parseTable`, which lets the UI show the raw sheet and let the user
+///   correct the mapping before any row becomes a holding.
 final class TabularImportParser {
   const TabularImportParser();
 
@@ -66,6 +84,132 @@ final class TabularImportParser {
     '实物金': InstrumentType.physicalGold,
   };
 
+  /// Phase 1a — reads a CSV string into a raw [TabularTable]. Trailing
+  /// fully-empty rows are dropped; headings keep their raw cell text.
+  TabularTable parseCsvTable(
+    String content, {
+    SourcePlatform fallbackPlatform = SourcePlatform.manual,
+  }) {
+    final rows = const CsvDecoder(dynamicTyping: false)
+        .convert(content)
+        .map((row) => row.map((cell) => cell.toString().trim()).toList())
+        .toList();
+    return _toTable(rows);
+  }
+
+  /// Phase 1b — reads an Excel file into a raw [TabularTable], using the
+  /// first non-empty sheet (or [sheetName] when given). Throws
+  /// [FormatException] when the bytes are not a readable xlsx file; callers
+  /// surface that as a blocking issue in the UI.
+  TabularTable parseExcelTable(
+    List<int> bytes, {
+    String? sheetName,
+    SourcePlatform fallbackPlatform = SourcePlatform.manual,
+  }) {
+    final Excel excel;
+    try {
+      excel = Excel.decodeBytes(Uint8List.fromList(bytes));
+    } catch (e) {
+      throw FormatException('无法读取 Excel 文件: $e');
+    }
+
+    Sheet? sheet;
+    if (sheetName != null) {
+      sheet = excel.tables[sheetName];
+    } else {
+      for (final candidate in excel.tables.values) {
+        if (candidate.rows.isNotEmpty) {
+          sheet = candidate;
+          break;
+        }
+      }
+    }
+    if (sheet == null) {
+      throw const FormatException('Excel 文件为空');
+    }
+
+    final rows = sheet.rows
+        .map(
+          (row) => row
+              .map((cell) => (cell?.value?.toString() ?? '').trim())
+              .toList(),
+        )
+        .toList();
+    return _toTable(rows);
+  }
+
+  /// Phase 2a — guesses the system-field mapping for [headings] using the
+  /// alias tables. Only unambiguous aliases are mapped; everything else
+  /// stays `null` for the user to choose. Returns `column index -> field`.
+  Map<String, int> guessColumnMapping(List<String> headings) {
+    final mapping = <String, int>{};
+    final seenFields = <String>{};
+    for (var i = 0; i < headings.length; i++) {
+      final raw = headings[i];
+      if (raw.isEmpty) continue;
+      final normalized = raw.toLowerCase();
+      for (final entry in _columnAliases.entries) {
+        if (entry.value.any((alias) => alias.toLowerCase() == normalized)) {
+          if (seenFields.add(entry.key)) mapping[entry.key] = i;
+          break;
+        }
+      }
+    }
+    return mapping;
+  }
+
+  /// Phase 2b — builds an [ImportDraft] from a raw [table] under the
+  /// confirmed [mapping] (`system field -> column index`). Required fields
+  /// that map to nothing produce a blocking `import.missing_column` issue;
+  /// two fields mapped to the same column produce a blocking
+  /// `import.duplicate_mapping` issue; unmapped columns are preserved in
+  /// [DraftHolding.metadata].
+  ImportDraft parseTable(
+    TabularTable table,
+    Map<String, int> mapping, {
+    SourcePlatform fallbackPlatform = SourcePlatform.manual,
+    DataOrigin origin = DataOrigin.csv,
+  }) {
+    final duplicateTarget = <int, String>{};
+    for (final entry in mapping.entries) {
+      final existing = duplicateTarget.putIfAbsent(entry.value, () => entry.key);
+      if (existing != entry.key) {
+        return ImportDraft(
+          holdings: const [],
+          issues: [
+            DataIssue(
+              code: 'import.duplicate_mapping',
+              field: entry.key,
+              severity: IssueSeverity.blocking,
+              message: '多个系统字段映射到同一列 ${table.headings[entry.value]}',
+            ),
+          ],
+        );
+      }
+    }
+
+    for (final required in _requiredColumns) {
+      if (!mapping.containsKey(required)) {
+        return ImportDraft(
+          holdings: const [],
+          issues: [
+            DataIssue(
+              code: 'import.missing_column',
+              field: required,
+              severity: IssueSeverity.blocking,
+              message: '缺少必需列: $required',
+            ),
+          ],
+        );
+      }
+    }
+
+    return _parseRows(table, mapping, origin, fallbackPlatform);
+  }
+
+  /// Fields a parsed holding must be able to fill from a mapped column.
+  static const _requiredColumns = ['productName', 'currentValue'];
+
   ImportDraft parseCsv(
     String content, {
     SourcePlatform fallbackPlatform = SourcePlatform.manual,
@@ -74,7 +218,7 @@ final class TabularImportParser {
         .convert(content)
         .map((row) => row.map((cell) => cell.toString().trim()).toList())
         .toList();
-    return _parseRows(rows, DataOrigin.csv, fallbackPlatform);
+    return _parseRowsLegacy(rows, DataOrigin.csv, fallbackPlatform);
   }
 
   ImportDraft parseExcel(
@@ -131,21 +275,16 @@ final class TabularImportParser {
               .toList(),
         )
         .toList();
-    return _parseRows(rows, DataOrigin.excel, fallbackPlatform);
+    return _parseRowsLegacy(rows, DataOrigin.excel, fallbackPlatform);
   }
 
-  ImportDraft _parseRows(
+  ImportDraft _parseRowsLegacy(
     List<List<String>> rows,
     DataOrigin origin,
     SourcePlatform fallbackPlatform,
   ) {
-    // Drop trailing fully-empty rows.
-    final dataRows = rows.toList();
-    while (dataRows.isNotEmpty &&
-        dataRows.last.every((cell) => cell.isEmpty)) {
-      dataRows.removeLast();
-    }
-    if (dataRows.isEmpty) {
+    final table = _toTable(rows);
+    if (table.dataRows.isEmpty && table.headings.isEmpty) {
       return const ImportDraft(
         holdings: [],
         issues: [
@@ -159,14 +298,14 @@ final class TabularImportParser {
       );
     }
 
-    final headings = dataRows.first;
-
-    // Map each column index to a canonical field; unknown columns are kept.
-    final columnFields = List<String?>.filled(headings.length, null);
-    final seenFields = <String, int>{};
+    // Auto-mapping path keeps the legacy duplicate-column check: the same raw
+    // heading twice, or two aliases resolving to one system field, is a
+    // blocking error rather than a silently dropped column.
+    final mapping = <String, int>{};
     final seenRaw = <String>{};
-    for (var i = 0; i < headings.length; i++) {
-      final raw = headings[i];
+    final seenFields = <String>{};
+    for (var i = 0; i < table.headings.length; i++) {
+      final raw = table.headings[i];
       if (raw.isEmpty) continue;
       final normalized = raw.toLowerCase();
       if (!seenRaw.add(normalized)) {
@@ -174,48 +313,87 @@ final class TabularImportParser {
       }
       for (final entry in _columnAliases.entries) {
         if (entry.value.any((alias) => alias.toLowerCase() == normalized)) {
-          if (seenFields.containsKey(entry.key)) {
+          if (!seenFields.add(entry.key)) {
             return _duplicateColumn(raw);
           }
-          seenFields[entry.key] = i;
-          columnFields[i] = entry.key;
+          mapping[entry.key] = i;
           break;
         }
       }
     }
 
-    for (final required in ['productName', 'currentValue']) {
-      if (!seenFields.containsKey(required)) {
-        return ImportDraft(
-          holdings: const [],
-          issues: [
-            DataIssue(
-              code: 'import.missing_column',
-              field: required,
-              severity: IssueSeverity.blocking,
-              message: '缺少必需列: $required',
-            ),
-          ],
-        );
+    return parseTable(
+      table,
+      mapping,
+      origin: origin,
+      fallbackPlatform: fallbackPlatform,
+    );
+  }
+
+  /// Builds a raw [TabularTable] from decoded spreadsheet rows: strips
+  /// trailing fully-empty rows and splits off the heading row.
+  TabularTable _toTable(List<List<String>> rows) {
+    final dataRows = rows.toList();
+    while (dataRows.isNotEmpty && dataRows.last.every((cell) => cell.isEmpty)) {
+      dataRows.removeLast();
+    }
+    if (dataRows.isEmpty) {
+      return const TabularTable(headings: [], dataRows: []);
+    }
+    return TabularTable(
+      headings: dataRows.first,
+      dataRows: dataRows.sublist(1),
+    );
+  }
+
+  /// Builds holdings from a raw [table] under a confirmed [mapping]
+  /// (`system field -> column index`). Required-column and duplicate-mapping
+  /// checks live in [parseTable]; this method only turns rows into holdings,
+  /// preserving unmapped columns in [DraftHolding.metadata].
+  ImportDraft _parseRows(
+    TabularTable table,
+    Map<String, int> mapping,
+    DataOrigin origin,
+    SourcePlatform fallbackPlatform,
+  ) {
+    if (table.dataRows.isEmpty) {
+      return const ImportDraft(
+        holdings: [],
+        issues: [
+          DataIssue(
+            code: 'import.unreadable_file',
+            field: 'file',
+            severity: IssueSeverity.blocking,
+            message: '文件为空',
+          ),
+        ],
+      );
+    }
+
+    final columnField = List<String?>.filled(table.headings.length, null);
+    for (final entry in mapping.entries) {
+      if (entry.value < table.headings.length) {
+        columnField[entry.value] = entry.key;
       }
     }
 
     final holdings = <DraftHolding>[];
     final issues = <DataIssue>[];
-    for (var rowIndex = 1; rowIndex < dataRows.length; rowIndex++) {
-      final row = dataRows[rowIndex];
-      final holdingIndex = rowIndex - 1;
+    for (var holdingIndex = 0;
+        holdingIndex < table.dataRows.length;
+        holdingIndex++) {
+      final row = table.dataRows[holdingIndex];
       if (row.every((cell) => cell.isEmpty)) continue;
 
       final fields = <String, String>{};
       final metadata = <String, String>{};
-      for (var i = 0; i < headings.length; i++) {
+      for (var i = 0; i < table.headings.length; i++) {
         final value = i < row.length ? row[i] : '';
-        final field = columnFields[i];
+        final field = columnField[i];
         if (field != null) {
           fields[field] = value;
-        } else if (headings[i].isNotEmpty && value.isNotEmpty) {
-          metadata[headings[i]] = value;
+        } else if (table.headings[i].isNotEmpty && value.isNotEmpty) {
+          metadata[table.headings[i]] = value;
         }
       }
 
