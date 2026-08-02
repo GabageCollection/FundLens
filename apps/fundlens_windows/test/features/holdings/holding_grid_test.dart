@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/features/holdings/holding_filters.dart';
 import 'package:fundlens_windows/features/holdings/holding_grid.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
+import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 
 final _now = DateTime.utc(2026, 7, 1);
 
@@ -302,6 +303,74 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('select-a')));
       await tester.pump();
       expect(tapped, isNull);
+    });
+  });
+
+  group('盈亏红绿/状态列 muted/零值中性着色', () {
+    testWidgets('盈利红、亏损绿、缺成本与状态列 muted、零值默认墨色', (tester) async {
+      await pumpGrid(tester, holdings: [
+        // 盈利行:成本 980,盈亏 +20。
+        gridHolding(
+          id: 'profit',
+          name: '盈利产品',
+          currentValue: DecimalValue.parse('1000'),
+          costAmount: DecimalValue.parse('980'),
+          holdingProfit: DecimalValue.parse('20'),
+        ),
+        // 亏损行:盈亏 -3.2。
+        gridHolding(
+          id: 'loss',
+          name: '亏损产品',
+          currentValue: DecimalValue.parse('1000'),
+          costAmount: DecimalValue.parse('1000'),
+          holdingProfit: DecimalValue.parse('-3.2'),
+        ),
+        // 缺成本行:无成本也无盈亏 → 覆盖成本/盈亏/收益率/数据状态列
+        // 均显示"缺少成本",但只有数据状态列是 muted。
+        gridHolding(id: 'nocost', name: '无成本产品'),
+        // 零值行:盈亏为 0,既不红也不绿,保持默认墨色。
+        gridHolding(
+          id: 'zero',
+          name: '零值产品',
+          currentValue: DecimalValue.parse('1000'),
+          costAmount: DecimalValue.parse('1000'),
+          holdingProfit: DecimalValue.zero,
+        ),
+      ]);
+
+      // 1. 盈利行持仓盈亏文本为 profit 红。
+      final profitText = tester.widget<Text>(find.text('+20.00'));
+      expect(profitText.style?.color, FundLensTokens.profit);
+
+      // 2. 亏损行持仓盈亏文本为 loss 绿。
+      final lossText = tester.widget<Text>(find.text('-3.20'));
+      expect(lossText.style?.color, FundLensTokens.loss);
+
+      // 3. 数据状态列 muted:三行"正常"全部 muted;"缺少成本"四处
+      // (覆盖成本/持仓盈亏/持仓收益率/数据状态)中仅数据状态列为 muted。
+      final normalTexts = tester.widgetList<Text>(find.text('正常')).toList();
+      expect(normalTexts.length, 3);
+      for (final t in normalTexts) {
+        expect(t.style?.color, FundLensTokens.muted, reason: '状态"正常"');
+      }
+      final missingCostTexts =
+          tester.widgetList<Text>(find.text('缺少成本')).toList();
+      expect(missingCostTexts.length, 4);
+      expect(
+        missingCostTexts
+            .where((t) => t.style?.color == FundLensTokens.muted)
+            .length,
+        1,
+        reason: '数据状态列的"缺少成本"应为 muted,其余单元格保持默认墨色',
+      );
+
+      // 4. 零值行盈亏文本为默认墨色(非 profit/loss)。
+      final zeroText = tester.widget<Text>(find.text('+0.00'));
+      expect(zeroText.style?.color, FundLensTokens.ink);
+      expect(zeroText.style?.color, isNot(FundLensTokens.profit));
+      expect(zeroText.style?.color, isNot(FundLensTokens.loss));
+
+      expect(tester.takeException(), isNull);
     });
   });
 }

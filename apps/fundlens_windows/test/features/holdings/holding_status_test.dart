@@ -210,4 +210,20 @@ void main() {
       expect(HoldingValueFormatter.percent(null), '—');
     });
   });
+
+  group('holdingPnlDirection 盈亏方向四态', () {
+    test('正/负/零/null 分别返回 positive/negative/zero/null', () {
+      expect(
+        holdingPnlDirection(DecimalValue.parse('12.5')),
+        PnlDirection.positive,
+      );
+      expect(
+        holdingPnlDirection(DecimalValue.parse('-3.2')),
+        PnlDirection.negative,
+      );
+      expect(holdingPnlDirection(DecimalValue.parse('0')), PnlDirection.zero);
+      // 缺失(缺少成本、无有效收益率)为 null,不应用任何红绿。
+      expect(holdingPnlDirection(null), isNull);
+    });
+  });
 }
