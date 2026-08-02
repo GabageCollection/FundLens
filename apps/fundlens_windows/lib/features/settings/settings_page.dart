@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../theme/fundlens_tokens.dart';
 import '../../widgets/page_scaffold.dart';
+import 'asset_rules_section.dart';
 import 'backup_section.dart';
 import 'market_settings_section.dart';
 import 'privacy_section.dart';
-import 'structure_thresholds_section.dart';
+import 'snapshot_settings_section.dart';
 import 'update_section.dart';
 
-/// 设置与备份 page: opt-in structure thresholds, quote refresh controls,
-/// the manual update check, privacy facts and the encrypted backup section.
+/// 设置与备份 page: quote refresh controls, asset rules, snapshot settings,
+/// the encrypted backup section, privacy facts and app info.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -24,11 +25,12 @@ class SettingsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            StructureThresholdsSection(),
             MarketSettingsSection(),
-            UpdateSection(),
-            PrivacySection(),
+            AssetRulesSection(),
+            SnapshotSettingsSection(),
             BackupSection(),
+            PrivacySection(),
+            UpdateSection(),
           ],
         ),
       ),

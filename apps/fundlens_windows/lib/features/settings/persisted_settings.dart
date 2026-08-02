@@ -103,7 +103,14 @@ final lastBackupInfoProvider = StateProvider<({String path, DateTime at, int byt
 /// Called once after the database opens and again after a restore (the
 /// replacement database carries the settings that existed at backup time).
 Future<void> loadPersistedSettings(ProviderContainer container) async {
-  final all = await container.read(appSettingsRepositoryProvider).getAll();
+  final Map<String, String> all;
+  try {
+    all = await container.read(appSettingsRepositoryProvider).getAll();
+  } catch (_) {
+    // The table may be unreadable right after a restore; keep the runtime
+    // defaults rather than failing the caller.
+    return;
+  }
 
   container.read(dailyAutoRefreshEnabledProvider.notifier).state =
       all[SettingKeys.autoRefreshEnabled] != '0';

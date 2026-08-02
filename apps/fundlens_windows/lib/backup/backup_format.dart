@@ -106,6 +106,46 @@ final class FundLensBackupHeader {
   }
 }
 
+/// Reads the authenticated cleartext header from a backup container without
+/// needing the password. The header carries the creation time; the payload
+/// (and with it all user data) stays encrypted.
+FundLensBackupHeader readBackupHeader(Uint8List backupBytes) {
+  if (backupBytes.length < kFundLensBackupMagic.length + 4 + 16) {
+    throw const BackupFormatException('backup container is truncated');
+  }
+  for (var i = 0; i < kFundLensBackupMagic.length; i++) {
+    if (backupBytes[i] != kFundLensBackupMagic[i]) {
+      throw const BackupFormatException('not a FundLens backup container');
+    }
+  }
+  final headerLength = ByteData.sublistView(backupBytes).getUint32(
+    kFundLensBackupMagic.length,
+  );
+  final headerStart = kFundLensBackupMagic.length + 4;
+  if (headerLength > backupBytes.length - headerStart - 16) {
+    throw const BackupFormatException('backup container is truncated');
+  }
+  final aad = Uint8List.sublistView(
+    backupBytes,
+    headerStart,
+    headerStart + headerLength,
+  );
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(utf8.decode(aad));
+  } on FormatException {
+    throw const BackupFormatException('backup header is not valid JSON');
+  }
+  if (decoded is! Map<String, Object?>) {
+    throw const BackupFormatException('backup header is not a JSON object');
+  }
+  try {
+    return FundLensBackupHeader.fromJson(decoded);
+  } on FormatException {
+    throw const BackupFormatException('backup header is malformed');
+  }
+}
+
 final RegExp _lowerHex64 = RegExp(r'^[0-9a-f]{64}$');
 
 /// The authenticated plaintext record inside a FundLens backup:

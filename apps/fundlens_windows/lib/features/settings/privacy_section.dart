@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'structure_thresholds_section.dart';
+import 'widgets/settings_section_card.dart';
 
 /// Privacy facts: local-only processing, temporary screenshot cleanup and
 /// redacted logging. These are factual statements, not toggles.

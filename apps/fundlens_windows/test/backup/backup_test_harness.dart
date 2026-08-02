@@ -162,7 +162,8 @@ final class InMemoryDatabaseKeyStore implements DatabaseKeyStore {
   }
 }
 
-/// Inspector fake mapping staged database contents to a schema version.
+/// Inspector fake mapping staged database contents to a schema version and
+/// row counts.
 final class FakeBackupDatabaseInspector implements BackupDatabaseInspector {
   FakeBackupDatabaseInspector(this.files);
 
@@ -171,11 +172,20 @@ final class FakeBackupDatabaseInspector implements BackupDatabaseInspector {
   /// Schema versions keyed by the latin-1 decoded candidate contents.
   final Map<String, int> versionsByContent = {};
 
+  /// Holding counts keyed by candidate contents.
+  final Map<String, int> holdingCountsByContent = {};
+
+  /// Snapshot counts keyed by candidate contents.
+  final Map<String, int> snapshotCountsByContent = {};
+
   /// When true, inspection fails as if the candidate were unreadable.
   bool failInspection = false;
 
   @override
-  Future<int> inspect(String candidatePath, String keyHex) async {
+  Future<BackupDatabaseInspection> inspect(
+    String candidatePath,
+    String keyHex,
+  ) async {
     if (failInspection) {
       throw const RestoreFailedException('candidate database is unreadable');
     }
@@ -183,7 +193,12 @@ final class FakeBackupDatabaseInspector implements BackupDatabaseInspector {
     if (bytes == null) {
       throw StateError('candidate was not staged: $candidatePath');
     }
-    return versionsByContent[latin1.decode(bytes)] ?? 1;
+    final content = latin1.decode(bytes);
+    return (
+      schemaVersion: versionsByContent[content] ?? 1,
+      holdingCount: holdingCountsByContent[content] ?? 0,
+      snapshotCount: snapshotCountsByContent[content] ?? 0,
+    );
   }
 }
 

@@ -8,8 +8,11 @@ import '../../backup/backup_cipher.dart';
 import '../../backup/backup_format.dart';
 import '../../backup/backup_service.dart';
 import '../../backup/database_restore_service.dart';
+import '../../backup/password_strength.dart';
 import '../../theme/fundlens_tokens.dart';
-import 'structure_thresholds_section.dart';
+import 'persisted_settings.dart';
+import 'widgets/setting_info_row.dart';
+import 'widgets/settings_section_card.dart';
 
 /// Backup service used by the settings backup section.
 ///
@@ -26,6 +29,12 @@ final databaseRestoreServiceProvider = Provider<DatabaseRestoreService?>(
 /// File picker abstraction so tests never touch the OS dialog.
 final backupFilePickerProvider = Provider<BackupFilePicker>(
   (ref) => const FilePickerBackupFilePicker(),
+);
+
+/// File system used for backup metadata checks (file size). Injectable so
+/// widget tests never touch the OS disk.
+final backupFileSystemProvider = Provider<BackupFileSystem>(
+  (ref) => const IoBackupFileSystem(),
 );
 
 /// Picks backup save/open locations, restricted to the FundLens backup
@@ -130,6 +139,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     setState(() => _busy = true);
     try {
       await service.create(destination, _createPassword.text);
+      await _recordBackupInfo(destination);
       _setFeedback('备份已创建：$destination', isError: false);
     } on Exception {
       _setFeedback('备份创建失败，请重试。', isError: true);
@@ -140,6 +150,35 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     }
   }
 
+  /// Records the just-created backup's metadata into memory and the setting
+  /// table. The size is re-statted so the shown value matches the real file.
+  Future<void> _recordBackupInfo(String destination) async {
+    final atUtc = DateTime.now().toUtc();
+    final int size;
+    try {
+      size = await ref.read(backupFileSystemProvider).fileSize(destination);
+    } on Exception {
+      return; // The test filesystem may not expose the created file.
+    }
+    ref.read(lastBackupInfoProvider.notifier).state =
+        (path: destination, at: atUtc, bytes: size);
+    await persistSetting(
+      ref.container,
+      SettingKeys.backupLastPath,
+      destination,
+    );
+    await persistSetting(
+      ref.container,
+      SettingKeys.backupLastCreatedAtUtc,
+      atUtc.toIso8601String(),
+    );
+    await persistSetting(
+      ref.container,
+      SettingKeys.backupLastFileSizeBytes,
+      '$size',
+    );
+  }
+
   Future<void> _restore() async {
     final service = ref.read(databaseRestoreServiceProvider);
     if (service == null || _busy || _restorePassword.text.isEmpty) return;
@@ -147,12 +186,78 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     if (picked == null) return;
     if (!mounted) return;
 
-    final fileName = p.basename(picked);
-    final confirmed = await showDialog<bool>(
+    // Step 1: authenticate and inspect the backup without touching the live
+    // database. The password is consumed here and never persisted.
+    final password = _restorePassword.text;
+    setState(() => _busy = true);
+    RestoreSession? session;
+    try {
+      session = await service.prepareRestore(picked, password);
+    } on BackupAuthenticationException {
+      _setFeedback('备份密码不正确或备份文件已损坏。', isError: true);
+      return;
+    } on BackupFormatException {
+      _setFeedback('备份文件已损坏或格式不受支持。', isError: true);
+      return;
+    } on Exception {
+      _setFeedback('恢复失败，当前数据未受影响。', isError: true);
+      return;
+    } finally {
+      // The password was consumed by prepare; never keep it around.
+      _restorePassword.clear();
+      if (mounted) setState(() => _busy = false);
+    }
+
+    if (!mounted) return;
+    final confirmed = await _showRestoreSummary(session);
+    if (!mounted) return;
+    if (confirmed != true) {
+      await service.cancelRestore(session);
+      _restorePassword.clear();
+      return;
+    }
+
+    // Step 2: the user confirmed; swap the staged candidate into place.
+    setState(() => _busy = true);
+    try {
+      await service.confirmRestore(session);
+      // The restore closed and reopened the physical database; refresh all
+      // database-dependent providers so the UI reflects the restored data.
+      ref.read(databaseRevisionProvider.notifier).state++;
+      _setFeedback('恢复完成。', isError: false);
+    } on Exception {
+      _setFeedback('恢复失败，当前数据未受影响。', isError: true);
+    } finally {
+      _restorePassword.clear();
+      if (mounted) setState(() => _busy = false);
+    }
+    // Reload persisted settings from the restored database. Best-effort: a
+    // failure keeps the runtime defaults already in memory.
+    await loadPersistedSettings(ref.container);
+  }
+
+  /// Confirmation dialog that presents the staged backup's summary before the
+  /// live database is touched. Returns true only when the user confirmed.
+  Future<bool?> _showRestoreSummary(RestoreSession session) {
+    final summary = session.summary;
+    return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('恢复备份'),
-        content: Text('将用备份文件“$fileName”替换当前数据。替换前会在本机保留当前数据的恢复副本。'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('备份时间：${_formatDateTime(summary.createdAtUtc.toLocal())}'),
+            const SizedBox(height: 8),
+            Text(
+              '数据摘要：持仓 ${summary.holdingCount} 条'
+              ' · 快照 ${summary.snapshotCount} 份',
+            ),
+            const SizedBox(height: 8),
+            const Text('将用该备份替换当前数据。替换前会在本机保留当前数据的恢复副本。'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -165,28 +270,6 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         ],
       ),
     );
-    if (confirmed != true) {
-      _restorePassword.clear();
-      return;
-    }
-
-    setState(() => _busy = true);
-    try {
-      await service.restore(picked, _restorePassword.text);
-      // The restore closed and reopened the physical database; refresh all
-      // database-dependent providers so the UI reflects the restored data.
-      ref.read(databaseRevisionProvider.notifier).state++;
-      _setFeedback('恢复完成。', isError: false);
-    } on BackupAuthenticationException {
-      _setFeedback('备份密码不正确或备份文件已损坏。', isError: true);
-    } on BackupFormatException {
-      _setFeedback('备份文件已损坏或格式不受支持。', isError: true);
-    } on Exception {
-      _setFeedback('恢复失败，当前数据未受影响。', isError: true);
-    } finally {
-      _restorePassword.clear();
-      if (mounted) setState(() => _busy = false);
-    }
   }
 
   void _setFeedback(String message, {required bool isError}) {
@@ -202,6 +285,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     final theme = Theme.of(context);
     final backupService = ref.watch(backupServiceProvider);
     final restoreService = ref.watch(databaseRestoreServiceProvider);
+    final backupInfo = ref.watch(lastBackupInfoProvider);
     final available = backupService != null && restoreService != null;
 
     return SettingsSectionCard(
@@ -214,7 +298,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             '备份使用你设置的密码加密，仅保存在你选择的位置。恢复前会保留当前数据的恢复副本。',
             style: theme.textTheme.bodySmall,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: FundLensTokens.space4),
+          ..._backupInfoRows(theme, backupInfo),
+          const Divider(height: FundLensTokens.space6),
           if (!available)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -235,6 +321,15 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               decoration: const InputDecoration(labelText: '备份密码'),
             ),
           ),
+          if (_createPassword.text.isNotEmpty) ...[
+            const SizedBox(height: FundLensTokens.space2),
+            Text(
+              '请牢记该密码：一旦遗失，备份将无法恢复。',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: FundLensTokens.muted,
+              ),
+            ),
+          ],
           const SizedBox(height: FundLensTokens.formGap),
           SizedBox(
             width: 280,
@@ -249,6 +344,18 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
               ),
             ),
           ),
+          if (_createPassword.text.isNotEmpty) ...[
+            const SizedBox(height: FundLensTokens.space2),
+            Text(
+              passwordStrengthHint(assessBackupPassword(_createPassword.text)),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: _strengthColor(
+                  assessBackupPassword(_createPassword.text),
+                  theme.colorScheme,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: FundLensTokens.space3),
           FilledButton.tonal(
             key: const ValueKey('backup-create-button'),
@@ -301,4 +408,103 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       ),
     );
   }
+
+  List<Widget> _backupInfoRows(
+    ThemeData theme,
+    ({String path, DateTime at, int bytes})? info,
+  ) {
+    if (info == null) {
+      return const [
+        SettingInfoRow(label: '上次备份', value: '尚未创建备份'),
+        SettingInfoRow(label: '加密状态', value: 'AES-256-GCM · 已加密'),
+        SettingInfoRow(label: '自动备份', value: '手动 · 未启用'),
+      ];
+    }
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: FundLensTokens.muted,
+    );
+    return [
+      SettingInfoRow(label: '上次备份', value: _formatDateTime(info.at.toLocal())),
+      SettingInfoRow(label: '备份位置', value: info.path),
+      const SettingInfoRow(label: '加密状态', value: 'AES-256-GCM · 已加密'),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 96, child: Text('文件大小', style: muted)),
+            const Expanded(child: _BackupSizeText()),
+          ],
+        ),
+      ),
+      const SettingInfoRow(label: '自动备份', value: '手动 · 未启用'),
+    ];
+  }
+
+  Color _strengthColor(PasswordStrength strength, ColorScheme colors) {
+    return switch (strength) {
+      PasswordStrength.empty => colors.onSurfaceVariant,
+      PasswordStrength.weak => colors.error,
+      PasswordStrength.fair => FundLensTokens.warn,
+      PasswordStrength.strong => FundLensTokens.profit,
+    };
+  }
+}
+
+/// Reads the recorded backup's real size from disk on the current [path].
+///
+/// A separate widget so the stat only runs once per path change and the
+/// "file lost" state can restyle itself.
+class _BackupSizeText extends ConsumerWidget {
+  const _BackupSizeText();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(lastBackupInfoProvider);
+    final files = ref.watch(backupFileSystemProvider);
+    final theme = Theme.of(context);
+    return FutureBuilder<String>(
+      future: _readSize(info, files),
+      builder: (context, snapshot) {
+        final text = snapshot.data ?? '正在读取…';
+        final lost = text == _kFileLostText;
+        return Text(
+          text,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: lost ? theme.colorScheme.error : null,
+          ),
+        );
+      },
+    );
+  }
+
+  static const _kFileLostText = '文件已移动或删除';
+
+  Future<String> _readSize(
+    ({String path, DateTime at, int bytes})? info,
+    BackupFileSystem files,
+  ) async {
+    final path = info?.path;
+    if (path == null) return _kFileLostText;
+    try {
+      final bytes = await files.fileSize(path);
+      return _formatBytes(bytes);
+    } on Exception {
+      return _kFileLostText;
+    }
+  }
+}
+
+String _formatDateTime(DateTime local) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${local.year}-${two(local.month)}-${two(local.day)} '
+      '${two(local.hour)}:${two(local.minute)}';
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 }

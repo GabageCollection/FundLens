@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../updates/update_checker.dart';
 import '../../updates/update_service.dart';
-import 'structure_thresholds_section.dart';
+import 'widgets/settings_section_card.dart';
 
 /// Update check wiring. Overridden by the bootstrap with the real app
 /// version and a real download directory; tests inject fakes.

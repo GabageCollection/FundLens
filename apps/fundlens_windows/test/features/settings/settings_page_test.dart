@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_windows/backup/backup_service.dart';
 import 'package:fundlens_windows/backup/database_restore_service.dart';
-import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
 import 'package:fundlens_windows/features/settings/backup_section.dart';
 import 'package:fundlens_windows/features/settings/settings_page.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
@@ -18,6 +17,17 @@ final class _NoopBackupService implements BackupService {
 final class _NoopRestoreService implements DatabaseRestoreService {
   @override
   Future<void> restore(String source, String password) async {}
+
+  @override
+  Future<RestoreSession> prepareRestore(String source, String password) async {
+    throw UnimplementedError('not exercised in this harness');
+  }
+
+  @override
+  Future<void> confirmRestore(RestoreSession session) async {}
+
+  @override
+  Future<void> cancelRestore(RestoreSession session) async {}
 }
 
 Future<ProviderContainer> pumpSettings(
@@ -51,63 +61,42 @@ void main() {
     expect(find.text('数据'), findsWidgets); // 面包屑
   });
 
-  testWidgets('thresholds are opt-in with no ideal defaults', (tester) async {
+  testWidgets('asset rules are opt-in and advanced settings collapsed',
+      (tester) async {
     await pumpSettings(tester);
-    final thresholdsSection =
-        find.byKey(const ValueKey('structure-thresholds-section'));
+    final rulesSection = find.byKey(const ValueKey('asset-rules-section'));
+    expect(rulesSection, findsOneWidget);
+    expect(find.text('资产识别规则'), findsOneWidget);
+    expect(find.text('高级设置'), findsOneWidget);
     expect(find.textContaining('理想比例'), findsNothing);
+    // 折叠时不渲染参数输入框。
     expect(
-      find.descendant(of: thresholdsSection, matching: find.byType(TextField)),
+      find.byKey(const ValueKey('threshold-maxSingleHoldingShare')),
       findsNothing,
     );
-    await tester.tap(find.text('添加结构阈值'));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: thresholdsSection, matching: find.byType(TextField)),
-      findsWidgets,
-    );
-  });
-
-  testWidgets('each threshold is labeled as user-set hint only', (tester) async {
-    await pumpSettings(tester);
-    await tester.tap(find.text('添加结构阈值'));
-    await tester.pumpAndSettle();
-    expect(find.text('由你设置，仅用于结构提示'), findsNWidgets(4));
-    expect(find.text('单一持仓占比上限'), findsOneWidget);
-    expect(find.text('单一类别占比上限'), findsOneWidget);
-    expect(find.text('现金及存款占比下限'), findsOneWidget);
-    expect(find.text('权益仓位占比上限'), findsOneWidget);
-  });
-
-  testWidgets('editing a threshold writes structureThresholdsProvider',
-      (tester) async {
-    final container = await pumpSettings(tester);
-    await tester.tap(find.text('添加结构阈值'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('threshold-maxSingleHoldingShare')),
-      '35',
-    );
-    await tester.pumpAndSettle();
-
-    final thresholds = container.read(structureThresholdsProvider);
-    expect(thresholds.maxSingleHoldingShare, isNotNull);
-    expect(
-      thresholds.maxSingleHoldingShare!.value.toDouble(),
-      closeTo(0.35, 0.0001),
-    );
-    expect(thresholds.maxAssetClassShare, isNull);
   });
 
   testWidgets('market section shows toggle, frequency, manual refresh and status',
       (tester) async {
     await pumpSettings(tester);
     expect(find.text('自动刷新行情'), findsOneWidget);
-    expect(find.byType(Switch), findsOneWidget);
-    expect(find.text('每天'), findsOneWidget);
-    expect(find.text('每周'), findsOneWidget);
-    expect(find.text('仅手动'), findsOneWidget);
+    final marketSection = find.byKey(const ValueKey('market-section'));
+    expect(
+      find.descendant(of: marketSection, matching: find.byType(Switch)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: marketSection, matching: find.text('每天')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: marketSection, matching: find.text('每周')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: marketSection, matching: find.text('仅手动')),
+      findsOneWidget,
+    );
     expect(find.text('手动刷新行情'), findsOneWidget);
     // No quote service wired in this harness: degraded state is factual.
     expect(find.textContaining('行情引擎不可用'), findsOneWidget);
@@ -162,10 +151,11 @@ void main() {
     await tester.ensureVisible(createPassword);
     await tester.pumpAndSettle();
     await tester.enterText(createPassword, 'pw');
-    await tester.enterText(
-      find.byKey(const ValueKey('backup-create-confirm')),
-      'pw',
-    );
+    await tester.pumpAndSettle();
+    final confirmField = find.byKey(const ValueKey('backup-create-confirm'));
+    await tester.ensureVisible(confirmField);
+    await tester.pumpAndSettle();
+    await tester.enterText(confirmField, 'pw');
     await tester.pumpAndSettle();
     expect(
       tester

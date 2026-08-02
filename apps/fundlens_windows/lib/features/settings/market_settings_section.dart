@@ -8,7 +8,7 @@ import '../../application/schedule_policy.dart';
 import '../data_health/data_health_providers.dart';
 import '../holdings/holding_actions.dart';
 import 'persisted_settings.dart';
-import 'structure_thresholds_section.dart';
+import 'widgets/settings_section_card.dart';
 
 /// 数据与行情:自动刷新开关、刷新频率、上次/下次刷新时间、手动刷新与失败原因。
 class MarketSettingsSection extends ConsumerWidget {
@@ -26,6 +26,7 @@ class MarketSettingsSection extends ConsumerWidget {
     final service = ref.watch(quoteRefreshServiceProvider);
 
     return SettingsSectionCard(
+      key: const ValueKey('market-section'),
       title: '数据与行情',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

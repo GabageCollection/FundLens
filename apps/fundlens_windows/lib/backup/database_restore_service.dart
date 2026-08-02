@@ -11,7 +11,7 @@ import 'backup_service.dart';
 /// Thrown when a restore cannot complete. Whenever the failure happened
 /// after the live database was closed, the pre-restore database and key were
 /// already rolled back before this exception surfaces.
-class RestoreFailedException implements Exception {
+final class RestoreFailedException implements Exception {
   const RestoreFailedException(this.message, [this.cause]);
 
   final String message;
@@ -21,14 +21,64 @@ class RestoreFailedException implements Exception {
   String toString() => 'RestoreFailedException: $message';
 }
 
+/// Facts a staged backup candidate exposes for the pre-restore confirmation.
+final class RestoreSummary {
+  const RestoreSummary({
+    required this.createdAtUtc,
+    required this.holdingCount,
+    required this.snapshotCount,
+    required this.schemaVersion,
+  });
+
+  /// When the backup was created (from the cleartext container header).
+  final DateTime createdAtUtc;
+
+  /// Holdings stored in the backup.
+  final int holdingCount;
+
+  /// Snapshots stored in the backup.
+  final int snapshotCount;
+
+  /// Database schema version the backup was created with.
+  final int schemaVersion;
+}
+
+/// The result of [DatabaseRestoreService.prepareRestore]: a validated,
+/// authenticated candidate staged in a private temporary directory, ready for
+/// [DatabaseRestoreService.confirmRestore] or
+/// [DatabaseRestoreService.cancelRestore]. Single-use.
+///
+/// The constructor is public so UI tests can hand the summary straight to the
+/// confirmation dialog without driving a real [prepareRestore].
+final class RestoreSession {
+  RestoreSession({
+    required this.tempDir,
+    required this.candidatePath,
+    required this.databaseKeyHex,
+    required this.summary,
+  });
+
+  final String tempDir;
+  final String candidatePath;
+  final String databaseKeyHex;
+  final RestoreSummary summary;
+}
+
+/// Result of inspecting a staged candidate database.
+typedef BackupDatabaseInspection = ({
+  int schemaVersion,
+  int holdingCount,
+  int snapshotCount,
+});
+
 /// Opens a staged candidate database and verifies it before it may replace
 /// the live database.
 abstract interface class BackupDatabaseInspector {
   /// Opens the database at [candidatePath] with [keyHex], runs
-  /// `PRAGMA integrity_check` and returns the schema (`user_version`)
-  /// version. Throws [RestoreFailedException] when the file is unreadable or
-  /// corrupt.
-  Future<int> inspect(String candidatePath, String keyHex);
+  /// `PRAGMA integrity_check` and returns the schema (`user_version`) version
+  /// plus row counts. Throws [RestoreFailedException] when the file is
+  /// unreadable or corrupt.
+  Future<BackupDatabaseInspection> inspect(String candidatePath, String keyHex);
 }
 
 /// [BackupDatabaseInspector] backed by the bundled sqlite3mc runtime.
@@ -36,7 +86,10 @@ final class SqliteBackupDatabaseInspector implements BackupDatabaseInspector {
   const SqliteBackupDatabaseInspector();
 
   @override
-  Future<int> inspect(String candidatePath, String keyHex) async {
+  Future<BackupDatabaseInspection> inspect(
+    String candidatePath,
+    String keyHex,
+  ) async {
     final Database database;
     try {
       database = sqlite3.open(candidatePath);
@@ -53,13 +106,28 @@ final class SqliteBackupDatabaseInspector implements BackupDatabaseInspector {
           'candidate database failed its integrity check',
         );
       }
-      return database.select('PRAGMA user_version;').first.columnAt(0) as int;
+      return (
+        schemaVersion:
+            database.select('PRAGMA user_version;').first.columnAt(0) as int,
+        holdingCount: _countRows(database, 'holding'),
+        snapshotCount: _countRows(database, 'snapshot'),
+      );
     } on RestoreFailedException {
       rethrow;
     } on SqliteException catch (error) {
       throw RestoreFailedException('candidate database is unreadable', error);
     } finally {
       database.close();
+    }
+  }
+
+  static int _countRows(Database database, String table) {
+    try {
+      return database.select('SELECT count(*) FROM "$table";').first.columnAt(0)
+          as int;
+    } on SqliteException {
+      // A backup created by an earlier schema may lack the table.
+      return 0;
     }
   }
 }
@@ -82,6 +150,11 @@ final class _RecoveryRecord {
 }
 
 /// Restores the live database from an encrypted FundLens backup.
+///
+/// Restoration is split into a `prepare`/`confirm` pair so the UI can validate
+/// the file and password, show the [RestoreSummary] and only then replace the
+/// live database. [restore] keeps the original one-shot contract as a thin
+/// wrapper over the two steps.
 class DatabaseRestoreService {
   DatabaseRestoreService({
     required this._databasePath,
@@ -115,7 +188,15 @@ class DatabaseRestoreService {
   /// candidate moved into place and the database reopened with the payload
   /// key. Any failure after the close rolls the previous files and key back.
   Future<void> restore(String source, String password) async {
-    String? tempDir;
+    final session = await prepareRestore(source, password);
+    await confirmRestore(session);
+  }
+
+  /// Validates the backup and stages a candidate without touching the live
+  /// database. On success returns a [RestoreSession] holding the staged
+  /// candidate and the summary for the confirmation dialog; the caller must
+  /// resolve it with either [confirmRestore] or [cancelRestore].
+  Future<RestoreSession> prepareRestore(String source, String password) async {
     final sensitiveBuffers = <Uint8List>[];
     try {
       // Steps 1-2: read, size-check and authenticate the backup.
@@ -137,32 +218,56 @@ class DatabaseRestoreService {
       // Step 3: parse the payload and validate the staged candidate.
       final payload = FundLensBackupPayload.decode(plaintext);
       sensitiveBuffers.add(payload.databaseBytes);
-      tempDir = await _files.createPrivateTempDirectory();
+      final tempDir = await _files.createPrivateTempDirectory();
       final candidatePath = p.join(tempDir, 'candidate.db');
       await _files.writeAtomically(candidatePath, payload.databaseBytes);
-      final schemaVersion =
-          await _inspector.inspect(candidatePath, payload.databaseKeyHex);
-      if (schemaVersion > _supportedSchemaVersion) {
+      final inspection = await _inspector.inspect(
+        candidatePath,
+        payload.databaseKeyHex,
+      );
+      if (inspection.schemaVersion > _supportedSchemaVersion) {
         throw RestoreFailedException(
-          'backup schema version $schemaVersion is newer than the supported '
-          'version $_supportedSchemaVersion',
+          'backup schema version ${inspection.schemaVersion} is newer than '
+          'the supported version $_supportedSchemaVersion',
         );
       }
-
-      // Steps 4-8: swap the database under the lifecycle lock.
-      await _lifecycle.locked(() => _replaceDatabase(
-            candidatePath: candidatePath,
-            restoredKeyHex: payload.databaseKeyHex,
-          ));
+      return RestoreSession(
+        tempDir: tempDir,
+        candidatePath: candidatePath,
+        databaseKeyHex: payload.databaseKeyHex,
+        summary: RestoreSummary(
+          createdAtUtc: readBackupHeader(backupBytes).createdAtUtc,
+          holdingCount: inspection.holdingCount,
+          snapshotCount: inspection.snapshotCount,
+          schemaVersion: inspection.schemaVersion,
+        ),
+      );
     } finally {
       for (final buffer in sensitiveBuffers) {
         buffer.fillRange(0, buffer.length, 0);
       }
-      final dir = tempDir;
-      if (dir != null) {
-        await _files.deleteDirectory(dir);
-      }
     }
+  }
+
+  /// Swaps the staged candidate into place under the lifecycle lock. On any
+  /// failure after the close the previous database and key are rolled back.
+  /// The session is consumed and its temporary directory cleaned up.
+  Future<void> confirmRestore(RestoreSession session) async {
+    try {
+      // Steps 4-8: swap the database under the lifecycle lock.
+      await _lifecycle.locked(() => _replaceDatabase(
+            candidatePath: session.candidatePath,
+            restoredKeyHex: session.databaseKeyHex,
+          ));
+    } finally {
+      await _files.deleteDirectory(session.tempDir);
+    }
+  }
+
+  /// Abandons a prepared session: cleans up the staged candidate without
+  /// touching the live database.
+  Future<void> cancelRestore(RestoreSession session) async {
+    await _files.deleteDirectory(session.tempDir);
   }
 
   Future<void> _replaceDatabase({

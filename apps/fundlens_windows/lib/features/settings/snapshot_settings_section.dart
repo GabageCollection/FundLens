@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/schedule_policy.dart';
 import 'persisted_settings.dart';
-import 'structure_thresholds_section.dart';
+import 'widgets/settings_section_card.dart';
 
 /// 快照设置:自动创建开关、创建频率、保存数量与自动清理说明。
 class SnapshotSettingsSection extends ConsumerStatefulWidget {
@@ -61,6 +61,7 @@ class _SnapshotSettingsSectionState
     }
 
     return SettingsSectionCard(
+      key: const ValueKey('snapshot-section'),
       title: '快照设置',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

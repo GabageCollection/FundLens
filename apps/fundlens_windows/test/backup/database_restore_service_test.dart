@@ -297,6 +297,118 @@ void main() {
       expect(await holdingIds(lifecycle.currentDatabase), ['h2']);
     });
   });
+
+  group('DatabaseRestoreService prepare/confirm/cancel', () {
+    late InMemoryBackupFileSystem files;
+    late FakeDatabaseLifecycle lifecycle;
+    late InMemoryDatabaseKeyStore keyStore;
+    late FakeBackupDatabaseInspector inspector;
+    late PointyCastleBackupCipher cipher;
+    late DatabaseRestoreService service;
+
+    setUp(() {
+      files = InMemoryBackupFileSystem();
+      lifecycle = FakeDatabaseLifecycle();
+      keyStore = InMemoryDatabaseKeyStore(currentKey);
+      inspector = FakeBackupDatabaseInspector(files);
+      cipher = PointyCastleBackupCipher();
+      service = DatabaseRestoreService(
+        databasePath: databasePath,
+        lifecycle: lifecycle,
+        keyStore: keyStore,
+        cipher: cipher,
+        files: files,
+        inspector: inspector,
+        supportedSchemaVersion: 1,
+        recoveryDirectoryPath: recoveryBase,
+      );
+      files.seed(databasePath, syntheticDatabase('current'));
+    });
+
+    Future<void> seedValidBackup() async {
+      final backup = await buildBackup(
+        cipher: cipher,
+        databaseKeyHex: backupKey,
+        databaseBytes: syntheticDatabase('from-backup'),
+        password: 'secret',
+      );
+      files.seed(backupPath, backup);
+      inspector.versionsByContent['synthetic-db:from-backup'] = 1;
+      inspector.holdingCountsByContent['synthetic-db:from-backup'] = 7;
+      inspector.snapshotCountsByContent['synthetic-db:from-backup'] = 3;
+    }
+
+    test('prepare validates and returns the summary without touching the live db',
+        () async {
+      await seedValidBackup();
+
+      final session = await service.prepareRestore(backupPath, 'secret');
+
+      expect(session.summary.holdingCount, 7);
+      expect(session.summary.snapshotCount, 3);
+      expect(session.summary.schemaVersion, 1);
+      expect(session.summary.createdAtUtc, isA<DateTime>());
+      // Live database untouched during preparation.
+      expect(files.bytesAt(databasePath), syntheticDatabase('current'));
+      expect(lifecycle.closeCount, 0);
+      expect(keyStore.keyHex, currentKey);
+
+      await service.cancelRestore(session);
+    });
+
+    test('cancel cleans the staged candidate and leaves the live database alone',
+        () async {
+      await seedValidBackup();
+      final session = await service.prepareRestore(backupPath, 'secret');
+
+      await service.cancelRestore(session);
+
+      expect(files.bytesAt(databasePath), syntheticDatabase('current'));
+      expect(lifecycle.closeCount, 0);
+      expect(keyStore.keyHex, currentKey);
+      expect(files.leftoverTempFiles(), isEmpty);
+    });
+
+    test('confirm replaces the database and key and cleans the staging dir',
+        () async {
+      await seedValidBackup();
+      final session = await service.prepareRestore(backupPath, 'secret');
+
+      await service.confirmRestore(session);
+
+      expect(files.bytesAt(databasePath), syntheticDatabase('from-backup'));
+      expect(keyStore.keyHex, backupKey);
+      expect(lifecycle.closeCount, 1);
+      expect(lifecycle.reopenedWith, [backupKey]);
+      expect(files.leftoverTempFiles(), isEmpty);
+    });
+
+    test('wrong password fails in prepare before the live database is touched',
+        () async {
+      await seedValidBackup();
+
+      await expectLater(
+        service.prepareRestore(backupPath, 'wrong'),
+        throwsA(isA<BackupAuthenticationException>()),
+      );
+      expect(lifecycle.closeCount, 0);
+      expect(files.bytesAt(databasePath), syntheticDatabase('current'));
+    });
+
+    test('confirm failure rolls back and cleans the staging dir', () async {
+      await seedValidBackup();
+      final session = await service.prepareRestore(backupPath, 'secret');
+      files.failAtomicMove = true;
+
+      await expectLater(
+        service.confirmRestore(session),
+        throwsA(isA<RestoreFailedException>()),
+      );
+      expect(files.bytesAt(databasePath), syntheticDatabase('current'));
+      expect(keyStore.keyHex, currentKey);
+      expect(files.leftoverTempFiles(), isEmpty);
+    });
+  });
 }
 
 /// Fails the first atomic move of the staged candidate onto the live

@@ -9,7 +9,11 @@ import 'package:fundlens_windows/backup/backup_format.dart';
 import 'package:fundlens_windows/backup/backup_service.dart';
 import 'package:fundlens_windows/backup/database_restore_service.dart';
 import 'package:fundlens_windows/features/settings/backup_section.dart';
+import 'package:fundlens_windows/features/settings/persisted_settings.dart';
+import 'package:fundlens_windows/storage/app_settings_repository.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
+
+import '../../backup/backup_test_harness.dart';
 
 final class _FakeBackupService implements BackupService {
   Future<void> Function(String destination, String password)? onCreate;
@@ -24,14 +28,51 @@ final class _FakeBackupService implements BackupService {
 }
 
 final class _FakeRestoreService implements DatabaseRestoreService {
-  Future<void> Function(String source, String password)? onRestore;
-  final List<({String source, String password})> calls = [];
+  /// When set, [prepareRestore] throws the returned error.
+  Object? Function(String source, String password)? onPrepare;
+
+  /// When false, [confirmRestore] throws.
+  bool confirmSucceeds = true;
+
+  final List<String> prepared = [];
+  final List<String> confirmed = [];
+  final List<String> cancelled = [];
 
   @override
-  Future<void> restore(String source, String password) {
-    calls.add((source: source, password: password));
-    final handler = onRestore;
-    return handler == null ? Future.value() : handler(source, password);
+  Future<RestoreSession> prepareRestore(String source, String password) async {
+    prepared.add(source);
+    final error = onPrepare?.call(source, password);
+    if (error is Exception) throw error;
+    return RestoreSession(
+      tempDir: '/temp/stage',
+      candidatePath: '/temp/stage/candidate.db',
+      databaseKeyHex: '0' * 64,
+      summary: RestoreSummary(
+        createdAtUtc: DateTime.utc(2026, 7, 20),
+        holdingCount: 7,
+        snapshotCount: 3,
+        schemaVersion: 1,
+      ),
+    );
+  }
+
+  @override
+  Future<void> confirmRestore(RestoreSession session) async {
+    confirmed.add(session.tempDir);
+    if (!confirmSucceeds) {
+      throw const RestoreFailedException('injected failure');
+    }
+  }
+
+  @override
+  Future<void> cancelRestore(RestoreSession session) async {
+    cancelled.add(session.tempDir);
+  }
+
+  @override
+  Future<void> restore(String source, String password) async {
+    final session = await prepareRestore(source, password);
+    await confirmRestore(session);
   }
 }
 
@@ -46,15 +87,39 @@ final class _FakeBackupFilePicker implements BackupFilePicker {
   Future<String?> pickBackupFile() async => openPath;
 }
 
+final class _FakeSettingsRepository implements AppSettingsRepository {
+  final Map<String, String> values = {};
+
+  @override
+  Future<Map<String, String>> getAll() async => Map.of(values);
+
+  @override
+  Future<String?> get(String key) async => values[key];
+
+  @override
+  Future<void> set(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  Future<void> delete(String key) async {
+    values.remove(key);
+  }
+}
+
 void main() {
   late _FakeBackupService backupService;
   late _FakeRestoreService restoreService;
   late _FakeBackupFilePicker picker;
+  late _FakeSettingsRepository settings;
+  late InMemoryBackupFileSystem files;
 
   setUp(() {
     backupService = _FakeBackupService();
     restoreService = _FakeRestoreService();
     picker = _FakeBackupFilePicker();
+    settings = _FakeSettingsRepository();
+    files = InMemoryBackupFileSystem();
   });
 
   Future<void> pumpSection(WidgetTester tester) async {
@@ -64,6 +129,8 @@ void main() {
           backupServiceProvider.overrideWithValue(backupService),
           databaseRestoreServiceProvider.overrideWithValue(restoreService),
           backupFilePickerProvider.overrideWithValue(picker),
+          appSettingsRepositoryProvider.overrideWithValue(settings),
+          backupFileSystemProvider.overrideWithValue(files),
         ],
         child: MaterialApp(
           theme: FundLensTheme.light,
@@ -83,6 +150,7 @@ void main() {
       find.byKey(const ValueKey('backup-create-password')),
       password,
     );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('backup-create-confirm')),
       confirmation,
@@ -133,6 +201,34 @@ void main() {
     expect(fieldText(tester, 'backup-create-confirm'), isEmpty);
   });
 
+  testWidgets('successful create records backup metadata into info rows',
+      (tester) async {
+    final destination = '/out/weekly$kFundLensBackupExtension';
+    picker.savePath = destination;
+    files.seed(destination, List.filled(2048, 0));
+    await pumpSection(tester);
+    await enterCreatePasswords(tester, 'pw', 'pw');
+
+    await tester.tap(find.byKey(const ValueKey('backup-create-button')));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BackupSection)),
+    );
+    final info = container.read(lastBackupInfoProvider);
+    expect(info, isNotNull);
+    expect(info!.path, destination);
+    expect(info.bytes, 2048);
+    expect(settings.values[SettingKeys.backupLastPath], destination);
+    expect(
+      int.parse(settings.values[SettingKeys.backupLastFileSizeBytes]!),
+      2048,
+    );
+    expect(find.text('2.0 KB'), findsOneWidget);
+    expect(find.text('AES-256-GCM · 已加密'), findsOneWidget);
+    expect(find.text('手动 · 未启用'), findsOneWidget);
+  });
+
   testWidgets('create appends the backup extension when missing',
       (tester) async {
     picker.savePath = '/out/weekly';
@@ -164,8 +260,23 @@ void main() {
     expect(fieldText(tester, 'backup-create-confirm'), isEmpty);
   });
 
-  testWidgets('restore confirmation names the file and the recovery copy; '
-      'cancel never calls the service', (tester) async {
+  testWidgets('password strength hint appears once a password is typed',
+      (tester) async {
+    await pumpSection(tester);
+    expect(find.textContaining('密码强度'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('backup-create-password')),
+      'aA1!aA1!aA1!',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('密码强度较好。'), findsOneWidget);
+    expect(find.textContaining('一旦遗失，备份将无法恢复'), findsOneWidget);
+  });
+
+  testWidgets('restore shows the staged summary and cancel never confirms',
+      (tester) async {
     picker.openPath = 'D:/backups/my backup$kFundLensBackupExtension';
     await pumpSection(tester);
     await tester.enterText(
@@ -177,12 +288,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
 
+    expect(restoreService.prepared, hasLength(1));
     final dialog = find.byType(AlertDialog);
     expect(
-      find.descendant(
-        of: dialog,
-        matching: find.textContaining('my backup$kFundLensBackupExtension'),
-      ),
+      find.descendant(of: dialog, matching: find.textContaining('备份时间')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('持仓 7 条')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('快照 3 份')),
       findsOneWidget,
     );
     expect(
@@ -193,11 +310,12 @@ void main() {
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
-    expect(restoreService.calls, isEmpty);
+    expect(restoreService.confirmed, isEmpty);
+    expect(restoreService.cancelled, hasLength(1));
     expect(fieldText(tester, 'backup-restore-password'), isEmpty);
   });
 
-  testWidgets('confirmed restore calls the service and clears the password',
+  testWidgets('confirmed restore swaps the candidate and refreshes providers',
       (tester) async {
     picker.openPath = 'D:/backups/my backup$kFundLensBackupExtension';
     await pumpSection(tester);
@@ -212,10 +330,8 @@ void main() {
     await tester.tap(find.text('确认恢复'));
     await tester.pumpAndSettle();
 
-    expect(restoreService.calls, hasLength(1));
-    expect(restoreService.calls.single.source,
-        'D:/backups/my backup$kFundLensBackupExtension');
-    expect(restoreService.calls.single.password, 'pw');
+    expect(restoreService.confirmed, hasLength(1));
+    expect(restoreService.cancelled, isEmpty);
     expect(find.textContaining('恢复完成'), findsOneWidget);
     expect(fieldText(tester, 'backup-restore-password'), isEmpty);
     // A successful restore refreshes database-dependent providers.
@@ -225,11 +341,11 @@ void main() {
     expect(container.read(databaseRevisionProvider), 1);
   });
 
-  testWidgets('wrong restore password shows an authentication error',
+  testWidgets('wrong restore password fails during prepare with an error',
       (tester) async {
     picker.openPath = 'D:/backups/my backup$kFundLensBackupExtension';
-    restoreService.onRestore = (_, _) =>
-        Future.error(const BackupAuthenticationException());
+    restoreService.onPrepare = (_, _) =>
+        const BackupAuthenticationException();
     await pumpSection(tester);
     await tester.enterText(
       find.byKey(const ValueKey('backup-restore-password')),
@@ -239,12 +355,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('确认恢复'));
-    await tester.pumpAndSettle();
 
     expect(find.textContaining('备份密码不正确或备份文件已损坏'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(restoreService.confirmed, isEmpty);
+    expect(restoreService.cancelled, isEmpty);
     expect(fieldText(tester, 'backup-restore-password'), isEmpty);
-    // A failed restore must not refresh providers: nothing was replaced.
+    // A failed prepare must not refresh providers: nothing was replaced.
     final container = ProviderScope.containerOf(
       tester.element(find.byType(BackupSection)),
     );
