@@ -20,8 +20,7 @@ class ScreenshotCropView extends StatelessWidget {
       return const Center(child: Text('无截图来源'));
     }
     final focused = controller.focusedOcrField;
-    final pageIndex =
-        (focused?.pageIndex ?? 0).clamp(0, paths.length - 1);
+    final pageIndex = (focused?.pageIndex ?? 0).clamp(0, paths.length - 1);
     final path = paths[pageIndex];
     return Padding(
       padding: const EdgeInsets.all(8),
@@ -30,8 +29,9 @@ class ScreenshotCropView extends StatelessWidget {
         children: [
           Text(
             '来源截图',
-            style:
-                Theme.of(context).extension<FundLensTextStyles>()!.sectionTitle,
+            style: Theme.of(
+              context,
+            ).extension<FundLensTextStyles>()!.sectionTitle,
           ),
           const SizedBox(height: 4),
           Expanded(

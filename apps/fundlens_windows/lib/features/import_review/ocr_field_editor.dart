@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
+import '../../theme/fundlens_tokens.dart';
 import 'import_review_controller.dart';
+import 'screenshot_crop_view.dart';
 
 const _fieldLabels = {
   'product_name': '产品名称',
@@ -16,18 +18,90 @@ const _fieldLabels = {
 
 String fieldLabel(String field) => _fieldLabels[field] ?? field;
 
-/// Editable draft fields. OCR fields always show a confidence badge and
-/// provenance next to the value, so both are visible before any commit.
-class OcrFieldEditor extends StatelessWidget {
-  const OcrFieldEditor({super.key, required this.controller});
+/// Wizard step 3 for screenshots: left panel shows the source screenshot and
+/// its focused crop; right panel lists the OCR rows with confidence badges,
+/// editable fields and a per-row delete action. The user confirms only after
+/// reviewing everything; nothing is written before that.
+class _OcrReviewBody extends StatelessWidget {
+  const _OcrReviewBody({required this.state, required this.controller});
+
+  final ImportOcrReview state;
+  final ImportReviewController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final editor = _OcrEditor(controller: controller);
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= FundLensTokens.gridCollapseBelow) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: ScreenshotCropView(controller: controller)),
+                    Expanded(flex: 2, child: editor),
+                  ],
+                );
+              }
+              // 窄屏:裁剪区与编辑列纵向堆叠,统一滚动
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 320,
+                      child: ScreenshotCropView(controller: controller),
+                    ),
+                    const SizedBox(height: FundLensTokens.space3),
+                    SizedBox(height: 640, child: editor),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(FundLensTokens.space2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: controller.back, child: const Text('返回')),
+              const SizedBox(width: FundLensTokens.space2),
+              FilledButton(
+                onPressed: controller.confirmOcrReview,
+                child: const Text('确认识别结果'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OcrEditor extends StatelessWidget {
+  const _OcrEditor({required this.controller});
 
   final ImportReviewController controller;
 
   @override
   Widget build(BuildContext context) {
     final state = controller.state;
-    if (state is! ImportEditing) return const SizedBox.shrink();
+    if (state is! ImportOcrReview) return const SizedBox.shrink();
     final draft = state.draft;
+    if (draft.holdings.isEmpty) {
+      return const Center(
+        child: Text(
+          '没有识别到持仓行，可返回重选或删除截图',
+          style: TextStyle(
+            fontFamily: 'Noto Sans SC',
+            fontSize: 14,
+            color: FundLensTokens.muted,
+          ),
+        ),
+      );
+    }
     return ListView.builder(
       itemCount: draft.holdings.length,
       itemBuilder: (context, index) {
@@ -36,18 +110,45 @@ class OcrFieldEditor extends StatelessWidget {
             ? controller.ocrRows[index]
             : null;
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          elevation: 0,
+          margin: const EdgeInsets.symmetric(
+            horizontal: FundLensTokens.space2,
+            vertical: FundLensTokens.space1,
+          ),
+          color: FundLensTokens.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FundLensTokens.radiusCard),
+            side: FundLensTokens.cardBorder,
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(FundLensTokens.space3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  holding.productName.isEmpty
-                      ? '持仓 ${index + 1}'
-                      : holding.productName,
-                  style: Theme.of(context).textTheme.titleSmall,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        holding.productName.isEmpty
+                            ? '持仓 ${index + 1}'
+                            : holding.productName,
+                        style: const TextStyle(
+                          fontFamily: 'Noto Serif SC',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: FundLensTokens.ink,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => controller.removeOcrRow(index),
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('删除'),
+                    ),
+                  ],
                 ),
+                const Divider(height: 1, color: FundLensTokens.border),
+                const SizedBox(height: FundLensTokens.space2),
                 if (ocrRow != null)
                   for (final field in ocrRow.fields.values)
                     _OcrFieldTile(
@@ -117,19 +218,44 @@ class _OcrFieldTile extends StatelessWidget {
             decoration: InputDecoration(
               labelText: fieldLabel(field.name),
               helperText: '截图 OCR · 第 ${field.pageIndex + 1} 页',
+              enabledBorder: lowConfidence
+                  ? OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        FundLensTokens.radiusControl,
+                      ),
+                      borderSide: const BorderSide(color: FundLensTokens.warn),
+                    )
+                  : null,
             ),
             onTap: () => controller.focusField(field.name, rowIndex),
             onChanged: (value) =>
                 controller.updateHoldingField(rowIndex, field.name, value),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: FundLensTokens.space2),
         Padding(
           padding: const EdgeInsets.only(top: 12),
-          child: Text(
-            '置信度 $percent%',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: lowConfidence ? Theme.of(context).colorScheme.error : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: FundLensTokens.space2,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: lowConfidence
+                  ? FundLensTokens.warnSoft
+                  : FundLensTokens.surfaceAlt,
+              borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
+            ),
+            child: Text(
+              lowConfidence ? '低置信 $percent%' : '置信 $percent%',
+              style: TextStyle(
+                fontFamily: 'Noto Sans SC',
+                fontSize: 12,
+                fontWeight: lowConfidence ? FontWeight.w600 : FontWeight.w400,
+                color: lowConfidence
+                    ? FundLensTokens.warn
+                    : FundLensTokens.muted,
+              ),
             ),
           ),
         ),
@@ -165,5 +291,22 @@ class _PlainFieldTile extends StatelessWidget {
       onTap: () => controller.focusField(field, index),
       onChanged: (next) => controller.updateHoldingField(index, field, next),
     );
+  }
+}
+
+/// Public export used by the wizard page.
+class OcrReviewPanel extends StatelessWidget {
+  const OcrReviewPanel({
+    super.key,
+    required this.state,
+    required this.controller,
+  });
+
+  final ImportOcrReview state;
+  final ImportReviewController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _OcrReviewBody(state: state, controller: controller);
   }
 }

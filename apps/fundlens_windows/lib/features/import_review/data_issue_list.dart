@@ -13,15 +13,14 @@ class DataIssueList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = controller.state;
-    if (state is! ImportEditing) return const SizedBox.shrink();
+    if (state is! ImportCheck) return const SizedBox.shrink();
     final issues = [...state.draft.issues, ...state.plan.issues];
     if (issues.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(8),
-        child: Text('无数据问题'),
-      );
+      return const Padding(padding: EdgeInsets.all(8), child: Text('无数据问题'));
     }
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: issues.length,
       itemBuilder: (context, index) {
         final issue = issues[index];
@@ -44,8 +43,8 @@ class DataIssueList extends StatelessWidget {
   }
 
   String _severityLabel(IssueSeverity severity) => switch (severity) {
-        IssueSeverity.blocking => '阻断',
-        IssueSeverity.warning => '警告',
-        IssueSeverity.info => '提示',
-      };
+    IssueSeverity.blocking => '阻断',
+    IssueSeverity.warning => '警告',
+    IssueSeverity.info => '提示',
+  };
 }

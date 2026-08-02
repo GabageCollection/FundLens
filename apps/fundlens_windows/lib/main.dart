@@ -106,6 +106,11 @@ Future<void> main() async {
             File(p.join(supportDir.path, 'import_draft.json')),
           ),
         ),
+        importRecordStoreProvider.overrideWithValue(
+          FileImportRecordStore(
+            File(p.join(supportDir.path, 'last_import.json')),
+          ),
+        ),
         updateCheckerProvider.overrideWithValue(
           UpdateChecker(
             manifestUrl: kUpdateManifestUrl,

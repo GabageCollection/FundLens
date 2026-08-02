@@ -9,6 +9,7 @@ import 'package:fundlens_windows/data_engine/data_engine_client.dart';
 import 'package:fundlens_windows/features/import_review/import_review_controller.dart';
 import 'package:fundlens_windows/features/import_review/import_review_page.dart';
 import 'package:fundlens_windows/storage/holding_repository.dart';
+import 'package:fundlens_windows/storage/snapshot_repository.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
 final class FakeDataEngineClient implements DataEngineClient {
@@ -38,7 +39,7 @@ final class FakeDataEngineClient implements DataEngineClient {
 
 final class FakeHoldingRepository implements HoldingRepository {
   FakeHoldingRepository([List<Holding>? initial])
-      : holdings = List.of(initial ?? const <Holding>[]);
+    : holdings = List.of(initial ?? const <Holding>[]);
 
   final List<Holding> holdings;
 
@@ -75,6 +76,7 @@ final class FakeHoldingRepository implements HoldingRepository {
 final class FakeImportFilePicker implements ImportFilePicker {
   PickedImportFile? csvFile;
   PickedImportFile? excelFile;
+  PickedImportFile? tabularFile;
   List<PickedImportFile> screenshots = const [];
 
   @override
@@ -82,6 +84,9 @@ final class FakeImportFilePicker implements ImportFilePicker {
 
   @override
   Future<PickedImportFile?> pickExcelFile() async => excelFile;
+
+  @override
+  Future<PickedImportFile?> pickTabularFile() async => tabularFile ?? csvFile;
 
   @override
   Future<List<PickedImportFile>> pickScreenshotFiles() async => screenshots;
@@ -113,6 +118,47 @@ final class InMemoryImportDraftStore implements ImportDraftStore {
   @override
   Future<void> save(PersistedImportDraft draft) async {
     saved = draft;
+  }
+
+  @override
+  Future<void> clear() async {
+    saved = null;
+    clearCount++;
+  }
+}
+
+final class FakeSnapshotRepository implements SnapshotRepository {
+  FakeSnapshotRepository() : _created = [];
+
+  final List<String> _created;
+  int get createCount => _created.length;
+
+  @override
+  Future<String> createFromCurrent({required String label}) async {
+    _created.add(label);
+    return 'snapshot-${_created.length}';
+  }
+
+  @override
+  Future<PortfolioSnapshot> getById(String id) => throw UnimplementedError();
+
+  @override
+  Future<List<PortfolioSnapshot>> getAll() async => const [];
+
+  @override
+  Future<void> deleteById(String id) async {}
+}
+
+final class InMemoryImportRecordStore implements ImportRecordStore {
+  LastImportRecord? saved;
+  var clearCount = 0;
+
+  @override
+  Future<LastImportRecord?> load() async => saved;
+
+  @override
+  Future<void> save(LastImportRecord record) async {
+    saved = record;
   }
 
   @override
@@ -155,12 +201,21 @@ Map<String, Object?> alipayOcrResponse({
         'index': 0,
         'page_index': 0,
         'fields': <String, Object?>{
-          'product_name': ocrFieldJson('product_name', productName,
-              confidence: 0.98),
-          'current_value':
-              ocrFieldJson('current_value', currentValue, confidence: confidence),
-          'holding_profit':
-              ocrFieldJson('holding_profit', '1,000.00', confidence: 0.95),
+          'product_name': ocrFieldJson(
+            'product_name',
+            productName,
+            confidence: 0.98,
+          ),
+          'current_value': ocrFieldJson(
+            'current_value',
+            currentValue,
+            confidence: confidence,
+          ),
+          'holding_profit': ocrFieldJson(
+            'holding_profit',
+            '1,000.00',
+            confidence: 0.95,
+          ),
         },
         'normalized': normalized,
         'issues': rowIssues,
@@ -220,16 +275,21 @@ Future<ImportReviewController> pumpImportHarness(
   FakeImportFilePicker? picker,
   FakeScreenshotTempStore? tempStore,
   InMemoryImportDraftStore? draftStore,
+  FakeSnapshotRepository? snapshots,
+  InMemoryImportRecordStore? records,
   ImportReviewController? controller,
   Size size = const Size(1440, 900),
 }) async {
-  final effectiveController = controller ??
+  final effectiveController =
+      controller ??
       ImportReviewController(
         engine: engine ?? FakeDataEngineClient(),
         repository: repository ?? FakeHoldingRepository(),
         picker: picker ?? FakeImportFilePicker(),
         tempStore: tempStore ?? FakeScreenshotTempStore(),
         draftStore: draftStore ?? InMemoryImportDraftStore(),
+        snapshotRepository: snapshots ?? FakeSnapshotRepository(),
+        recordStore: records ?? InMemoryImportRecordStore(),
       );
   // 桌面画布尺寸默认 1440×900(>=960 走宽屏左右分栏),
   // 可通过 size 传入窄画布以覆盖 <960 的堆叠布局。
@@ -239,8 +299,9 @@ Future<ImportReviewController> pumpImportHarness(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        importReviewControllerProvider
-            .overrideWith((ref) => effectiveController),
+        importReviewControllerProvider.overrideWith(
+          (ref) => effectiveController,
+        ),
       ],
       child: MaterialApp(
         theme: FundLensTheme.light,
