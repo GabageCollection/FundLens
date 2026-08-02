@@ -44,8 +44,8 @@ void main() {
     expect(scaffold.crumb, '组合');
     expect(find.text('全部持仓'), findsOneWidget);
     expect(find.text('添加持仓'), findsOneWidget);
-    // 搜索框与「添加持仓」按钮位于页头操作区。
-    expect(scaffold.actions.length, 2);
+    // 搜索/4 筛选下拉/排序下拉/添加持仓位于页头操作区。
+    expect(scaffold.actions.length, 7);
   });
 
   testWidgets('125% 缩放等效宽度(约1092)下操作区不重叠', (tester) async {

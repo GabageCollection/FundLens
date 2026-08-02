@@ -10,6 +10,8 @@ import 'holding_editor_dialog.dart';
 import 'holding_export_service.dart';
 import 'holding_filters.dart';
 import 'holding_grid.dart';
+import 'holding_status.dart';
+import 'holding_toolbar.dart';
 
 /// Quote refresh wiring. Null until the bootstrap attaches the real service;
 /// refresh actions stay disabled while it is unavailable.
@@ -31,18 +33,65 @@ class HoldingsPage extends ConsumerWidget {
       crumb: '组合',
       title: '全部持仓',
       actions: [
-        SizedBox(
-          width: 280,
-          child: TextField(
-            decoration: const InputDecoration(
-              hintText: '搜索名称或代码',
-              prefixIcon: Icon(Icons.search),
-            ),
-            onChanged: (value) {
+        HoldingSearchField(
+          query: filter.query,
+          onChanged: (value) =>
               ref.read(holdingFilterProvider.notifier).state =
-                  filter.copyWith(query: value);
-            },
-          ),
+                  filter.copyWith(query: value),
+        ),
+        HoldingFilterDropdown<AssetClass>(
+          label: '资产类别',
+          shortLabel: '类别',
+          options: [
+            for (final entry in HoldingLabels.assetClass.entries)
+              (entry.key, entry.value),
+          ],
+          selected: filter.assetClasses,
+          onToggled: (v) =>
+              ref.read(holdingFilterProvider.notifier).state =
+                  filter.copyWith(assetClasses: toggled(filter.assetClasses, v)),
+        ),
+        HoldingFilterDropdown<SourcePlatform>(
+          label: '来源平台',
+          shortLabel: '平台',
+          options: [
+            for (final entry in HoldingLabels.sourcePlatform.entries)
+              (entry.key, entry.value),
+          ],
+          selected: filter.sources,
+          onToggled: (v) =>
+              ref.read(holdingFilterProvider.notifier).state =
+                  filter.copyWith(sources: toggled(filter.sources, v)),
+        ),
+        HoldingFilterDropdown<HoldingDataStatus>(
+          label: '数据状态',
+          shortLabel: '状态',
+          options: [
+            for (final entry in holdingDataStatusLabels.entries)
+              (entry.key, entry.value),
+          ],
+          selected: filter.statuses,
+          onToggled: (v) =>
+              ref.read(holdingFilterProvider.notifier).state =
+                  filter.copyWith(statuses: toggled(filter.statuses, v)),
+        ),
+        HoldingFilterDropdown<String?>(
+          label: '组合标签',
+          shortLabel: '标签',
+          options: [
+            (null, '未标记'),
+            for (final tag in ref.watch(holdingTagOptionsProvider)) (tag, tag),
+          ],
+          selected: filter.tags,
+          onToggled: (v) =>
+              ref.read(holdingFilterProvider.notifier).state =
+                  filter.copyWith(tags: toggled(filter.tags, v)),
+        ),
+        HoldingSortMenu(
+          sort: filter.sort,
+          onSelected: (sort) =>
+              ref.read(holdingFilterProvider.notifier).state =
+                  filter.copyWith(sort: sort),
         ),
         FilledButton.icon(
           onPressed: () => _addHolding(context, ref),
