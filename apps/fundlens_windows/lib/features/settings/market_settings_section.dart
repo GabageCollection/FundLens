@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../application/portfolio_providers.dart';
-import '../holdings/holdings_page.dart';
+import '../holdings/holding_actions.dart';
 import 'structure_thresholds_section.dart';
 
 /// Whether the daily automatic quote refresh is enabled.

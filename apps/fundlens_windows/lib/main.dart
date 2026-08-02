@@ -18,7 +18,7 @@ import 'backup/pointycastle_backup_cipher.dart';
 import 'data_engine/installed_engine_locator.dart';
 import 'data_engine/local_engine_process.dart';
 import 'data_engine/process_data_engine_client.dart';
-import 'features/holdings/holdings_page.dart';
+import 'features/holdings/holding_actions.dart';
 import 'features/import_review/import_review_controller.dart';
 import 'features/import_review/import_source_panel.dart';
 import 'features/settings/backup_section.dart';

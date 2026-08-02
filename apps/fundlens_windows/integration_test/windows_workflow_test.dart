@@ -10,7 +10,7 @@ import 'package:fundlens_windows/app/fundlens_app.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/features/holdings/holding_export_service.dart';
 import 'package:fundlens_windows/features/holdings/holding_filters.dart';
-import 'package:fundlens_windows/features/holdings/holdings_page.dart';
+import 'package:fundlens_windows/features/holdings/holding_actions.dart';
 import 'package:fundlens_windows/features/import_review/import_review_controller.dart';
 import 'package:fundlens_windows/market/quote.dart';
 import 'package:fundlens_windows/market/quote_refresh_service.dart';
