@@ -48,6 +48,8 @@ void main() {
               .overrideWithValue(FakeScreenshotTempStore()),
           importDraftStoreProvider
               .overrideWithValue(InMemoryImportDraftStore()),
+          importRecordStoreProvider
+              .overrideWithValue(InMemoryImportRecordStore()),
         ],
         child: const FundLensBootstrapApp(),
       ),
