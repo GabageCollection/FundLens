@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/features/holdings/holdings_page.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 import 'package:fundlens_windows/widgets/page_scaffold.dart';
 
 import '../overview/asset_spectrum_test.dart' show FakeHoldingRepository;
-import 'holding_grid_test.dart' show generateHoldings;
+import 'holding_grid_test.dart' show generateGridHoldings;
 
 void main() {
   Future<void> pumpHoldings(
@@ -16,8 +17,9 @@ void main() {
   }) async {
     final container = ProviderContainer(overrides: [
       holdingRepositoryProvider.overrideWithValue(
-        FakeHoldingRepository(generateHoldings(20)),
+        FakeHoldingRepository(generateGridHoldings(20)),
       ),
+      portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
     ]);
     addTearDown(container.dispose);
     tester.view.physicalSize = size;

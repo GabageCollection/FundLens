@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/app_dependencies.dart';
+import '../../application/portfolio_providers.dart';
 import '../../market/quote_refresh_service.dart';
 import '../../widgets/page_scaffold.dart';
 import 'holding_editor_dialog.dart';
@@ -49,7 +50,27 @@ class HoldingsPage extends ConsumerWidget {
           label: const Text('添加持仓'),
         ),
       ],
-      body: HoldingGrid(holdings: holdings),
+      body: HoldingGrid(
+        holdings: holdings,
+        totalValue: ref.watch(portfolioSummaryProvider).totalValue,
+        freshQuoteHoldingIds: ref.watch(freshQuoteHoldingIdsProvider),
+        sort: filter.sort,
+        onSortChanged: (sort) =>
+            ref.read(holdingFilterProvider.notifier).state =
+                filter.copyWith(sort: sort),
+        selectedIds: ref.watch(holdingSelectionProvider),
+        onSelectedChanged: (id, selected) {
+          final current = ref.read(holdingSelectionProvider);
+          ref.read(holdingSelectionProvider.notifier).state = {...current}
+            ..remove(id)
+            ..addAll(selected ? [id] : const <String>[]);
+        },
+        onSelectAllChanged: (all) {
+          ref.read(holdingSelectionProvider.notifier).state =
+              all ? {for (final h in holdings) h.id} : const <String>{};
+        },
+        onRowTap: null, // Task 5 接入详情抽屉
+      ),
     );
   }
 
