@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
-import 'package:fundlens_windows/features/holdings/holding_filters.dart';
 import 'package:fundlens_windows/features/holdings/holding_grid.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
@@ -33,12 +32,11 @@ List<Holding> generateHoldings(int count) {
 
 Widget gridHarness({
   required List<Holding> holdings,
-  HoldingColumnPreset preset = HoldingColumnPreset.portfolio,
 }) {
   return MaterialApp(
     theme: FundLensTheme.light,
     home: Scaffold(
-      body: HoldingGrid(holdings: holdings, preset: preset),
+      body: HoldingGrid(holdings: holdings),
     ),
   );
 }
@@ -98,20 +96,6 @@ void main() {
       tester.widgetList(find.byType(HoldingGridRow)).length,
       lessThan(100),
     );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('platform preset shows provenance columns', (tester) async {
-    tester.view.physicalSize = const Size(1280, 720);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(gridHarness(
-      holdings: generateHoldings(5),
-      preset: HoldingColumnPreset.platform,
-    ));
-    await tester.pump();
-    expect(find.text('估值方式'), findsOneWidget);
-    expect(find.text('数据出处'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -27,107 +27,40 @@ final class HoldingColumn {
   final bool numeric;
 }
 
-List<HoldingColumn> holdingColumnsFor(HoldingColumnPreset preset) {
-  return switch (preset) {
-    HoldingColumnPreset.portfolio => [
-      HoldingColumn(
-        label: '份额',
-        width: 110,
-        value: (h) => HoldingValueFormatter.number(h.quantity),
-      ),
-      HoldingColumn(
-        label: '现价',
-        width: 110,
-        value: (h) => HoldingValueFormatter.number(h.currentPrice),
-      ),
-      HoldingColumn(
-        label: '成本金额',
-        width: 130,
-        value: (h) => HoldingValueFormatter.amount(h.costAmount),
-      ),
-      HoldingColumn(
-        label: '持仓盈亏',
-        width: 130,
-        value: (h) => HoldingValueFormatter.signedAmount(h.holdingProfit),
-      ),
-      HoldingColumn(
-        label: '持仓收益率',
-        width: 120,
-        value: (h) => HoldingValueFormatter.signedPercent(h.holdingReturn),
-      ),
-      HoldingColumn(
-        label: '估值日期',
-        width: 110,
-        numeric: false,
-        value: (h) => HoldingValueFormatter.date(h.valuationDate),
-      ),
-    ],
-    HoldingColumnPreset.trading => [
-      HoldingColumn(
-        label: '产品代码',
-        width: 110,
-        numeric: false,
-        value: (h) => h.productCode ?? '—',
-      ),
-      HoldingColumn(
-        label: '份额',
-        width: 110,
-        value: (h) => HoldingValueFormatter.number(h.quantity),
-      ),
-      HoldingColumn(
-        label: '现价',
-        width: 110,
-        value: (h) => HoldingValueFormatter.number(h.currentPrice),
-      ),
-      HoldingColumn(
-        label: '成本价',
-        width: 110,
-        value: (h) => HoldingValueFormatter.number(h.costPrice),
-      ),
-      HoldingColumn(
-        label: '当日盈亏',
-        width: 130,
-        value: (h) => HoldingValueFormatter.signedAmount(h.dailyProfit),
-      ),
-      HoldingColumn(
-        label: '累计盈亏',
-        width: 130,
-        value: (h) => HoldingValueFormatter.signedAmount(h.cumulativeProfit),
-      ),
-    ],
-    HoldingColumnPreset.platform => [
-      HoldingColumn(
-        label: '来源平台',
-        width: 100,
-        numeric: false,
-        value: (h) => HoldingLabels.sourcePlatform[h.sourcePlatform]!,
-      ),
-      HoldingColumn(
-        label: '币种',
-        width: 80,
-        numeric: false,
-        value: (h) => h.currency,
-      ),
-      HoldingColumn(
-        label: '数据出处',
-        width: 100,
-        numeric: false,
-        value: (h) => HoldingLabels.dataOrigin[h.dataOrigin]!,
-      ),
-      HoldingColumn(
-        label: '估值方式',
-        width: 110,
-        numeric: false,
-        value: (h) => HoldingLabels.valuationMethod[h.valuationMethod]!,
-      ),
-      HoldingColumn(
-        label: '备注',
-        width: 220,
-        numeric: false,
-        value: (h) => h.note ?? '—',
-      ),
-    ],
-  };
+List<HoldingColumn> holdingColumns() {
+  return [
+    HoldingColumn(
+      label: '份额',
+      width: 110,
+      value: (h) => HoldingValueFormatter.number(h.quantity),
+    ),
+    HoldingColumn(
+      label: '现价',
+      width: 110,
+      value: (h) => HoldingValueFormatter.number(h.currentPrice),
+    ),
+    HoldingColumn(
+      label: '成本金额',
+      width: 130,
+      value: (h) => HoldingValueFormatter.amount(h.costAmount),
+    ),
+    HoldingColumn(
+      label: '持仓盈亏',
+      width: 130,
+      value: (h) => HoldingValueFormatter.signedAmount(h.holdingProfit),
+    ),
+    HoldingColumn(
+      label: '持仓收益率',
+      width: 120,
+      value: (h) => HoldingValueFormatter.signedPercent(h.holdingReturn),
+    ),
+    HoldingColumn(
+      label: '估值日期',
+      width: 110,
+      numeric: false,
+      value: (h) => HoldingValueFormatter.date(h.valuationDate),
+    ),
+  ];
 }
 
 /// Frozen-region row: product name + source and current amount.
@@ -237,11 +170,9 @@ class HoldingGrid extends StatefulWidget {
   const HoldingGrid({
     super.key,
     required this.holdings,
-    this.preset = HoldingColumnPreset.portfolio,
   });
 
   final List<Holding> holdings;
-  final HoldingColumnPreset preset;
 
   @override
   State<HoldingGrid> createState() => _HoldingGridState();
@@ -293,7 +224,7 @@ class _HoldingGridState extends State<HoldingGrid> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final columns = holdingColumnsFor(widget.preset);
+    final columns = holdingColumns();
     final scrollWidth = columns.fold<double>(
       0,
       (sum, column) => sum + column.width,

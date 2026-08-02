@@ -43,34 +43,13 @@ class HoldingsPage extends ConsumerWidget {
             },
           ),
         ),
-        SegmentedButton<HoldingColumnPreset>(
-          segments: const [
-            ButtonSegment(
-              value: HoldingColumnPreset.portfolio,
-              label: Text('组合'),
-            ),
-            ButtonSegment(
-              value: HoldingColumnPreset.trading,
-              label: Text('交易'),
-            ),
-            ButtonSegment(
-              value: HoldingColumnPreset.platform,
-              label: Text('平台'),
-            ),
-          ],
-          selected: {filter.preset},
-          onSelectionChanged: (selection) {
-            ref.read(holdingFilterProvider.notifier).state =
-                filter.copyWith(preset: selection.first);
-          },
-        ),
         FilledButton.icon(
           onPressed: () => _addHolding(context, ref),
           icon: const Icon(Icons.add),
           label: const Text('添加持仓'),
         ),
       ],
-      body: HoldingGrid(holdings: holdings, preset: filter.preset),
+      body: HoldingGrid(holdings: holdings),
     );
   }
 
