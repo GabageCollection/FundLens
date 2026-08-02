@@ -18,6 +18,23 @@ final class StructureThresholds {
   final DecimalValue? maxAssetClassShare;
   final DecimalValue? minCashAndDepositShare;
   final DecimalValue? maxEquityExposureShare;
+
+  @override
+  bool operator ==(Object other) {
+    return other is StructureThresholds &&
+        other.maxSingleHoldingShare == maxSingleHoldingShare &&
+        other.maxAssetClassShare == maxAssetClassShare &&
+        other.minCashAndDepositShare == minCashAndDepositShare &&
+        other.maxEquityExposureShare == maxEquityExposureShare;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        maxSingleHoldingShare,
+        maxAssetClassShare,
+        minCashAndDepositShare,
+        maxEquityExposureShare,
+      );
 }
 
 final structureThresholdsProvider = StateProvider<StructureThresholds>(

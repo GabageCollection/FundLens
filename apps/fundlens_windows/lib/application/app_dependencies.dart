@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../backup/backup_service.dart';
 import '../storage/app_database.dart';
+import '../storage/app_settings_repository.dart';
 import '../storage/holding_repository.dart';
 import '../storage/snapshot_repository.dart';
 
@@ -39,6 +40,10 @@ final holdingRepositoryProvider = Provider<HoldingRepository>((ref) {
 
 final snapshotRepositoryProvider = Provider<SnapshotRepository>((ref) {
   return DriftSnapshotRepository(ref.watch(appDatabaseProvider));
+});
+
+final appSettingsRepositoryProvider = Provider<AppSettingsRepository>((ref) {
+  return DriftAppSettingsRepository(ref.watch(appDatabaseProvider));
 });
 
 final portfolioCalculatorProvider = Provider<PortfolioCalculator>((ref) {
