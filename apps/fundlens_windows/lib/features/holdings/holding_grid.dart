@@ -4,73 +4,13 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import 'holding_filters.dart';
+import 'holding_status.dart';
 
 /// Width of the frozen region (product name/source + current amount).
 const double kFrozenRegionWidth = 420;
 
 /// Width of the name/source column inside the frozen region.
 const double kFrozenNameWidth = 260;
-
-/// Dedicated value formatter for the holdings grid.
-///
-/// Row widgets never compute profits or returns; they only render the values
-/// already present on [Holding] through this formatter.
-abstract final class HoldingValueFormatter {
-  /// `1234567.8` → `1,234,567.80`; negative values keep their sign.
-  static String amount(DecimalValue? value) {
-    if (value == null) return '—';
-    return _grouped(value.canonical);
-  }
-
-  /// Plain grouped number without forcing decimals (quantities, prices).
-  static String number(DecimalValue? value) {
-    if (value == null) return '—';
-    return _grouped(value.canonical);
-  }
-
-  /// Signed percent: `0.125` → `+12.50%`. Always carries a +/- sign so the
-  /// profit/loss state is readable without color.
-  static String signedPercent(DecimalValue? value) {
-    if (value == null) return '—';
-    final canonical = value.canonical;
-    final parsed = double.tryParse(canonical);
-    if (parsed == null) return '—';
-    final percent = parsed * 100;
-    final sign = percent < 0 ? '-' : '+';
-    return '$sign${percent.abs().toStringAsFixed(2)}%';
-  }
-
-  /// Signed amount with explicit +/- for profit values.
-  static String signedAmount(DecimalValue? value) {
-    if (value == null) return '—';
-    if (value.isNegative) return amount(value);
-    return '+${amount(value)}';
-  }
-
-  static String date(DateTime? value) {
-    if (value == null) return '—';
-    final local = value.toUtc();
-    final y = local.year.toString().padLeft(4, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final d = local.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
-  }
-
-  static String _grouped(String canonical) {
-    final negative = canonical.startsWith('-');
-    final body = negative ? canonical.substring(1) : canonical;
-    final dot = body.indexOf('.');
-    final integer = dot == -1 ? body : body.substring(0, dot);
-    final fraction = dot == -1 ? '' : body.substring(dot);
-    final buffer = StringBuffer();
-    for (var i = 0; i < integer.length; i++) {
-      final remaining = integer.length - i;
-      buffer.write(integer[i]);
-      if (remaining > 1 && remaining % 3 == 1) buffer.write(',');
-    }
-    return '${negative ? '-' : ''}$buffer$fraction';
-  }
-}
 
 /// Column definition for the horizontally scrollable region.
 final class HoldingColumn {
