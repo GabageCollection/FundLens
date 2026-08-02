@@ -56,6 +56,21 @@ final refreshFrequencyProvider = StateProvider<ScheduleFrequency>(
   (ref) => ScheduleFrequency.daily,
 );
 
+/// Wall-clock schedule policy used to derive next-run times in the UI.
+final schedulePolicyProvider = Provider<SchedulePolicy>((ref) {
+  return SchedulePolicy(DateTime.now);
+});
+
+/// When the next automatic quote refresh will run, or null when the cadence is
+/// manual or auto refresh is disabled.
+final nextQuoteRefreshProvider = Provider<DateTime?>((ref) {
+  final frequency = ref.watch(refreshFrequencyProvider);
+  if (frequency == ScheduleFrequency.manual) return null;
+  if (!ref.watch(dailyAutoRefreshEnabledProvider)) return null;
+  final last = ref.watch(lastRefreshAttemptAtUtcProvider);
+  return ref.watch(schedulePolicyProvider).nextRun(frequency, last);
+});
+
 /// UTC time of the last refresh attempt. Persisted so the next-run calculation
 /// survives restarts.
 final lastRefreshAttemptAtUtcProvider = StateProvider<DateTime?>(

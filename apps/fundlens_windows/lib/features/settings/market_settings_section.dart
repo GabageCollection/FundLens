@@ -1,17 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../../application/portfolio_providers.dart';
+import '../../application/schedule_policy.dart';
 import '../data_health/data_health_providers.dart';
 import '../holdings/holding_actions.dart';
+import 'persisted_settings.dart';
 import 'structure_thresholds_section.dart';
 
-/// Whether the daily automatic quote refresh is enabled.
-final dailyAutoRefreshEnabledProvider = StateProvider<bool>((ref) => true);
-
-/// Quote refresh settings: daily auto-refresh toggle, last attempt facts,
-/// a manual refresh action and the degraded engine state.
+/// 数据与行情:自动刷新开关、刷新频率、上次/下次刷新时间、手动刷新与失败原因。
 class MarketSettingsSection extends ConsumerWidget {
   const MarketSettingsSection({super.key});
 
@@ -19,11 +18,15 @@ class MarketSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final enabled = ref.watch(dailyAutoRefreshEnabledProvider);
+    final frequency = ref.watch(refreshFrequencyProvider);
     final lastAttempt = ref.watch(lastQuoteRefreshAttemptProvider);
+    final lastAttemptUtc = ref.watch(lastRefreshAttemptAtUtcProvider);
+    final nextRun = ref.watch(nextQuoteRefreshProvider);
+    final uiState = ref.watch(quoteRefreshUiStateProvider);
     final service = ref.watch(quoteRefreshServiceProvider);
 
     return SettingsSectionCard(
-      title: '行情与数据',
+      title: '数据与行情',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -31,35 +34,89 @@ class MarketSettingsSection extends ConsumerWidget {
             type: MaterialType.transparency,
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('每日自动刷新'),
-              subtitle: const Text('每天首次打开时刷新一次行情估值'),
+              title: const Text('自动刷新行情'),
+              subtitle: Text(
+                frequency == ScheduleFrequency.manual
+                    ? '当前为仅手动模式，不会自动刷新'
+                    : '按所选频率自动刷新行情估值',
+              ),
               value: enabled,
               onChanged: (value) {
                 ref.read(dailyAutoRefreshEnabledProvider.notifier).state =
                     value;
+                unawaited(
+                  persistSetting(
+                    ref.container,
+                    SettingKeys.autoRefreshEnabled,
+                    value ? '1' : '0',
+                  ),
+                );
               },
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            lastAttempt == null
-                ? '上次刷新：本会话尚未刷新'
-                : '上次刷新：${_formatDateTime(lastAttempt.at)} · '
-                    '来源 ${lastAttempt.source} · '
-                    '更新 ${lastAttempt.updated} 条 · '
-                    '失败 ${lastAttempt.failed} 条',
-            style: theme.textTheme.bodySmall,
+          Text('刷新频率', style: theme.textTheme.bodySmall),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ScheduleFrequency>(
+              segments: const [
+                ButtonSegment(
+                  value: ScheduleFrequency.daily,
+                  label: Text('每天'),
+                ),
+                ButtonSegment(
+                  value: ScheduleFrequency.weekly,
+                  label: Text('每周'),
+                ),
+                ButtonSegment(
+                  value: ScheduleFrequency.manual,
+                  label: Text('仅手动'),
+                ),
+              ],
+              selected: {frequency},
+              onSelectionChanged: (selection) {
+                final value = selection.first;
+                ref.read(refreshFrequencyProvider.notifier).state = value;
+                unawaited(
+                  persistSetting(
+                    ref.container,
+                    SettingKeys.refreshFrequency,
+                    value.name,
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
-          if (service == null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                '行情引擎不可用，显示的是最近一次估值',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.error),
-              ),
+          Text(
+            _lastRefreshText(lastAttemptUtc, lastAttempt),
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            frequency == ScheduleFrequency.manual || !enabled
+                ? '下次刷新：—'
+                : '下次刷新：${nextRun == null ? '—' : _formatDateTime(nextRun)}',
+            style: theme.textTheme.bodySmall,
+          ),
+          if (uiState is QuoteRefreshFailed) ...[
+            const SizedBox(height: 4),
+            Text(
+              '刷新失败：${uiState.reason}',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
             ),
+          ],
+          if (service == null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '行情引擎不可用，显示的是最近一次估值',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 12),
           FilledButton.tonal(
             onPressed:
                 service == null ? null : () => _refreshNow(context, ref),
@@ -68,6 +125,17 @@ class MarketSettingsSection extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _lastRefreshText(
+    DateTime? lastAttemptUtc,
+    QuoteRefreshAttempt? sessionAttempt,
+  ) {
+    if (lastAttemptUtc == null) return '上次刷新：尚未刷新';
+    final base = '上次刷新：${_formatDateTime(lastAttemptUtc.toLocal())}';
+    final attempt = sessionAttempt;
+    if (attempt == null) return base;
+    return '$base · 更新 ${attempt.updated} 条 · 失败 ${attempt.failed} 条';
   }
 
   Future<void> _refreshNow(BuildContext context, WidgetRef ref) async {

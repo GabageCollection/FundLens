@@ -30,23 +30,23 @@ final class SchedulePolicy {
     }
   }
 
-  /// The next run time anchored to the same wall-clock hour as [clock]'s now,
-  /// or null for manual (or a daily run already completed today).
+  /// The next scheduled run strictly after now, for display purposes, or null
+  /// for manual. `daily` recurs on the last attempt's time-of-day; `weekly`
+  /// recurs every seven days from the last attempt.
   DateTime? nextRun(ScheduleFrequency frequency, DateTime? lastAttemptUtc) {
     if (frequency == ScheduleFrequency.manual) return null;
     final now = clock().toUtc();
-    if (!shouldRun(frequency, lastAttemptUtc)) return null;
-    switch (frequency) {
-      case ScheduleFrequency.daily:
-        return DateTime.utc(now.year, now.month, now.day + 1, now.hour,
-            now.minute);
-      case ScheduleFrequency.weekly:
-        final anchor = (lastAttemptUtc ?? now).toUtc();
-        final base = DateTime.utc(anchor.year, anchor.month, anchor.day,
-            now.hour, now.minute);
-        return base.add(const Duration(days: 7));
-      case ScheduleFrequency.manual:
-        return null;
+    final slot = (lastAttemptUtc ?? now).toUtc();
+    final step = frequency == ScheduleFrequency.daily
+        ? const Duration(days: 1)
+        : const Duration(days: 7);
+    var next = frequency == ScheduleFrequency.daily
+        ? DateTime.utc(slot.year, slot.month, slot.day, slot.hour, slot.minute)
+            .add(step)
+        : slot.add(step);
+    while (!next.isAfter(now)) {
+      next = next.add(step);
     }
+    return next;
   }
 }

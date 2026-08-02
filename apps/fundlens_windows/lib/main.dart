@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app/fundlens_app.dart';
 import 'application/app_dependencies.dart';
+import 'application/startup_automation.dart';
 import 'backup/backup_service.dart';
 import 'backup/database_restore_service.dart';
 import 'backup/pointycastle_backup_cipher.dart';
@@ -145,6 +146,8 @@ Future<void> main() async {
       child: const FundLensBootstrapApp(),
     ),
   );
+
+  unawaited(runStartupAutomation(container));
 }
 
 /// Locates the repository `engine/` directory relative to the current

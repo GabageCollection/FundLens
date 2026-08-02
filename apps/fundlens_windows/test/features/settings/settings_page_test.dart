@@ -100,11 +100,14 @@ void main() {
     expect(thresholds.maxAssetClassShare, isNull);
   });
 
-  testWidgets('market section shows toggle, manual refresh and status',
+  testWidgets('market section shows toggle, frequency, manual refresh and status',
       (tester) async {
     await pumpSettings(tester);
-    expect(find.text('每日自动刷新'), findsOneWidget);
+    expect(find.text('自动刷新行情'), findsOneWidget);
     expect(find.byType(Switch), findsOneWidget);
+    expect(find.text('每天'), findsOneWidget);
+    expect(find.text('每周'), findsOneWidget);
+    expect(find.text('仅手动'), findsOneWidget);
     expect(find.text('手动刷新行情'), findsOneWidget);
     // No quote service wired in this harness: degraded state is factual.
     expect(find.textContaining('行情引擎不可用'), findsOneWidget);

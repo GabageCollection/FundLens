@@ -124,23 +124,32 @@ void main() {
         policy.nextRun(ScheduleFrequency.daily, null),
         DateTime.utc(2026, 7, 22, 9),
       );
+      // Slot day (7-20) in the past at an earlier hour rolls to tomorrow.
       expect(
         policy.nextRun(
           ScheduleFrequency.daily,
           DateTime.utc(2026, 7, 20, 7),
         ),
-        DateTime.utc(2026, 7, 22, 9),
+        DateTime.utc(2026, 7, 22, 7),
       );
     });
 
-    test('weekly next run is seven days after the last attempt', () {
+    test('weekly next run is the next weekly boundary after now', () {
       final policy = SchedulePolicy(() => DateTime.utc(2026, 7, 21, 9));
+      // 7-17 boundary is in the past; walk forward to 7-24.
       expect(
         policy.nextRun(
           ScheduleFrequency.weekly,
           DateTime.utc(2026, 7, 10, 6),
         ),
-        DateTime.utc(2026, 7, 17, 9),
+        DateTime.utc(2026, 7, 24, 6),
+      );
+      expect(
+        policy.nextRun(
+          ScheduleFrequency.weekly,
+          DateTime.utc(2026, 7, 20, 8),
+        ),
+        DateTime.utc(2026, 7, 27, 8),
       );
     });
   });
