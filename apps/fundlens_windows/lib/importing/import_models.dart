@@ -4,6 +4,53 @@ import 'package:fundlens_core/fundlens_core.dart';
 /// Full import may propose removals, but only within the same platform.
 enum ImportMode { partial, full }
 
+/// Data source chosen on the wizard's first step.
+enum ImportSource {
+  /// 支付宝导出文件/截图。
+  alipay,
+
+  /// 同花顺导出文件/截图。
+  ths,
+
+  /// 通用 CSV 文件。
+  csv,
+
+  /// 通用 Excel 文件。
+  excel,
+
+  /// 截图 OCR 识别。
+  screenshot,
+}
+
+extension ImportSourceLabels on ImportSource {
+  String get label => switch (this) {
+        ImportSource.alipay => '支付宝',
+        ImportSource.ths => '同花顺',
+        ImportSource.csv => '通用 CSV',
+        ImportSource.excel => '通用 Excel',
+        ImportSource.screenshot => '截图识别',
+      };
+}
+
+/// How a draft row that matches an existing holding should be written.
+///
+/// The user must choose explicitly before commit; there is no silent default
+/// for rows flagged as possible duplicates.
+enum DuplicateResolution {
+  /// Sum amounts, shares and profits into the existing holding.
+  merge,
+
+  /// Replace the existing holding's values with the incoming row.
+  overwrite,
+
+  /// Keep the existing holding untouched and insert the incoming row as a
+  /// new, separate holding.
+  keepBoth,
+
+  /// Skip the row entirely: it is neither inserted, updated nor removed.
+  skip,
+}
+
 enum IssueSeverity { info, warning, blocking }
 
 final class DataIssue {
@@ -86,6 +133,7 @@ final class ImportPlan {
     required this.removeIds,
     required this.unchangedIds,
     required this.issues,
+    this.skipped = const [],
   });
 
   final List<Holding> inserts;
@@ -93,6 +141,9 @@ final class ImportPlan {
   final List<String> removeIds;
   final List<String> unchangedIds;
   final List<DataIssue> issues;
+
+  /// Draft rows the user chose to skip; never written to the repository.
+  final List<DraftHolding> skipped;
 
   bool get canCommit =>
       issues.every((i) => i.severity != IssueSeverity.blocking);

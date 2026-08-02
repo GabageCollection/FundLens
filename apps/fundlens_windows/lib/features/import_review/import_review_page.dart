@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../importing/import_models.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../../widgets/page_scaffold.dart';
-import 'data_issue_list.dart';
-import 'import_diff_panel.dart';
+import 'import_check_panel.dart';
+import 'import_mapping_panel.dart';
 import 'import_review_controller.dart';
+import 'import_result_view.dart';
 import 'import_source_panel.dart';
 import 'ocr_field_editor.dart';
-import 'screenshot_crop_view.dart';
 
-/// The import, OCR review and data-issue workspace. All data issues are
-/// handled here, before anything is written to the portfolio.
+/// The four-step import wizard:
+/// 1. choose a data source, 2. upload a file, 3. review the recognized rows
+/// (field mapping for CSV/Excel, OCR review for screenshots),
+/// 4. confirm the import. All data issues are handled here, before anything
+/// is written to the portfolio.
 class ImportReviewPage extends ConsumerStatefulWidget {
   const ImportReviewPage({super.key});
 
@@ -33,35 +35,42 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
   Widget build(BuildContext context) {
     final controller = ref.watch(importReviewControllerProvider);
     final state = controller.state;
-    final body = switch (state) {
-      ImportIdle() => const _IdleBody(),
-      ImportParsing() => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (state.progress != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: FundLensTokens.space12 * 2,
-                ),
-                child: LinearProgressIndicator(value: state.progress),
-              )
-            else
-              const CircularProgressIndicator(),
-            const SizedBox(height: FundLensTokens.space4),
-            Text(
-              state.currentStep != null && state.totalSteps != null
-                  ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
-                  : '正在解析，首次截图识别需要加载模型，可能需要几分钟',
+    final step = controller.wizardStep;
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (step != null) ...[
+          _StepIndicator(current: step),
+          const SizedBox(height: FundLensTokens.space4),
+        ],
+        Expanded(
+          child: switch (state) {
+            ImportSourceSelect() => ImportSourcePanel(controller: controller),
+            ImportParsing() => _ParsingBody(state: state),
+            ImportFieldMapping() => ImportMappingPanel(
+              state: state,
+              controller: controller,
             ),
-          ],
+            ImportOcrReview() => OcrReviewPanel(
+              state: state,
+              controller: controller,
+            ),
+            ImportCheck() => ImportCheckPanel(
+              state: state,
+              controller: controller,
+            ),
+            ImportCommitting() => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            ImportCommitted() => ImportResultView(
+              state: state,
+              controller: controller,
+            ),
+            ImportFailed() => _FailedBody(state: state),
+          },
         ),
-      ),
-      ImportEditing() => _EditingBody(controller: controller),
-      ImportCommitting() => const Center(child: CircularProgressIndicator()),
-      ImportCommitted() => _CommittedBody(report: state.report),
-      ImportFailed() => _FailedBody(state: state),
-    };
+      ],
+    );
     return PageScaffold(
       tier: PageWidthTier.form,
       crumb: '数据',
@@ -71,21 +80,108 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
   }
 }
 
-class _IdleBody extends StatelessWidget {
-  const _IdleBody();
+/// Four-step progress strip: 选择来源 → 上传文件 → 检查识别 → 确认导入.
+class _StepIndicator extends StatelessWidget {
+  const _StepIndicator({required this.current});
+
+  /// 1-based current step.
+  final int current;
+
+  static const _labels = <String>['选择来源', '上传文件', '检查识别', '确认导入'];
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: SizedBox(width: 320, child: ImportSourcePanel()),
+    return Row(
+      children: [
+        for (var i = 0; i < _labels.length; i++) ...[
+          if (i > 0)
+            Expanded(
+              child: Container(
+                height: 1,
+                color: i < current
+                    ? FundLensTokens.accent
+                    : FundLensTokens.border,
+              ),
+            ),
+          _StepChip(
+            index: i + 1,
+            label: _labels[i],
+            done: i + 1 < current,
+            active: i + 1 == current,
+          ),
+        ],
+      ],
     );
   }
 }
 
-class _CommittedBody extends StatelessWidget {
-  const _CommittedBody({required this.report});
+class _StepChip extends StatelessWidget {
+  const _StepChip({
+    required this.index,
+    required this.label,
+    required this.done,
+    required this.active,
+  });
 
-  final ImportCommitReport report;
+  final int index;
+  final String label;
+  final bool done;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeColor = active || done
+        ? FundLensTokens.accent
+        : FundLensTokens.surface;
+    final badgeBorderColor = active || done
+        ? FundLensTokens.accent
+        : FundLensTokens.borderStrong;
+    final textColor = active || done
+        ? FundLensTokens.ink
+        : FundLensTokens.muted;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: badgeColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: badgeBorderColor),
+          ),
+          alignment: Alignment.center,
+          child: done
+              ? const Icon(Icons.check, size: 14, color: FundLensTokens.canvas)
+              : Text(
+                  '$index',
+                  style: TextStyle(
+                    fontFamily: 'Noto Sans SC',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: active ? FundLensTokens.canvas : textColor,
+                  ),
+                ),
+        ),
+        const SizedBox(width: FundLensTokens.space2),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Noto Sans SC',
+            fontSize: 14,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            color: textColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ParsingBody extends StatelessWidget {
+  const _ParsingBody({required this.state});
+
+  final ImportParsing state;
 
   @override
   Widget build(BuildContext context) {
@@ -93,13 +189,26 @@ class _CommittedBody extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('写入完成'),
+          if (state.progress != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: FundLensTokens.space12,
+              ),
+              child: LinearProgressIndicator(value: state.progress),
+            )
+          else
+            const CircularProgressIndicator(),
+          const SizedBox(height: FundLensTokens.space4),
           Text(
-            '新增 ${report.inserted} 条 · 更新 ${report.updated} 条 · '
-            '移除 ${report.removed} 条',
+            state.currentStep != null && state.totalSteps != null
+                ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
+                : '正在解析文件…',
+            style: const TextStyle(
+              fontFamily: 'Noto Sans SC',
+              fontSize: 14,
+              color: FundLensTokens.muted,
+            ),
           ),
-          const SizedBox(height: 16),
-          const SizedBox(width: 320, child: ImportSourcePanel()),
         ],
       ),
     );
@@ -117,124 +226,19 @@ class _FailedBody extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('导入失败: ${state.message}'),
-          const SizedBox(height: 16),
-          if (state.retryable)
-            const SizedBox(width: 320, child: ImportSourcePanel()),
+          Icon(Icons.error_outline, size: 40, color: FundLensTokens.warn),
+          const SizedBox(height: FundLensTokens.space3),
+          Text(
+            '导入失败：${state.message}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans SC',
+              fontSize: 14,
+              color: FundLensTokens.ink,
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _EditingBody extends StatelessWidget {
-  const _EditingBody({required this.controller});
-
-  final ImportReviewController controller;
-
-  Future<void> _confirmCommit(BuildContext context) async {
-    final state = controller.state;
-    if (state is! ImportEditing) return;
-    if (controller.mode == ImportMode.full && state.plan.removeIds.isNotEmpty) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('确认全量写入'),
-          content: Text('将移除 ${state.plan.removeIds.length} 条持仓'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('确认'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-      await controller.commit(confirmedFullRemovals: true);
-      return;
-    }
-    await controller.commit();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: SegmentedButton<ImportMode>(
-            segments: const [
-              ButtonSegment(value: ImportMode.partial, label: Text('部分持仓')),
-              ButtonSegment(value: ImportMode.full, label: Text('全量持仓')),
-            ],
-            selected: {controller.mode},
-            onSelectionChanged: (selection) =>
-                controller.setMode(selection.first),
-          ),
-        ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= FundLensTokens.gridCollapseBelow) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                        child: ScreenshotCropView(controller: controller)),
-                    Expanded(flex: 2, child: _editorColumn()),
-                  ],
-                );
-              }
-              // 窄屏:裁剪区与编辑列纵向堆叠,统一滚动
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 320,
-                      child: ScreenshotCropView(controller: controller),
-                    ),
-                    const SizedBox(height: FundLensTokens.space3),
-                    SizedBox(height: 640, child: _editorColumn()),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: controller.discard,
-                child: const Text('取消'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: controller.canCommit
-                    ? () => _confirmCommit(context)
-                    : null,
-                child: const Text('确认写入'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _editorColumn() {
-    return Column(
-      children: [
-        Expanded(flex: 3, child: OcrFieldEditor(controller: controller)),
-        Expanded(flex: 2, child: DataIssueList(controller: controller)),
-        ImportDiffPanel(controller: controller),
-      ],
     );
   }
 }
