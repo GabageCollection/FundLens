@@ -102,21 +102,29 @@ class HoldingBatchBar extends ConsumerWidget {
       ),
     );
     if (target == null || !context.mounted) return;
-    await _applyBatch(
-      ref,
-      selected,
-      (h) => h.copyWith(
-        assetClass: target,
-        fieldProvenance: {
-          ...h.fieldProvenance,
-          'assetClass': const FieldProvenance(
-            kind: ProvenanceKind.userCorrected,
-            source: '批量修改',
-          ),
-        },
-        updatedAt: DateTime.now().toUtc(),
-      ),
-    );
+    try {
+      await _applyBatch(
+        ref,
+        selected,
+        (h) => h.copyWith(
+          assetClass: target,
+          fieldProvenance: {
+            ...h.fieldProvenance,
+            'assetClass': const FieldProvenance(
+              kind: ProvenanceKind.userCorrected,
+              source: '批量修改',
+            ),
+          },
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (e) {
+      // 数据库写入失败(磁盘满/损坏等):提示用户,避免异常静默上抛。
+      if (context.mounted) {
+        showHoldingToast(context, '操作失败:请重试');
+      }
+      return;
+    }
     if (context.mounted) {
       showHoldingToast(context, '已更新 ${selected.length} 项持仓');
     }
@@ -135,21 +143,29 @@ class HoldingBatchBar extends ConsumerWidget {
       ),
     );
     if (target == null || !context.mounted) return;
-    await _applyBatch(
-      ref,
-      selected,
-      (h) => h.copyWith(
-        sourcePlatform: target,
-        fieldProvenance: {
-          ...h.fieldProvenance,
-          'sourcePlatform': const FieldProvenance(
-            kind: ProvenanceKind.userCorrected,
-            source: '批量修改',
-          ),
-        },
-        updatedAt: DateTime.now().toUtc(),
-      ),
-    );
+    try {
+      await _applyBatch(
+        ref,
+        selected,
+        (h) => h.copyWith(
+          sourcePlatform: target,
+          fieldProvenance: {
+            ...h.fieldProvenance,
+            'sourcePlatform': const FieldProvenance(
+              kind: ProvenanceKind.userCorrected,
+              source: '批量修改',
+            ),
+          },
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (e) {
+      // 数据库写入失败(磁盘满/损坏等):提示用户,避免异常静默上抛。
+      if (context.mounted) {
+        showHoldingToast(context, '操作失败:请重试');
+      }
+      return;
+    }
     if (context.mounted) {
       showHoldingToast(context, '已更新 ${selected.length} 项持仓');
     }
@@ -194,7 +210,15 @@ class HoldingBatchBar extends ConsumerWidget {
     final d = now.day.toString().padLeft(2, '0');
     final path = await ref.read(holdingSavePathProvider)('holdings-$y$m$d.csv');
     if (path == null || !context.mounted) return;
-    await HoldingActions.export(selected, path);
+    try {
+      await HoldingActions.export(selected, path);
+    } catch (e) {
+      // 写文件失败(路径无权限/磁盘满/文件被占用):提示用户,避免异常上抛。
+      if (context.mounted) {
+        showHoldingToast(context, '操作失败:请重试');
+      }
+      return;
+    }
     if (context.mounted) {
       // 不引入 path 包:手动取文件名。
       final name = path.split(RegExp(r'[\\/]')).last;
@@ -225,9 +249,17 @@ class HoldingBatchBar extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    await ref
-        .read(holdingRepositoryProvider)
-        .deleteByIds([for (final h in selected) h.id]);
+    try {
+      await ref
+          .read(holdingRepositoryProvider)
+          .deleteByIds([for (final h in selected) h.id]);
+    } catch (e) {
+      // 删除失败(数据库错误等):保留选择以便用户重试,不进入成功路径。
+      if (context.mounted) {
+        showHoldingToast(context, '操作失败:请重试');
+      }
+      return;
+    }
     ref.read(holdingSelectionProvider.notifier).state = const {};
     if (!context.mounted) return;
     showHoldingToast(context, '已删除 ${selected.length} 项持仓');
