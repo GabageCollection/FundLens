@@ -71,11 +71,17 @@ DecimalValue? holdingEffectiveReturn(Holding holding) {
   return profit.divide(cost);
 }
 
-/// 盈亏方向判定:盈利 true / 亏损 false;值缺失(缺少成本、无有效收益率)为 null。
-/// 纯函数层只判定方向,红绿颜色映射由样式层按 FundLensTokens 完成。
-bool? holdingPnlDirection(DecimalValue? value) {
+/// 盈亏方向三值:正=盈利、负=亏损、零=中性(0 既非盈也非亏)。
+/// 纯函数层只判定方向,红绿颜色映射由样式层按 FundLensTokens 完成;
+/// 零值不应用红绿,由样式层保持默认墨色。
+enum PnlDirection { positive, negative, zero }
+
+/// 盈亏方向判定;值缺失(缺少成本、无有效收益率)为 null。
+PnlDirection? holdingPnlDirection(DecimalValue? value) {
   if (value == null) return null;
-  return !value.isNegative;
+  if (value.isNegative) return PnlDirection.negative;
+  if (value.isZero) return PnlDirection.zero;
+  return PnlDirection.positive;
 }
 
 /// 份额单元格文案。

@@ -67,10 +67,15 @@ List<(String, String)> drawerAmountRows(Holding h, DecimalValue? share) {
   ];
 }
 
-/// 红盈利绿亏损的着色映射;方向缺失(缺少成本等)时返回 null 保持默认文字色。
-Color? _pnlColor(bool? direction) {
-  if (direction == null) return null;
-  return direction ? FundLensTokens.profit : FundLensTokens.loss;
+/// 红盈利绿亏损的着色映射;方向缺失(缺少成本等)或零值(中性)时
+/// 返回 null 保持默认文字色。
+Color? _pnlColor(PnlDirection? direction) {
+  return switch (direction) {
+    PnlDirection.positive => FundLensTokens.profit,
+    PnlDirection.negative => FundLensTokens.loss,
+    // 零值:既非盈也非亏,保持默认正文色。
+    PnlDirection.zero || null => null,
+  };
 }
 
 /// 成本与收益分节行。

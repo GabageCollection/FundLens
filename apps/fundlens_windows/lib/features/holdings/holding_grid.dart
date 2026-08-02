@@ -43,6 +43,7 @@ final class HoldingColumnSpec {
     required this.numeric,
     required this.value,
     this.sortField,
+    this.muted = false,
   });
 
   final String label;
@@ -51,6 +52,9 @@ final class HoldingColumnSpec {
   final bool numeric;
   final String Function(HoldingCellContext ctx) value;
   final HoldingSortField? sortField;
+
+  /// 克制文字标签列(数据状态):单元格用 muted 色,不用高饱和色块。
+  final bool muted;
 }
 
 /// 11 个滚动区列(复选框与产品名称在冻结区)。
@@ -117,7 +121,7 @@ List<HoldingColumnSpec> holdingColumnSpecs() {
     ),
     HoldingColumnSpec(
       label: '数据状态', minWidth: 96, flex: 1, numeric: false,
-      value: status,
+      value: status, muted: true,
     ),
   ];
 }
@@ -649,11 +653,19 @@ class HoldingGridRowView extends StatelessWidget {
     );
   }
 
-  /// 单元格样式:数值列用等宽数字;持仓盈亏/收益率列按红盈利绿亏损着色,
+  /// 单元格样式:数值列用等宽数字;持仓盈亏/收益率列按红盈利绿亏损着色
+  /// (零值中性,保持默认墨色);数据状态列为 muted 克制文字标签;
   /// 其余金额列保持默认墨色。
   TextStyle _cellStyle(HoldingColumnSpec spec, ThemeData theme) {
     final financial = theme.extension<FundLensTextStyles>()!.financialNumber;
-    if (!spec.numeric) return theme.textTheme.bodyMedium!;
+    if (!spec.numeric) {
+      // 数据状态列:克制文字标签,不饱和色块。
+      if (spec.muted) {
+        return theme.textTheme.bodyMedium!
+            .copyWith(color: FundLensTokens.muted);
+      }
+      return theme.textTheme.bodyMedium!;
+    }
     final direction = switch (spec.sortField) {
       HoldingSortField.profit => holdingPnlDirection(
           cellContext.holding.currentFloatingProfit,
@@ -663,10 +675,14 @@ class HoldingGridRowView extends StatelessWidget {
         ),
       _ => null,
     };
-    if (direction == null) return financial;
-    return financial.copyWith(
-      color: direction ? FundLensTokens.profit : FundLensTokens.loss,
-    );
+    final color = switch (direction) {
+      PnlDirection.positive => FundLensTokens.profit,
+      PnlDirection.negative => FundLensTokens.loss,
+      // 零值:既非盈也非亏,保持默认墨色。
+      PnlDirection.zero || null => null,
+    };
+    if (color == null) return financial;
+    return financial.copyWith(color: color);
   }
 }
 

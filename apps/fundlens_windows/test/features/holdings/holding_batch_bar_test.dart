@@ -5,8 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
+import 'package:fundlens_windows/data_engine/data_engine_client.dart';
+import 'package:fundlens_windows/features/holdings/holding_actions.dart';
 import 'package:fundlens_windows/features/holdings/holding_batch_bar.dart';
 import 'package:fundlens_windows/features/holdings/holding_filters.dart';
+import 'package:fundlens_windows/market/quote.dart';
+import 'package:fundlens_windows/market/quote_refresh_service.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
 import 'holding_detail_drawer_test.dart' show RecordingHoldingRepository;
@@ -34,14 +38,43 @@ Holding batchHolding(String id, {AssetClass assetClass = AssetClass.equity}) {
   );
 }
 
+/// 调用即抛异常的行情引擎 fake:模拟行情引擎整体不可用。
+/// 抛 Error 而非 Exception:`QuoteRefreshService._fetchQuotes` 只吞 Exception,
+/// Error 会穿透到 refresh 抛出,由 HoldingActions.refreshQuotes 捕获转为 null。
+final class _FailingEngine implements DataEngineClient {
+  @override
+  Future<Map<String, Object?>> call(
+    String method,
+    Map<String, Object?> params, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    throw StateError('engine down');
+  }
+
+  @override
+  Future<void> cancel(String requestId) async {}
+
+  @override
+  Future<void> close() async {}
+}
+
+/// 空操作行情缓存:失败路径不会走到写入。
+final class _NoopQuoteCache implements QuoteCacheStore {
+  @override
+  Future<void> upsertAll(List<CachedQuote> quotes) async {}
+}
+
 Future<ProviderContainer> pumpBatchBar(
   WidgetTester tester, {
   required RecordingHoldingRepository repo,
   Set<String> selection = const {},
   Future<String?> Function(String suggestedName)? savePath,
+  QuoteRefreshService? refreshService,
 }) async {
   final container = ProviderContainer(overrides: [
     holdingRepositoryProvider.overrideWithValue(repo),
+    if (refreshService != null)
+      quoteRefreshServiceProvider.overrideWithValue(refreshService),
     if (savePath != null) holdingSavePathProvider.overrideWithValue(savePath),
   ]);
   addTearDown(container.dispose);
@@ -153,5 +186,28 @@ void main() {
       find.widgetWithText(TextButton, '刷新行情'),
     );
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('刷新行情:引擎异常时提示重试,不显示 0 计数汇报', (tester) async {
+    final repo = RecordingHoldingRepository([batchHolding('a')]);
+    final failingService = QuoteRefreshService(
+      engine: _FailingEngine(),
+      holdings: repo,
+      quoteCache: _NoopQuoteCache(),
+      clock: () => _now,
+    );
+    await pumpBatchBar(
+      tester,
+      repo: repo,
+      selection: {'a'},
+      refreshService: failingService,
+    );
+
+    await tester.tap(find.text('刷新行情'));
+    await tester.pumpAndSettle();
+
+    // 刷新失败:提示重试,不得把失败伪装成"更新 0 · 保留 0 · 失败 0"。
+    expect(find.text('操作失败:请重试'), findsOneWidget);
+    expect(find.textContaining('行情:更新'), findsNothing);
   });
 }

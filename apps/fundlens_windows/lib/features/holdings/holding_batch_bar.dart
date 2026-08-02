@@ -191,11 +191,17 @@ class HoldingBatchBar extends ConsumerWidget {
   ) async {
     final report = await HoldingActions.refreshQuotes(ref, selected);
     if (!context.mounted) return;
+    if (report == null) {
+      // 刷新失败(网络异常等):canRefresh 已保证有可刷新资产且服务已接线,
+      // 此处 null 只可能来自刷新异常,提示重试而非显示 0 计数汇报。
+      showHoldingToast(context, '操作失败:请重试');
+      return;
+    }
     showHoldingToast(
       context,
-      '行情:更新 ${report?.updated.length ?? 0} · '
-      '保留 ${report?.retained.length ?? 0} · '
-      '失败 ${report?.failed.length ?? 0}',
+      '行情:更新 ${report.updated.length} · '
+      '保留 ${report.retained.length} · '
+      '失败 ${report.failed.length}',
     );
   }
 
