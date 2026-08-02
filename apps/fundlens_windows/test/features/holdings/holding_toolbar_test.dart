@@ -98,8 +98,13 @@ void main() {
 
       await tester.tap(find.text('当前金额 · 从高到低'));
       await tester.pumpAndSettle();
-      // 9 字段 × 2 方向 = 18 项。
+      // 9 字段 × 2 方向 = 18 项;菜单面板高度上限 480,滚动后目标项才可点。
       expect(find.text('持仓盈亏 · 从低到高'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('持仓盈亏 · 从低到高'),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
       await tester.tap(find.text('持仓盈亏 · 从低到高'));
       await tester.pumpAndSettle();
       expect(chosen?.field, HoldingSortField.profit);

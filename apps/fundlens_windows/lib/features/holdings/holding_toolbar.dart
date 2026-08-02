@@ -187,6 +187,11 @@ class HoldingSortMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
+      // 18 项菜单约 864px,超出 720 视口高度;限制面板高度为 480 使菜单
+      // 内部滚动,避免面板超出屏高后需要整体滚动页面。
+      style: const MenuStyle(
+        maximumSize: WidgetStatePropertyAll(Size(double.infinity, 480)),
+      ),
       builder: (context, controller, child) {
         return SizedBox(
           height: 40,

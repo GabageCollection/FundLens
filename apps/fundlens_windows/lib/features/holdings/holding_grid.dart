@@ -212,6 +212,13 @@ class _HoldingGridState extends State<HoldingGrid> {
     );
   }
 
+  @override
+  void dispose() {
+    _frozenController.dispose();
+    _detailController.dispose();
+    super.dispose();
+  }
+
   void _sync(ScrollController source, ScrollController target) {
     if (_syncing || !target.hasClients || !source.hasClients) return;
     final offset = source.offset.clamp(
@@ -647,7 +654,10 @@ class HoldingGridRowView extends StatelessWidget {
 }
 
 /// 行外框:选中底色、hover 反馈、点击;整行可聚焦(Enter 等效点击)。
-class _RowFrame extends StatelessWidget {
+///
+/// 点击时显式请求焦点:抽屉/对话框 pop 后 Flutter 会把焦点恢复到
+/// 弹出前聚焦的节点,行持有焦点后 Enter 即可重新触发行操作。
+class _RowFrame extends StatefulWidget {
   const _RowFrame({
     required this.selected,
     required this.onTap,
@@ -659,14 +669,34 @@ class _RowFrame extends StatelessWidget {
   final Widget child;
 
   @override
+  State<_RowFrame> createState() => _RowFrameState();
+}
+
+class _RowFrameState extends State<_RowFrame> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _focusNode.requestFocus();
+    widget.onTap?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? FundLensTokens.accentSoft : FundLensTokens.surface,
+      color:
+          widget.selected ? FundLensTokens.accentSoft : FundLensTokens.surface,
       child: InkWell(
-        onTap: onTap,
+        focusNode: _focusNode,
+        onTap: widget.onTap == null ? null : _handleTap,
         hoverColor: FundLensTokens.canvas,
         focusColor: FundLensTokens.canvas,
-        child: SizedBox(height: FundLensTokens.rowHeight, child: child),
+        child: SizedBox(height: FundLensTokens.rowHeight, child: widget.child),
       ),
     );
   }
