@@ -67,6 +67,12 @@ List<(String, String)> drawerAmountRows(Holding h, DecimalValue? share) {
   ];
 }
 
+/// 红盈利绿亏损的着色映射;方向缺失(缺少成本等)时返回 null 保持默认文字色。
+Color? _pnlColor(bool? direction) {
+  if (direction == null) return null;
+  return direction ? FundLensTokens.profit : FundLensTokens.loss;
+}
+
 /// 成本与收益分节行。
 List<(String, String)> drawerProfitRows(Holding h) {
   return [
@@ -206,6 +212,14 @@ class HoldingDetailDrawer extends ConsumerWidget {
                   _Section(
                     title: '成本与收益',
                     rows: drawerProfitRows(h),
+                    valueColors: {
+                      '持仓盈亏': _pnlColor(
+                        holdingPnlDirection(h.currentFloatingProfit),
+                      ),
+                      '持仓收益率': _pnlColor(
+                        holdingPnlDirection(holdingEffectiveReturn(h)),
+                      ),
+                    },
                     footnote: '累计盈亏只展示,不纳入当前盈亏汇总。',
                   ),
                   _Section(title: '数据来源', rows: drawerProvenanceRows(h)),
@@ -224,7 +238,17 @@ class HoldingDetailDrawer extends ConsumerWidget {
                   TextButton(
                     key: const ValueKey('drawer-edit'),
                     onPressed: () async {
-                      final saved = await HoldingActions.edit(context, ref, h);
+                      final saved = await HoldingActions.edit(
+                        context,
+                        ref,
+                        h,
+                        onFailure: () {
+                          // 保存失败(数据库写入异常):提示重试,抽屉保持打开。
+                          if (context.mounted) {
+                            showHoldingToast(context, '操作失败:请重试');
+                          }
+                        },
+                      );
                       if (saved && context.mounted) {
                         showHoldingToast(context, '已保存');
                       }
@@ -241,9 +265,14 @@ class HoldingDetailDrawer extends ConsumerWidget {
                               final report =
                                   await HoldingActions.refreshQuotes(ref, [h]);
                               if (!context.mounted) return;
+                              if (report == null) {
+                                // 刷新失败(网络异常等):提示重试,不显示 0 计数汇报。
+                                showHoldingToast(context, '操作失败:请重试');
+                                return;
+                              }
                               showHoldingToast(
                                 context,
-                                report != null && report.updated.isNotEmpty
+                                report.updated.isNotEmpty
                                     ? '行情已更新'
                                     : '行情未更新,保留原值',
                               );
@@ -259,12 +288,20 @@ class HoldingDetailDrawer extends ConsumerWidget {
                       foregroundColor: FundLensTokens.profit,
                     ),
                     onPressed: () async {
-                      final deleted =
-                          await HoldingActions.delete(context, ref, h);
-                      if (deleted && context.mounted) {
-                        Navigator.of(context).maybePop();
-                        showHoldingToast(context, '已删除');
-                      }
+                      final deleted = await HoldingActions.delete(
+                        context,
+                        ref,
+                        h,
+                        onFailure: () {
+                          // 删除失败(数据库错误等):提示重试,不关闭抽屉。
+                          if (context.mounted) {
+                            showHoldingToast(context, '操作失败:请重试');
+                          }
+                        },
+                      );
+                      if (!deleted || !context.mounted) return;
+                      Navigator.of(context).maybePop();
+                      showHoldingToast(context, '已删除');
                     },
                     child: const Text('删除'),
                   ),
@@ -280,11 +317,19 @@ class HoldingDetailDrawer extends ConsumerWidget {
 
 /// 抽屉分节:标题 + 标签/值行 + 可选脚注。
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.rows, this.footnote});
+  const _Section({
+    required this.title,
+    required this.rows,
+    this.footnote,
+    this.valueColors,
+  });
 
   final String title;
   final List<(String, String)> rows;
   final String? footnote;
+
+  /// 按行标签附加的值着色(红盈利绿亏损);未命中的行保持默认正文色。
+  final Map<String, Color?>? valueColors;
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +358,10 @@ class _Section extends StatelessWidget {
                     child: Text(label, style: theme.textTheme.bodySmall),
                   ),
                   Expanded(
-                    child: Text(value, style: theme.textTheme.bodyMedium),
+                    child: Text(
+                      value,
+                      style: _valueStyle(theme, label),
+                    ),
                   ),
                 ],
               ),
@@ -326,5 +374,12 @@ class _Section extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 行值样式:命中着色表的行叠加红绿,其余保持正文色。
+  TextStyle _valueStyle(ThemeData theme, String label) {
+    final color = valueColors?[label];
+    if (color == null) return theme.textTheme.bodyMedium!;
+    return theme.textTheme.bodyMedium!.copyWith(color: color);
   }
 }

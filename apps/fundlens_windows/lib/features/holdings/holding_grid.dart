@@ -622,7 +622,6 @@ class HoldingGridRowView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final financial = theme.extension<FundLensTextStyles>()!.financialNumber;
     return _RowFrame(
       selected: selected,
       onTap: onTap,
@@ -641,14 +640,32 @@ class HoldingGridRowView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign:
                       specs[i].numeric ? TextAlign.right : TextAlign.left,
-                  style: specs[i].numeric
-                      ? financial
-                      : theme.textTheme.bodyMedium,
+                  style: _cellStyle(specs[i], theme),
                 ),
               ),
             ),
         ],
       ),
+    );
+  }
+
+  /// 单元格样式:数值列用等宽数字;持仓盈亏/收益率列按红盈利绿亏损着色,
+  /// 其余金额列保持默认墨色。
+  TextStyle _cellStyle(HoldingColumnSpec spec, ThemeData theme) {
+    final financial = theme.extension<FundLensTextStyles>()!.financialNumber;
+    if (!spec.numeric) return theme.textTheme.bodyMedium!;
+    final direction = switch (spec.sortField) {
+      HoldingSortField.profit => holdingPnlDirection(
+          cellContext.holding.currentFloatingProfit,
+        ),
+      HoldingSortField.returnRate => holdingPnlDirection(
+          holdingEffectiveReturn(cellContext.holding),
+        ),
+      _ => null,
+    };
+    if (direction == null) return financial;
+    return financial.copyWith(
+      color: direction ? FundLensTokens.profit : FundLensTokens.loss,
     );
   }
 }
@@ -676,9 +693,21 @@ class _RowFrameState extends State<_RowFrame> {
   final FocusNode _focusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChanged() {
+    // 焦点变化时重建,以切换行外框的 2px 主色轮廓。
+    if (mounted) setState(() {});
   }
 
   void _handleTap() {
@@ -688,6 +717,7 @@ class _RowFrameState extends State<_RowFrame> {
 
   @override
   Widget build(BuildContext context) {
+    final focused = _focusNode.hasFocus;
     return Material(
       color:
           widget.selected ? FundLensTokens.accentSoft : FundLensTokens.surface,
@@ -696,7 +726,20 @@ class _RowFrameState extends State<_RowFrame> {
         onTap: widget.onTap == null ? null : _handleTap,
         hoverColor: FundLensTokens.canvas,
         focusColor: FundLensTokens.canvas,
-        child: SizedBox(height: FundLensTokens.rowHeight, child: widget.child),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: focused
+                ? Border.all(
+                    color: FundLensTokens.accent,
+                    width: FundLensTokens.focusOutlineWidth,
+                  )
+                : null,
+          ),
+          // 前景绘制:边框叠加在内容之上,不参与布局,避免 2px 边框引起
+          // 内容内缩与列错位(表格行高与列宽保持原值)。
+          position: DecorationPosition.foreground,
+          child: SizedBox(height: FundLensTokens.rowHeight, child: widget.child),
+        ),
       ),
     );
   }

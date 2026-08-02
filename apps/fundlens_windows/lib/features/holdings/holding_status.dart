@@ -60,13 +60,22 @@ HoldingDataStatus deriveHoldingDataStatus(
   return HoldingDataStatus.normal;
 }
 
-/// 持仓的有效收益率:优先取平台值,否则由 盈亏÷有效成本 推导。
+/// 持仓的有效收益率:有效成本缺失时恒为"缺少成本"(spec §6.1,平台值不可信),
+/// 否则优先取平台值,其次由 盈亏÷有效成本 推导。
 DecimalValue? holdingEffectiveReturn(Holding holding) {
-  if (holding.holdingReturn != null) return holding.holdingReturn;
   final cost = holding.effectiveCostAmount;
+  if (cost == null) return null;
+  if (holding.holdingReturn != null) return holding.holdingReturn;
   final profit = holding.currentFloatingProfit;
-  if (cost == null || cost.isZero || profit == null) return null;
+  if (cost.isZero || profit == null) return null;
   return profit.divide(cost);
+}
+
+/// 盈亏方向判定:盈利 true / 亏损 false;值缺失(缺少成本、无有效收益率)为 null。
+/// 纯函数层只判定方向,红绿颜色映射由样式层按 FundLensTokens 完成。
+bool? holdingPnlDirection(DecimalValue? value) {
+  if (value == null) return null;
+  return !value.isNegative;
 }
 
 /// 份额单元格文案。

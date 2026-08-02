@@ -121,8 +121,14 @@ class HoldingsPage extends ConsumerWidget {
 
   Future<void> _addHolding(BuildContext context, WidgetRef ref) async {
     final holding = await showHoldingEditorDialog(context);
-    if (holding == null) return;
-    await ref.read(holdingRepositoryProvider).upsert(holding);
+    if (holding == null || !context.mounted) return;
+    try {
+      await ref.read(holdingRepositoryProvider).upsert(holding);
+    } catch (e) {
+      // 数据库写入失败(磁盘满/损坏等):提示用户重试,避免异常静默上抛。
+      if (context.mounted) showHoldingToast(context, '操作失败:请重试');
+      return;
+    }
     if (context.mounted) showHoldingToast(context, '已保存');
   }
 }
@@ -225,8 +231,16 @@ class _EmptyHoldingsBody extends ConsumerWidget {
                 key: const ValueKey('empty-manual'),
                 onPressed: () async {
                   final holding = await showHoldingEditorDialog(context);
-                  if (holding == null) return;
-                  await ref.read(holdingRepositoryProvider).upsert(holding);
+                  if (holding == null || !context.mounted) return;
+                  try {
+                    await ref.read(holdingRepositoryProvider).upsert(holding);
+                  } catch (e) {
+                    // 数据库写入失败(磁盘满/损坏等):提示用户重试,避免异常静默上抛。
+                    if (context.mounted) {
+                      showHoldingToast(context, '操作失败:请重试');
+                    }
+                    return;
+                  }
                   if (context.mounted) showHoldingToast(context, '已保存');
                 },
                 icon: const Icon(Icons.add),
