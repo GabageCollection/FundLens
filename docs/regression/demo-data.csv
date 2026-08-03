@@ -1,0 +1,4 @@
+source_platform,product_name,product_code,instrument_type,current_value,holding_profit,cumulative_profit,quantity,current_price,cost_price,currency,platform_tags,note
+支付宝,脱敏纯债基金A,000001,场外基金,"78,347.87",+428.96,,100,1.5,,CNY,基金|稳健理财,脱敏合成数据
+支付宝,脱敏货币基金B,000002,货币基金,"15,000.00",+150.00,,15000,1.0,,CNY,稳健理财,
+支付宝,脱敏股票C,600001,股票,"8,388.00",-412.00,,800,10.485,,CNY,权益,
