@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
@@ -10,6 +11,7 @@ import '../../theme/fundlens_tokens.dart';
 import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
+import '../data_health/data_health_providers.dart';
 import 'holding_actions.dart';
 import 'holding_batch_bar.dart';
 import 'holding_detail_drawer.dart';
@@ -40,10 +42,18 @@ class HoldingsPage extends ConsumerWidget {
     final state = ref.watch(portfolioStateProvider);
     final filter = ref.watch(holdingFilterProvider);
 
-    return PageScaffold(
-      tier: PageWidthTier.dense,
-      crumb: '组合',
-      title: '全部持仓',
+    // Ctrl+R 刷新全部可刷新持仓(全局快捷键集中在此页)。
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(
+          LogicalKeyboardKey.keyR,
+          control: true,
+        ): () => _refreshAllQuotes(context, ref),
+      },
+      child: PageScaffold(
+        tier: PageWidthTier.dense,
+        crumb: '组合',
+        title: '全部持仓',
       actions: [
         HoldingSearchField(
           query: filter.query,
@@ -122,6 +132,38 @@ class HoldingsPage extends ConsumerWidget {
         PortfolioEmpty() => const _EmptyHoldingsBody(),
         PortfolioReady() => const _ReadyBody(),
       },
+      ),
+    );
+  }
+
+  /// Ctrl+R 刷新全部可刷新持仓;进行中/失败给出与按钮一致的反馈。
+  Future<void> _refreshAllQuotes(BuildContext context, WidgetRef ref) async {
+    final holdings = ref.read(holdingsProvider).value ?? const <Holding>[];
+    if (holdings.isEmpty) {
+      if (context.mounted) {
+        showHoldingToast(context, '暂无持仓可刷新');
+      }
+      return;
+    }
+    final report = await HoldingActions.refreshQuotes(ref.container, holdings);
+    if (!context.mounted) return;
+    if (report == null) {
+      final refreshing = ref
+          .read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
+      showHoldingToast(
+        context,
+        refreshing
+            ? '正在刷新行情，请稍候…'
+            : '行情刷新失败，保留最近一次估值。请稍后重试。',
+        isError: !refreshing,
+      );
+      return;
+    }
+    showHoldingToast(
+      context,
+      '行情:更新 ${report.updated.length} · '
+      '保留 ${report.retained.length} · '
+      '失败 ${report.failed.length}',
     );
   }
 

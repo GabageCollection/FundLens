@@ -401,6 +401,7 @@ class _FrozenHeader extends StatelessWidget {
                 key: const ValueKey('select-all'),
                 tristate: true,
                 value: allSelected ? true : (someSelected ? null : false),
+                semanticLabel: '全选持仓',
                 onChanged: (value) => onSelectAllChanged(value ?? false),
               ),
             ),
@@ -568,6 +569,7 @@ class HoldingGridFrozenRow extends StatelessWidget {
               child: Checkbox(
                 key: ValueKey('select-${holding.id}'),
                 value: selected,
+                semanticLabel: '选择 ${holding.productName}',
                 onChanged: (value) =>
                     onSelectedChanged(holding.id, value ?? false),
               ),
@@ -629,6 +631,8 @@ class HoldingGridRowView extends StatelessWidget {
     return _RowFrame(
       selected: selected,
       onTap: onTap,
+      // 滚动区行不参与焦点遍历:冻结区行已承载焦点,避免 Tab 重复。
+      focusable: false,
       child: Row(
         children: [
           for (var i = 0; i < specs.length; i++)
@@ -695,11 +699,15 @@ class _RowFrame extends StatefulWidget {
     required this.selected,
     required this.onTap,
     required this.child,
+    this.focusable = true,
   });
 
   final bool selected;
   final VoidCallback? onTap;
   final Widget child;
+
+  /// 是否参与 Tab 焦点遍历:冻结区行承载焦点,滚动区行仅鼠标/触屏点击。
+  final bool focusable;
 
   @override
   State<_RowFrame> createState() => _RowFrameState();
@@ -727,7 +735,7 @@ class _RowFrameState extends State<_RowFrame> {
   }
 
   void _handleTap() {
-    _focusNode.requestFocus();
+    if (widget.focusable) _focusNode.requestFocus();
     widget.onTap?.call();
   }
 
@@ -739,6 +747,7 @@ class _RowFrameState extends State<_RowFrame> {
           widget.selected ? FundLensTokens.accentSoft : FundLensTokens.surface,
       child: InkWell(
         focusNode: _focusNode,
+        canRequestFocus: widget.focusable,
         onTap: widget.onTap == null ? null : _handleTap,
         hoverColor: FundLensTokens.canvas,
         focusColor: FundLensTokens.canvas,

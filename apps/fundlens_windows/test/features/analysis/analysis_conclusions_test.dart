@@ -35,6 +35,9 @@ PortfolioSummary fakeSummary({
   String totalValue = '1000',
   String returnCoverage = '1',
   String largestHoldingShare = '1',
+  String largestAssetClassShare = '0',
+  String cashAndDepositShare = '0',
+  String equityExposureShare = '0',
 }) {
   return PortfolioSummary(
     totalValue: DecimalValue.parse(totalValue),
@@ -47,9 +50,9 @@ PortfolioSummary fakeSummary({
     bySource: const {},
     holdingShares: const {},
     largestHoldingShare: DecimalValue.parse(largestHoldingShare),
-    largestAssetClassShare: DecimalValue.zero,
-    cashAndDepositShare: DecimalValue.zero,
-    equityExposureShare: DecimalValue.zero,
+    largestAssetClassShare: DecimalValue.parse(largestAssetClassShare),
+    cashAndDepositShare: DecimalValue.parse(cashAndDepositShare),
+    equityExposureShare: DecimalValue.parse(equityExposureShare),
   );
 }
 
@@ -197,6 +200,60 @@ void main() {
     );
     expect(stale[4].status, ConclusionStatus.attention);
     expect(stale[4].action, AppDestination.importReview);
+  });
+
+  test('设置结构阈值后输出对应结论,超出/低于时提示', () {
+    final items = buildAnalysisConclusions(
+      summary: fakeSummary(
+        byAssetClass: {
+          AssetClass.equity: DecimalValue.parse('700'),
+          AssetClass.cash: DecimalValue.parse('300'),
+        },
+        totalValue: '1000',
+        largestAssetClassShare: '0.7',
+        cashAndDepositShare: '0.3',
+        equityExposureShare: '0.7',
+      ),
+      quality: fakeQuality(),
+      holdings: [
+        fixtureHolding(id: 'h-1', assetClass: AssetClass.equity),
+        fixtureHolding(id: 'h-2', assetClass: AssetClass.cash),
+      ],
+      thresholds: StructureThresholds(
+        maxAssetClassShare: DecimalValue.parse('0.5'), // 权益 70% > 50%
+        minCashAndDepositShare: DecimalValue.parse('0.4'), // 现金 30% < 40%
+        maxEquityExposureShare: DecimalValue.parse('0.6'), // 权益 70% > 60%
+      ),
+      freshQuoteHoldingIds: const <String>{},
+    );
+    final names = items.map((i) => i.name).toList();
+    expect(names.indexOf('类别上限'), greaterThan(names.indexOf('集中度')));
+    expect(items[names.indexOf('类别上限')].status, ConclusionStatus.attention);
+    expect(
+      items[names.indexOf('现金与存款')].status,
+      ConclusionStatus.attention,
+    );
+    expect(
+      items[names.indexOf('权益仓位')].status,
+      ConclusionStatus.attention,
+    );
+    expect(items[names.indexOf('类别上限')].result, contains('权益'));
+  });
+
+  test('未设置阈值时不输出结构阈值结论,五项保持', () {
+    final items = buildAnalysisConclusions(
+      summary: fakeSummary(
+        byAssetClass: {AssetClass.equity: DecimalValue.parse('1000')},
+      ),
+      quality: fakeQuality(),
+      holdings: [fixtureHolding(id: 'h-1', assetClass: AssetClass.equity)],
+      thresholds: const StructureThresholds(),
+      freshQuoteHoldingIds: const <String>{},
+    );
+    expect(items.map((i) => i.name), isNot(contains('类别上限')));
+    expect(items.map((i) => i.name), isNot(contains('现金与存款')));
+    expect(items.map((i) => i.name), isNot(contains('权益仓位')));
+    expect(items.length, 5);
   });
 
   test('五项结论顺序固定', () {

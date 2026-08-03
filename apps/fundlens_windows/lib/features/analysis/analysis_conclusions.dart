@@ -167,7 +167,73 @@ List<ConclusionItem> buildAnalysisConclusions({
     );
   }
 
-  return [structure, concentration, qualityItem, coverage, freshnessItem];
+  // 6-8. 结构阈值结论:仅当对应阈值被设置时才输出(未设置只展示实际值,
+  // 不凭空判断);超出/低于阈值时给提示。
+  final thresholdItems = <ConclusionItem>[];
+
+  final classThreshold = thresholds.maxAssetClassShare;
+  if (classThreshold != null) {
+    final ranked = summary.byAssetClass.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = ranked.isEmpty ? null : ranked.first;
+    final topShare = top == null || summary.totalValue.isZero
+        ? DecimalValue.zero
+        : top.value.divide(summary.totalValue);
+    final breached = top != null && topShare.compareTo(classThreshold) > 0;
+    thresholdItems.add(
+      ConclusionItem(
+        name: '类别上限',
+        result: top == null
+            ? '—'
+            : '${assetClassLabels[top.key]!} ${formatShare(topShare)}',
+        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
+        explanation: breached
+            ? '「${assetClassLabels[top.key]!}」占比超过你设置的类别上限。'
+            : '各资产类别占比在你设置的类别上限内。',
+      ),
+    );
+  }
+
+  final cashThreshold = thresholds.minCashAndDepositShare;
+  if (cashThreshold != null) {
+    final cashShare = summary.cashAndDepositShare;
+    final breached = cashShare.compareTo(cashThreshold) < 0;
+    thresholdItems.add(
+      ConclusionItem(
+        name: '现金与存款',
+        result: formatShare(cashShare),
+        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
+        explanation: breached
+            ? '现金与存款占比低于你设置的下限。'
+            : '现金与存款占比不低于你设置的下限。',
+      ),
+    );
+  }
+
+  final equityThreshold = thresholds.maxEquityExposureShare;
+  if (equityThreshold != null) {
+    final equityShare = summary.equityExposureShare;
+    final breached = equityShare.compareTo(equityThreshold) > 0;
+    thresholdItems.add(
+      ConclusionItem(
+        name: '权益仓位',
+        result: formatShare(equityShare),
+        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
+        explanation: breached
+            ? '权益类资产占比超过你设置的权益上限。'
+            : '权益类资产占比在你设置的权益上限内。',
+      ),
+    );
+  }
+
+  return [
+    structure,
+    concentration,
+    ...thresholdItems,
+    qualityItem,
+    coverage,
+    freshnessItem,
+  ];
 }
 
 Holding? _largestHolding(List<Holding> holdings) {

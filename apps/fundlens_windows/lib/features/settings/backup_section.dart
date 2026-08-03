@@ -60,10 +60,13 @@ final class FilePickerBackupFilePicker implements BackupFilePicker {
     final directory = await file_picker.FilePicker.platform.getDirectoryPath();
     if (directory == null) return null;
     final now = DateTime.now();
+    // 时间戳含到时/分,避免同日多次备份同名覆盖(不再需要覆盖确认)。
     final stamp =
         '${now.year.toString().padLeft(4, '0')}'
         '${now.month.toString().padLeft(2, '0')}'
-        '${now.day.toString().padLeft(2, '0')}';
+        '${now.day.toString().padLeft(2, '0')}'
+        '-${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}';
     return p.join(directory, 'fundlens-$stamp$kFundLensBackupExtension');
   }
 
