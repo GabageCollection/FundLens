@@ -7,6 +7,7 @@ import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import 'holding_actions.dart';
@@ -113,19 +114,11 @@ class HoldingsPage extends ConsumerWidget {
       body: switch (state) {
         PortfolioLoading() =>
           const LoadingView(label: '正在加载持仓…'),
-        PortfolioDegraded(:final error) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('持仓数据暂时不可用'),
-                const SizedBox(height: FundLensTokens.space2),
-                Text(
-                  '$error',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
+        PortfolioDegraded() => ErrorRetryView(
+          title: '持仓数据暂时不可用',
+          message: '持仓数据加载失败，本地数据未受影响，请重试。',
+          onRetry: () => ref.invalidate(holdingsProvider),
+        ),
         PortfolioEmpty() => const _EmptyHoldingsBody(),
         PortfolioReady() => const _ReadyBody(),
       },
@@ -139,7 +132,9 @@ class HoldingsPage extends ConsumerWidget {
       await ref.read(holdingRepositoryProvider).upsert(holding);
     } catch (e) {
       // 数据库写入失败(磁盘满/损坏等):提示用户重试,避免异常静默上抛。
-      if (context.mounted) showHoldingToast(context, '操作失败:请重试');
+      if (context.mounted) {
+        showHoldingToast(context, '保存失败：持仓未添加，请重试。', isError: true);
+      }
       return;
     }
     if (context.mounted) showHoldingToast(context, '已保存');
@@ -250,7 +245,11 @@ class _EmptyHoldingsBody extends ConsumerWidget {
                   } catch (e) {
                     // 数据库写入失败(磁盘满/损坏等):提示用户重试,避免异常静默上抛。
                     if (context.mounted) {
-                      showHoldingToast(context, '操作失败:请重试');
+                      showHoldingToast(
+                        context,
+                        '保存失败：持仓未添加，请重试。',
+                        isError: true,
+                      );
                     }
                     return;
                   }

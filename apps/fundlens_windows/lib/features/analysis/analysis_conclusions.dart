@@ -289,8 +289,15 @@ class _StatusChip extends StatelessWidget {
 
   (Color, Color) get _colors => switch (item.status!) {
         ConclusionStatus.normal => (FundLensTokens.lossSoft, FundLensTokens.loss),
-        ConclusionStatus.attention => (FundLensTokens.warnSoft, FundLensTokens.warn),
-        ConclusionStatus.warning => (FundLensTokens.profitSoft, FundLensTokens.profit),
+        // 小字前景用文字档,保证在软底上 ≥4.5:1。
+        ConclusionStatus.attention => (
+          FundLensTokens.warnSoft,
+          FundLensTokens.warnText,
+        ),
+        ConclusionStatus.warning => (
+          FundLensTokens.profitSoft,
+          FundLensTokens.profitText,
+        ),
       };
 
   String get _label => switch (item.status!) {

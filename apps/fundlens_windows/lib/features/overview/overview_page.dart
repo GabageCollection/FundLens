@@ -6,6 +6,7 @@ import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import '../holdings/holding_editor_dialog.dart';
@@ -31,7 +32,11 @@ class OverviewPage extends ConsumerWidget {
       title: '资产总览',
       body: switch (state) {
         PortfolioLoading() => const LoadingView(label: '正在加载资产总览…'),
-        PortfolioDegraded(:final error) => Center(child: Text('数据暂时不可用：$error')),
+        PortfolioDegraded() => ErrorRetryView(
+          title: '资产总览暂时不可用',
+          message: '持仓数据加载失败，本地数据未受影响，请重试。',
+          onRetry: () => ref.invalidate(holdingsProvider),
+        ),
         PortfolioEmpty() => Center(
           child: FilledButton.icon(
             key: const ValueKey('overview-add-first-asset'),

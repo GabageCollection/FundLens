@@ -393,7 +393,9 @@ class _RefreshFailed extends ConsumerWidget {
         children: [
           Text(
             '刷新失败原因：$reason',
-            style: theme.textTheme.bodySmall?.copyWith(color: FundLensTokens.warn),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: FundLensTokens.warnText,
+            ),
           ),
           const SizedBox(height: FundLensTokens.space2),
           TextButton(

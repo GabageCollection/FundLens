@@ -253,7 +253,7 @@ class _OcrFieldTile extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: lowConfidence ? FontWeight.w600 : FontWeight.w400,
                 color: lowConfidence
-                    ? FundLensTokens.warn
+                    ? FundLensTokens.warnText
                     : FundLensTokens.muted,
               ),
             ),

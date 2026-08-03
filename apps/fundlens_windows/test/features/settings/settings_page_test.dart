@@ -163,7 +163,10 @@ void main() {
     );
     // No backup services are wired in this harness: controls are disabled.
     expect(
-      find.descendant(of: backupSection, matching: find.text('备份功能当前不可用。')),
+      find.descendant(
+        of: backupSection,
+        matching: find.text('备份功能当前不可用，现有数据不受影响。请重启应用后重试。'),
+      ),
       findsOneWidget,
     );
   });
@@ -178,7 +181,7 @@ void main() {
       ],
     );
 
-    expect(find.text('备份功能当前不可用。'), findsNothing);
+    expect(find.text('备份功能当前不可用，现有数据不受影响。请重启应用后重试。'), findsNothing);
 
     final createPassword = find.byKey(const ValueKey('backup-create-password'));
     await tester.ensureVisible(createPassword);

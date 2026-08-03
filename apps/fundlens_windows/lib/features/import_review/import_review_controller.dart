@@ -107,9 +107,12 @@ final class ImportCommitted extends ImportReviewState {
 }
 
 final class ImportFailed extends ImportReviewState {
-  const ImportFailed(this.message, this.retryable);
+  const ImportFailed(this.message, this.retryable, {this.retry});
   final String message;
   final bool retryable;
+
+  /// 失败后重新执行同一操作;为 null 时失败页只提供"返回来源"。
+  final Future<void> Function()? retry;
 }
 
 /// Factual summary of a committed import.
@@ -858,14 +861,37 @@ final class ImportReviewController extends ChangeNotifier {
   Future<void> acceptDroppedScreenshots(List<PickedImportFile> files) async {
     if (files.isEmpty) return;
     _source = _source ?? ImportSource.screenshot;
+    var tempPaths = const <String>[];
     try {
       _setState(const ImportParsing(null));
-      final tempPaths = await _tempStore.copyToTemp([
+      tempPaths = await _tempStore.copyToTemp([
         for (final f in files) f.path,
       ]);
       await _runOcr(tempPaths);
     } catch (e) {
-      _setState(ImportFailed('截图识别失败: $e', true));
+      _setState(
+        ImportFailed(
+          '截图识别失败: $e',
+          true,
+          retry: () => _retryOcr(tempPaths),
+        ),
+      );
+    }
+  }
+
+  /// 对同一批截图重新识别;失败再次提供重试入口。
+  Future<void> _retryOcr(List<String> tempPaths) async {
+    try {
+      _setState(const ImportParsing(null));
+      await _runOcr(tempPaths);
+    } catch (e) {
+      _setState(
+        ImportFailed(
+          '截图识别失败: $e',
+          true,
+          retry: () => _retryOcr(tempPaths),
+        ),
+      );
     }
   }
 
@@ -888,7 +914,13 @@ final class ImportReviewController extends ChangeNotifier {
       await _persistTable(table, mapping);
       _setState(ImportFieldMapping(table, mapping));
     } catch (e) {
-      _setState(ImportFailed('文件解析失败: $e', true));
+      _setState(
+        ImportFailed(
+          '文件解析失败: $e',
+          true,
+          retry: () => _parseTabular(file),
+        ),
+      );
     }
   }
 
@@ -909,16 +941,23 @@ final class ImportReviewController extends ChangeNotifier {
   /// Step 2 (screenshots): opens the picker and runs OCR on each selected
   /// screenshot, showing real per-screenshot progress.
   Future<void> pickScreenshots() async {
+    var tempPaths = const <String>[];
     try {
       final files = await _picker.pickScreenshotFiles();
       if (files.isEmpty) return;
       _setState(const ImportParsing(null));
-      final tempPaths = await _tempStore.copyToTemp([
+      tempPaths = await _tempStore.copyToTemp([
         for (final f in files) f.path,
       ]);
       await _runOcr(tempPaths);
     } catch (e) {
-      _setState(ImportFailed('截图识别失败: $e', true));
+      _setState(
+        ImportFailed(
+          '截图识别失败: $e',
+          true,
+          retry: () => _retryOcr(tempPaths),
+        ),
+      );
     }
   }
 
@@ -1476,7 +1515,22 @@ final class ImportReviewController extends ChangeNotifier {
       await _recordStore.save(_lastRecord!);
       _setState(ImportCommitted(report, record));
     } catch (e) {
-      _setState(ImportFailed('写入失败: $e', true));
+      // 写入失败(数据库错误等):提供重试,恢复确认态后重新提交。
+      _setState(ImportFailed('写入失败: $e', true, retry: _retryCommit));
+    }
+  }
+
+  /// 写入失败后恢复到确认态并重新提交。仍失败时再次提供重试。
+  Future<void> _retryCommit() async {
+    final plan = _plan;
+    final draft = _draft;
+    if (plan == null || draft == null) return;
+    try {
+      final current = await _repository.getAll();
+      _setState(ImportCheck(draft, plan, _buildSummary(plan, current, draft)));
+      await commit();
+    } catch (e) {
+      _setState(ImportFailed('写入失败: $e', true, retry: _retryCommit));
     }
   }
 
@@ -1487,7 +1541,7 @@ final class ImportReviewController extends ChangeNotifier {
     try {
       await _commitService.undo(record);
     } catch (e) {
-      _setState(ImportFailed('撤销失败: $e', true));
+      _setState(ImportFailed('撤销失败: $e', true, retry: undo));
       return;
     }
     await _resetReview();

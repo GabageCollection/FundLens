@@ -23,30 +23,31 @@ class _DataHealthButtonState extends ConsumerState<DataHealthButton> {
   Widget build(BuildContext context) {
     final status = ref.watch(dataHealthStatusProvider);
     final (label, icon, color) = switch (status) {
+      // 状态文字用文字档颜色:在画布上满足 WCAG AA(≥4.5:1)。
       DataHealthStatus.normal => (
         '正常',
         Icons.check_circle_outline,
-        FundLensTokens.accent,
+        FundLensTokens.accentText,
       ),
       DataHealthStatus.partialMissing => (
         '部分缺失',
         Icons.error_outline,
-        FundLensTokens.warn,
+        FundLensTokens.warnText,
       ),
       DataHealthStatus.needsUpdate => (
         '需要更新',
         Icons.update,
-        FundLensTokens.warn,
+        FundLensTokens.warnText,
       ),
       DataHealthStatus.refreshing => (
         '正在刷新',
         Icons.sync,
-        FundLensTokens.accent,
+        FundLensTokens.accentText,
       ),
       DataHealthStatus.refreshFailed => (
         '刷新失败',
         Icons.error_outline,
-        FundLensTokens.profit,
+        FundLensTokens.profitText,
       ),
     };
     return MenuAnchor(

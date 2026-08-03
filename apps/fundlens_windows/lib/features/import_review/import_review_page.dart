@@ -66,7 +66,7 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
               state: state,
               controller: controller,
             ),
-            ImportFailed() => _FailedBody(state: state),
+            ImportFailed() => _FailedBody(state: state, controller: controller),
           },
         ),
       ],
@@ -216,28 +216,64 @@ class _ParsingBody extends StatelessWidget {
 }
 
 class _FailedBody extends StatelessWidget {
-  const _FailedBody({required this.state});
+  const _FailedBody({required this.state, required this.controller});
 
   final ImportFailed state;
+  final ImportReviewController controller;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 40, color: FundLensTokens.warn),
-          const SizedBox(height: FundLensTokens.space3),
-          Text(
-            '导入失败：${state.message}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 14,
-              color: FundLensTokens.ink,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 40,
+              color: FundLensTokens.warnText,
             ),
-          ),
-        ],
+            const SizedBox(height: FundLensTokens.space3),
+            Text(
+              '导入未完成',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: FundLensTokens.space2),
+            Text(
+              state.message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: FundLensTokens.space2),
+            Text(
+              '本次未写入任何数据，可重试或返回重新选择。',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: FundLensTokens.muted,
+              ),
+            ),
+            const SizedBox(height: FundLensTokens.space4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state.retry != null) ...[
+                  FilledButton(
+                    onPressed: () => state.retry?.call(),
+                    child: const Text('重试'),
+                  ),
+                  const SizedBox(width: FundLensTokens.space3),
+                ],
+                OutlinedButton(
+                  onPressed: controller.back,
+                  child: const Text('返回来源'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

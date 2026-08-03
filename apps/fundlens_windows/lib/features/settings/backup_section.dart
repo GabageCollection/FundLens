@@ -143,7 +143,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       await _recordBackupInfo(destination);
       _setFeedback('备份已创建：$destination', isError: false);
     } on Exception {
-      _setFeedback('备份创建失败，请重试。', isError: true);
+      _setFeedback('备份创建失败，未生成备份文件。请检查目标位置后重试。', isError: true);
     } finally {
       _createPassword.clear();
       _createConfirm.clear();
@@ -195,13 +195,23 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     try {
       session = await service.prepareRestore(picked, password);
     } on BackupAuthenticationException {
-      _setFeedback('备份密码不正确或备份文件已损坏。', isError: true);
+      _setFeedback(
+        '备份密码不正确或备份文件已损坏，未修改任何数据。'
+        '请确认密码后重试，或选择其他备份文件。',
+        isError: true,
+      );
       return;
     } on BackupFormatException {
-      _setFeedback('备份文件已损坏或格式不受支持。', isError: true);
+      _setFeedback(
+        '备份文件已损坏或格式不受支持，未修改任何数据。请选择其他备份文件。',
+        isError: true,
+      );
       return;
     } on Exception {
-      _setFeedback('恢复失败，当前数据未受影响。', isError: true);
+      _setFeedback(
+        '恢复失败，当前数据未受影响。请重新选择备份文件并确认密码后重试。',
+        isError: true,
+      );
       return;
     } finally {
       // The password was consumed by prepare; never keep it around.
@@ -227,7 +237,10 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       ref.read(databaseRevisionProvider.notifier).state++;
       _setFeedback('恢复完成。', isError: false);
     } on Exception {
-      _setFeedback('恢复失败，当前数据未受影响。', isError: true);
+      _setFeedback(
+        '恢复失败，当前数据未受影响。请重新选择备份文件并确认密码后重试。',
+        isError: true,
+      );
     } finally {
       _restorePassword.clear();
       if (mounted) setState(() => _busy = false);
@@ -296,7 +309,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                '备份功能当前不可用。',
+                '备份功能当前不可用，现有数据不受影响。请重启应用后重试。',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.error,
                 ),
@@ -435,9 +448,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
   Color _strengthColor(PasswordStrength strength, ColorScheme colors) {
     return switch (strength) {
       PasswordStrength.empty => colors.onSurfaceVariant,
-      PasswordStrength.weak => colors.error,
-      PasswordStrength.fair => FundLensTokens.warn,
-      PasswordStrength.strong => FundLensTokens.profit,
+      // "强"改用主色,不再挪用盈利红(红=盈利是金融语义,借作"好"会误读)。
+      PasswordStrength.strong => FundLensTokens.accentText,
+      PasswordStrength.weak || PasswordStrength.fair => FundLensTokens.warnText,
     };
   }
 }

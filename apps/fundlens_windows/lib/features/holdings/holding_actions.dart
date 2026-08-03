@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/app_dependencies.dart';
 import '../../market/quote_refresh_service.dart';
+import '../../widgets/app_toast.dart';
 import '../data_health/data_health_providers.dart';
 import 'holding_editor_dialog.dart';
 import 'holding_export_service.dart';
@@ -14,11 +15,10 @@ final quoteRefreshServiceProvider = Provider<QuoteRefreshService?>((ref) {
   return null;
 });
 
-/// 统一的轻提示。
-void showHoldingToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
-  );
+/// 统一的轻提示(委托全局 [showAppToast],错误带图标)。
+void showHoldingToast(BuildContext context, String message,
+    {bool isError = false}) {
+  showAppToast(context, message, isError: isError);
 }
 
 /// 行级 CRUD 与行情/导出动作,供页面、抽屉与批量条共用。

@@ -466,7 +466,7 @@ class _OptionsCardState extends State<_OptionsCard> {
                   style: const TextStyle(
                     fontFamily: 'Noto Sans SC',
                     fontSize: 12,
-                    color: FundLensTokens.warn,
+                    color: FundLensTokens.warnText,
                   ),
                 ),
               ),

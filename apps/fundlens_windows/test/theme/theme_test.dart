@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
@@ -18,7 +20,7 @@ void main() {
     expect(FundLensTokens.inkSoft, const Color(0xFF4C4639));
     expect(FundLensTokens.muted, const Color(0xFF736E64));
     expect(FundLensTokens.border, const Color(0xFFE4DED1));
-    expect(FundLensTokens.borderStrong, const Color(0xFFD5CFBC));
+    expect(FundLensTokens.borderStrong, const Color(0xFF948E7F));
     expect(FundLensTokens.accent, const Color(0xFFB65233));
     expect(FundLensTokens.accentStrong, const Color(0xFFB65233));
     expect(FundLensTokens.accentSoft, const Color(0xFFF6E4DA));
@@ -155,6 +157,46 @@ void main() {
     final focused = input.focusedBorder! as OutlineInputBorder;
     expect(focused.borderSide.width, FundLensTokens.focusOutlineWidth);
     expect(focused.borderSide.color, FundLensTokens.accent);
+  });
+
+  test('semantic colors on their soft/canvas backgrounds meet WCAG AA', () {
+    // 文字档颜色在小字/软底场景必须 ≥4.5:1;UI 组件边界 ≥3:1。
+    double luminance(Color c) {
+      // Flutter Color 的 r/g/b 通道已是 0.0–1.0。
+      double f(double v) {
+        return v <= 0.04045
+            ? v / 12.92
+            : pow((v + 0.055) / 1.055, 2.4).toDouble();
+      }
+      return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    }
+
+    double contrast(Color a, Color b) {
+      final la = luminance(a);
+      final lb = luminance(b);
+      final lighter = la > lb ? la : lb;
+      final darker = la > lb ? lb : la;
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    const cases = <(String, Color, Color, double)>[
+      ('warnText/warnSoft', FundLensTokens.warnText, FundLensTokens.warnSoft, 4.5),
+      ('warnText/surface', FundLensTokens.warnText, FundLensTokens.surface, 4.5),
+      ('warnText/canvas', FundLensTokens.warnText, FundLensTokens.canvas, 4.5),
+      ('profitText/profitSoft', FundLensTokens.profitText, FundLensTokens.profitSoft, 4.5),
+      ('accentText/accentSoft', FundLensTokens.accentText, FundLensTokens.accentSoft, 4.5),
+      ('accentText/canvas', FundLensTokens.accentText, FundLensTokens.canvas, 4.5),
+      ('sidebarMuted/sidebar', FundLensTokens.sidebarMuted, FundLensTokens.sidebar, 4.5),
+      ('borderStrong/surface(UI 3:1)', FundLensTokens.borderStrong, FundLensTokens.surface, 3.0),
+    ];
+    for (final (name, fg, bg, need) in cases) {
+      final ratio = contrast(fg, bg);
+      expect(
+        ratio,
+        greaterThanOrEqualTo(need),
+        reason: '$name 对比度 $ratio 低于 $need',
+      );
+    }
   });
 
   test('no text style in the scale is smaller than 12px', () {

@@ -31,8 +31,8 @@ abstract final class FundLensTokens {
   /// 常规边框与分隔线。
   static const border = Color(0xFFE4DED1);
 
-  /// 强调边框:输入框常态、卡片 hover。
-  static const borderStrong = Color(0xFFD5CFBC);
+  /// 强调边框:输入框常态、卡片 hover。深度满足 WCAG 1.4.11 非文本 3:1。
+  static const borderStrong = Color(0xFF948E7F);
 
   // ---- 颜色:主色(陶土橙) ----
   /// 图形强调(图表、资产光谱高亮)。
@@ -44,10 +44,17 @@ abstract final class FundLensTokens {
   /// 主色浅底:选中导航、chip 底色。
   static const accentSoft = Color(0xFFF6E4DA);
 
+  /// 主色文字档:比 [accent] 更深,用于在 accentSoft/canvas 上作正文文字,
+  /// 保证 WCAG AA(≥4.5:1)。[accent] 本身用于图标、焦点轮廓与图形强调。
+  static const accentText = Color(0xFFA84B2E);
+
   // ---- 颜色:金融语义(国内习惯:红盈利、绿亏损) ----
   /// 上涨与盈利。
   static const profit = Color(0xFFB84B34);
   static const profitSoft = Color(0xFFF8E7E1);
+
+  /// 盈利文字档:用于 profitSoft 上的小字,对比度 ≥4.5:1。
+  static const profitText = Color(0xFFAF4530);
 
   /// 下跌与亏损。
   static const loss = Color(0xFF19705D);
@@ -56,6 +63,9 @@ abstract final class FundLensTokens {
   // ---- 颜色:数据异常警告 ----
   static const warn = Color(0xFFA66A16);
   static const warnSoft = Color(0xFFF6ECD4);
+
+  /// 警示文字档:用于 warnSoft/surface/canvas 上的小字,对比度 ≥4.5:1。
+  static const warnText = Color(0xFF8F5A10);
 
   // ---- 颜色:禁用状态 ----
   static const disabled = Color(0xFFC9C5BC);
@@ -66,8 +76,8 @@ abstract final class FundLensTokens {
   /// 侧边栏未选中文字。
   static const sidebarInk = Color(0xFFB6AD9C);
 
-  /// 侧边栏弱提示文字(分组标签、页脚次行)。
-  static const sidebarMuted = Color(0xFF6E6656);
+  /// 侧边栏弱提示文字(分组标签、页脚次行),在 sidebar 上 ≥4.5:1。
+  static const sidebarMuted = Color(0xFF978C75);
 
   /// 侧边栏品牌字标。
   static const sidebarTitle = Color(0xFFF3EFE6);

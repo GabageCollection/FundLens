@@ -113,7 +113,7 @@ class MarketSettingsSection extends ConsumerWidget {
           if (service == null) ...[
             const SizedBox(height: 8),
             Text(
-              '行情引擎不可用，显示的是最近一次估值',
+              '行情引擎不可用，当前显示的是最近一次估值。请稍后重试刷新。',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.error),
             ),
@@ -145,7 +145,7 @@ class MarketSettingsSection extends ConsumerWidget {
     // 委托统一入口:同时维护全局刷新状态、新鲜集合与最近刷新记录。
     final report = await HoldingActions.refreshQuotes(ref.container, holdings);
     if (report == null && context.mounted) {
-      showAppToast(context, '行情引擎不可用，显示的是最近一次估值', isError: true);
+      showAppToast(context, '行情引擎不可用，当前显示的是最近一次估值。请稍后重试刷新。', isError: true);
     }
   }
 

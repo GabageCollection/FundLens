@@ -250,7 +250,11 @@ class HoldingDetailDrawer extends ConsumerWidget {
                         onFailure: () {
                           // 保存失败(数据库写入异常):提示重试,抽屉保持打开。
                           if (context.mounted) {
-                            showHoldingToast(context, '操作失败:请重试');
+                            showHoldingToast(
+                              context,
+                              '保存失败：持仓未修改，请重试。',
+                              isError: true,
+                            );
                           }
                         },
                       );
@@ -273,8 +277,12 @@ class HoldingDetailDrawer extends ConsumerWidget {
                               );
                               if (!context.mounted) return;
                               if (report == null) {
-                                // 刷新失败(网络异常等):提示重试,不显示 0 计数汇报。
-                                showHoldingToast(context, '操作失败:请重试');
+                                // 刷新失败或进行中:提示,不显示 0 计数汇报。
+                                showHoldingToast(
+                                  context,
+                                  '行情刷新失败，保留最近一次估值。请稍后重试。',
+                                  isError: true,
+                                );
                                 return;
                               }
                               showHoldingToast(
@@ -302,7 +310,11 @@ class HoldingDetailDrawer extends ConsumerWidget {
                         onFailure: () {
                           // 删除失败(数据库错误等):提示重试,不关闭抽屉。
                           if (context.mounted) {
-                            showHoldingToast(context, '操作失败:请重试');
+                            showHoldingToast(
+                              context,
+                              '删除失败：持仓未删除，请重试。',
+                              isError: true,
+                            );
                           }
                         },
                       );

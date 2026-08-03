@@ -207,7 +207,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 刷新失败:提示重试,不得把失败伪装成"更新 0 · 保留 0 · 失败 0"。
-    expect(find.text('操作失败:请重试'), findsOneWidget);
+    expect(find.text('行情刷新失败，保留最近一次估值。请稍后重试。'), findsOneWidget);
     expect(find.textContaining('行情:更新'), findsNothing);
   });
 }

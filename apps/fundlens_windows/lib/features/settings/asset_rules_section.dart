@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/app_dependencies.dart';
+import '../../theme/fundlens_tokens.dart';
 import '../analysis/structure_thresholds.dart';
 import 'persisted_settings.dart';
 import 'widgets/settings_section_card.dart';
@@ -267,8 +268,10 @@ class _ParameterRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   field.impact,
+                  // outline 令牌是边框色(#E4DED1),用作正文会近乎隐形(≈1.3:1);
+                  // 影响说明文字用 muted。
                   style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.outline),
+                      ?.copyWith(color: FundLensTokens.muted),
                 ),
               ),
               TextButton(

@@ -122,7 +122,11 @@ class HoldingBatchBar extends ConsumerWidget {
     } catch (e) {
       // 数据库写入失败(磁盘满/损坏等):提示用户,避免异常静默上抛。
       if (context.mounted) {
-        showHoldingToast(context, '操作失败:请重试');
+        showHoldingToast(
+          context,
+          '修改失败：${selected.length} 项持仓未变更，请重试。',
+          isError: true,
+        );
       }
       return;
     }
@@ -163,7 +167,11 @@ class HoldingBatchBar extends ConsumerWidget {
     } catch (e) {
       // 数据库写入失败(磁盘满/损坏等):提示用户,避免异常静默上抛。
       if (context.mounted) {
-        showHoldingToast(context, '操作失败:请重试');
+        showHoldingToast(
+          context,
+          '修改失败：${selected.length} 项持仓未变更，请重试。',
+          isError: true,
+        );
       }
       return;
     }
@@ -193,9 +201,12 @@ class HoldingBatchBar extends ConsumerWidget {
     final report = await HoldingActions.refreshQuotes(ref.container, selected);
     if (!context.mounted) return;
     if (report == null) {
-      // 刷新失败(网络异常等):canRefresh 已保证有可刷新资产且服务已接线,
-      // 此处 null 只可能来自刷新异常,提示重试而非显示 0 计数汇报。
-      showHoldingToast(context, '操作失败:请重试');
+      // 刷新失败或进行中:提示,不显示 0 计数汇报。
+      showHoldingToast(
+        context,
+        '行情刷新失败，保留最近一次估值。请稍后重试。',
+        isError: true,
+      );
       return;
     }
     showHoldingToast(
@@ -222,7 +233,7 @@ class HoldingBatchBar extends ConsumerWidget {
     } catch (e) {
       // 写文件失败(路径无权限/磁盘满/文件被占用):提示用户,避免异常上抛。
       if (context.mounted) {
-        showHoldingToast(context, '操作失败:请重试');
+        showHoldingToast(context, '导出失败：未生成文件，请重试。', isError: true);
       }
       return;
     }
@@ -253,7 +264,11 @@ class HoldingBatchBar extends ConsumerWidget {
     } catch (e) {
       // 删除失败(数据库错误等):保留选择以便用户重试,不进入成功路径。
       if (context.mounted) {
-        showHoldingToast(context, '操作失败:请重试');
+        showHoldingToast(
+          context,
+          '删除失败：${selected.length} 项持仓未删除，请重试。',
+          isError: true,
+        );
       }
       return;
     }
