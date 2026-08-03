@@ -45,9 +45,10 @@ dist/
 *.db-shm
 /tmp/
 
-# Kimi / agent runtime
+# Kimi / Claude / agent runtime
 .kimi/
 .kimi-code/
+.claude/
 
 # Local sqlite3mc native binary used for offline testing; do not commit
 /tools/sqlite3mc/*.dll

@@ -11,6 +11,8 @@ FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工
 - **能力接口层 / Ports**：`HoldingRepository`、`SnapshotRepository`、`DataEngineClient` 等抽象接口，连接 Flutter 与底层实现。
 - **加密本地存储**：Drift + sqlite3mc（SQLCipher 兼容）加密 SQLite；数据库密钥由 Windows Credential Manager（flutter_secure_storage）保护。
 - **内置 Python 数据引擎**：仅负责本地 PaddleOCR 中文识别、产品名称匹配、行情获取和字段标准化。通过 stdin/stdout 逐行 JSON-RPC 2.0 通信，`schema_version = 1`。不计算总资产、收益、风险，不写入正式持仓。
+- **引擎协议契约**：`schemas/engine_protocol_v1.schema.json` 定义请求/成功/失败信封（`schema_version = 1`）；引擎只暴露 `health.check`、`ocr.parse_screenshots`、`product.match_candidates`、`market.fetch_quotes` 四个方法。
+- **数据库 schema**：当前 `schemaVersion = 1`，尚无 Drift 迁移机制；改表前需先设计版本迁移与旧备份升级路径。
 
 ## 不可变数据原则
 
@@ -60,12 +62,58 @@ FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工
 - 每个任务遵循 TDD：先写失败测试，再最小实现，再运行完整回归，最后小而清晰的提交。
 - 阶段完成后通过独立验收门禁；未通过门禁不进入下一阶段。
 - 依赖版本在阶段 1 固定并提交 lockfile；后续阶段未经评审不得升级。
+- 任务完成、质量门禁全绿后直接合并回 master（非 fast-forward 用 `git merge --no-ff`），并按 `tools/build_windows_release.ps1` 产出 Windows exe；不留在分支上等验收。
 
-## 测试与质量门禁
+## 常用命令
 
-- `dart test packages/fundlens_core`
-- `flutter test apps/fundlens_windows`
-- `flutter analyze apps/fundlens_windows`
-- `python -m pytest engine/tests -q`
-- `python -m ruff check engine` / `python -m mypy engine/src`
-- 关键场景：空成本/负收益、六类资产、行情过期/失败、OCR 低置信度、事务回滚、错误/损坏备份、Python 引擎崩溃恢复。
+### 质量门禁（提交前全绿）
+
+```bash
+# 领域层——dart test 必须在包目录内运行，否则报 “No pubspec.yaml”
+cd packages/fundlens_core && dart test
+
+# Flutter 应用——Windows 上须经 sqlite3mc 本地服务器包装以提供 SQLCipher DLL
+python tools/with_sqlite3mc_server.py 8765 flutter test apps/fundlens_windows
+flutter analyze apps/fundlens_windows
+
+# Python 引擎——pyproject.toml 已默认 `addopts = "-m 'not live'"` 跳过联网测试
+python -m pytest engine/tests -q
+python -m ruff check engine
+python -m mypy engine/src
+```
+
+### 运行单个测试
+
+```bash
+cd packages/fundlens_core && dart test test/model/decimal_value_test.dart
+cd packages/fundlens_core && dart test --plain-name 'DecimalValue 精确相等'
+
+python tools/with_sqlite3mc_server.py 8765 \
+  flutter test apps/fundlens_windows/test/storage/app_database_test.dart
+python tools/with_sqlite3mc_server.py 8765 \
+  flutter test apps/fundlens_windows/integration_test/performance_test.dart
+
+python -m pytest engine/tests/test_server.py -q
+python -m pytest engine/tests/test_server.py -k 'utf8' -q
+```
+
+### 构建与打包
+
+```bash
+# 数据引擎（PyInstaller → dist/engine/fundlens_engine）
+powershell -File tools/build_engine.ps1
+
+# 全量发布流水线：工具链验证 → 引擎打包 → Dart/Flutter 测试 → analyze
+# → flutter build windows --release → 内嵌引擎 → bundle 校验 → Inno Setup 安装包
+powershell -File tools/build_windows_release.ps1
+
+# 发布验收
+powershell -File tests/release/verify_bundle.ps1
+powershell -File tests/release/clean_vm_acceptance.ps1 dist/installer/FundLens-Setup.exe
+```
+
+### 环境注意
+
+- 本机 Flutter 在 `D:\flutter`；构建脚本硬编码 `D:\flutter\bin\flutter.bat` 与 `dart.exe`，并设置 pub 镜像 `PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL`（`https://pub.flutter-io.cn`）。手动执行前确认 `D:\flutter\bin` 在 PATH。
+- `flutter test` / `flutter build` 在 Windows 上依赖 sqlite3mc DLL，必须经 `tools/with_sqlite3mc_server.py <端口> <命令>` 包装。
+- 关键场景回归：空成本/负收益、六类资产、行情过期/失败、OCR 低置信度、事务回滚、错误/损坏备份、Python 引擎崩溃恢复。
