@@ -131,6 +131,36 @@ void main() {
     expect(update.quantity, isNull);
   });
 
+  test('显式 merge 决议允许跨平台同名合并(与检查面板疑似重复一致)', () {
+    final plan = planner.plan(
+      platform: SourcePlatform.alipay,
+      current: [
+        _existing(platform: SourcePlatform.manual, currentValue: '1000'),
+      ],
+      incoming: [_incoming(currentValue: '500')],
+      resolutions: {0: DuplicateResolution.merge},
+    );
+    final update = plan.updates.single;
+    expect(update.id, 'existing');
+    expect(update.currentValue.canonical, '1500');
+    expect(plan.inserts, isEmpty);
+  });
+
+  test('显式 overwrite 决议允许跨平台同名覆盖', () {
+    final plan = planner.plan(
+      platform: SourcePlatform.alipay,
+      current: [
+        _existing(platform: SourcePlatform.manual, currentValue: '1000'),
+      ],
+      incoming: [_incoming(currentValue: '500')],
+      resolutions: {0: DuplicateResolution.overwrite},
+    );
+    final update = plan.updates.single;
+    expect(update.id, 'existing');
+    expect(update.currentValue.canonical, '500');
+    expect(plan.inserts, isEmpty);
+  });
+
   test('keepBoth 即使匹配也作为新行插入,现有行保持不变', () {
     final plan = planner.plan(
       platform: SourcePlatform.alipay,

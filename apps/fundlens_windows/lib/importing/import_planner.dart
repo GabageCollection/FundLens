@@ -51,11 +51,16 @@ final class ImportPlanner {
         continue;
       }
 
+      // 检查面板的疑似重复提示可跨平台（同名/同代码）；用户显式决议
+      // merge/overwrite 即确认跨平台行属同一持仓，此时允许跨平台匹配。
+      // 未显式决议的行保持仅同平台自动匹配，避免静默改写其他平台记录。
+      final pool = resolutions.containsKey(i) ? current : samePlatform;
+
       // 1. Same platform + exact product code.
       Holding? match;
       final code = draft.productCode;
       if (code != null && code.isNotEmpty) {
-        final codeMatches = samePlatform
+        final codeMatches = pool
             .where((h) => h.productCode == code && !matchedIds.contains(h.id))
             .toList();
         if (codeMatches.length == 1) {
@@ -77,7 +82,7 @@ final class ImportPlanner {
       // 2. Same platform + normalized name + instrument type.
       if (match == null) {
         final normalized = normalizeProductName(draft.productName);
-        final nameMatches = samePlatform
+        final nameMatches = pool
             .where(
               (h) =>
                   normalizeProductName(h.productName) == normalized &&

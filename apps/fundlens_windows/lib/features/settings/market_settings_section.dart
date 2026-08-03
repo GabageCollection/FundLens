@@ -136,11 +136,18 @@ class MarketSettingsSection extends ConsumerWidget {
     DateTime? lastAttemptUtc,
     QuoteRefreshAttempt? sessionAttempt,
   ) {
-    if (lastAttemptUtc == null) return '上次刷新：尚未刷新';
-    final base = '上次刷新：${_formatDateTime(lastAttemptUtc.toLocal())}';
+    // 本会话内刷新过则优先呈现本次结果:持久化的 lastAttemptUtc 只在
+    // 启动自动刷新路径写入,手动刷新后若尚无持久化时间,不应退化为
+    // 「尚未刷新」而丢掉本次更新/失败条数。
     final attempt = sessionAttempt;
-    if (attempt == null) return base;
-    return '$base · 更新 ${attempt.updated} 条 · 失败 ${attempt.failed} 条';
+    if (attempt != null) {
+      final base = lastAttemptUtc == null
+          ? '上次刷新：本会话'
+          : '上次刷新：${_formatDateTime(lastAttemptUtc.toLocal())}';
+      return '$base · 更新 ${attempt.updated} 条 · 失败 ${attempt.failed} 条';
+    }
+    if (lastAttemptUtc == null) return '上次刷新：尚未刷新';
+    return '上次刷新：${_formatDateTime(lastAttemptUtc.toLocal())}';
   }
 
   Future<void> _refreshNow(BuildContext context, WidgetRef ref) async {
