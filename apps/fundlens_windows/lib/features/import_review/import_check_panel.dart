@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../importing/import_models.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
 import 'data_issue_list.dart';
 import 'import_review_controller.dart';
 
@@ -511,24 +512,12 @@ class _ConfirmRow extends StatelessWidget {
     if (state is! ImportCheck) return;
     final plan = state.plan;
     if (controller.mode == ImportMode.full && plan.removeIds.isNotEmpty) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('确认全量写入'),
-          content: Text('将移除 ${plan.removeIds.length} 条持仓'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('确认'),
-            ),
-          ],
-        ),
+      final confirmed = await showConfirmDialog(
+        context,
+        title: '确认全量写入',
+        content: Text('将移除 ${plan.removeIds.length} 条持仓，其余数据按本次导入结果更新。'),
       );
-      if (confirmed != true) return;
+      if (!confirmed) return;
       await controller.commit(confirmedFullRemovals: true);
       return;
     }

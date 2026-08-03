@@ -6,6 +6,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
 import 'holding_actions.dart';
 import 'holding_filters.dart';
 
@@ -237,24 +238,14 @@ class HoldingBatchBar extends ConsumerWidget {
     WidgetRef ref,
     List<Holding> selected,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除持仓'),
-        content: Text('确定删除选中的 ${selected.length} 项持仓吗?此操作不可撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: '删除持仓',
+      content: Text('确定删除选中的 ${selected.length} 项持仓吗?此操作不可撤销。'),
+      confirmLabel: '删除',
+      destructive: true,
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
     try {
       await ref
           .read(holdingRepositoryProvider)

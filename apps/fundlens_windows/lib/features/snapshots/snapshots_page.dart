@@ -5,6 +5,8 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
+import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import 'snapshot_compare_view.dart';
 import 'snapshot_deletion.dart';
@@ -31,7 +33,7 @@ class SnapshotsPage extends ConsumerWidget {
         ),
       ],
       body: snapshots.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const LoadingView(label: '正在加载快照…'),
         error: (error, _) => Center(child: Text('快照加载失败：$error')),
         data: (list) {
           final sorted = List<PortfolioSnapshot>.of(list)
@@ -111,27 +113,17 @@ class SnapshotsPage extends ConsumerWidget {
     WidgetRef ref,
     PortfolioSnapshot snapshot,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('删除快照'),
-        content: Text(
-          '将删除快照「${snapshot.label}」（${_formatDate(snapshot.createdAt)}），'
-          '此操作不可撤销。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
+    final confirmed = await showConfirmDialog(
+      context,
+      title: '删除快照',
+      content: Text(
+        '将删除快照「${snapshot.label}」（${_formatDate(snapshot.createdAt)}），'
+        '该历史记录删除后无法恢复，对比视图将少一个可选快照。',
       ),
+      confirmLabel: '删除',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     await ref.read(snapshotDeletionProvider)(snapshot.id);
     ref.invalidate(snapshotsProvider);

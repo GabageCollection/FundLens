@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/portfolio_providers.dart';
 import '../../application/schedule_policy.dart';
+import '../../widgets/app_toast.dart';
 import '../data_health/data_health_providers.dart';
 import '../holdings/holding_actions.dart';
 import 'persisted_settings.dart';
@@ -144,9 +145,7 @@ class MarketSettingsSection extends ConsumerWidget {
     // 委托统一入口:同时维护全局刷新状态、新鲜集合与最近刷新记录。
     final report = await HoldingActions.refreshQuotes(ref.container, holdings);
     if (report == null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('行情引擎不可用，显示的是最近一次估值')),
-      );
+      showAppToast(context, '行情引擎不可用，显示的是最近一次估值', isError: true);
     }
   }
 

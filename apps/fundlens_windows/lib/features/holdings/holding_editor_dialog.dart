@@ -3,6 +3,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
 import 'holding_filters.dart';
 
 const _uuid = Uuid();
@@ -24,25 +25,14 @@ Future<Holding?> showHoldingEditorDialog(
 Future<bool> showHoldingDeleteConfirmation(
   BuildContext context,
   Holding holding,
-) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('删除持仓'),
-      content: Text('确定删除「${holding.productName}」吗？此操作不可撤销。'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('删除'),
-        ),
-      ],
-    ),
+) {
+  return showConfirmDialog(
+    context,
+    title: '删除持仓',
+    content: Text('确定删除「${holding.productName}」吗？此操作不可撤销。'),
+    confirmLabel: '删除',
+    destructive: true,
   );
-  return confirmed ?? false;
 }
 
 /// Manual add/edit form for one holding.

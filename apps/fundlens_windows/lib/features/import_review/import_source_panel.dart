@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../importing/import_models.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/app_toast.dart';
 import 'import_review_controller.dart';
 
 /// OS-backed picker used by the app bootstrap; tests inject a fake
@@ -525,7 +526,6 @@ class _TemplateDownloads extends StatelessWidget {
     required String assetName,
     required String fileName,
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final bytes = await rootBundle.load('assets/import-templates/$assetName');
       final savedPath = await file_picker.FilePicker.platform.saveFile(
@@ -533,11 +533,13 @@ class _TemplateDownloads extends StatelessWidget {
         fileName: fileName,
         bytes: bytes.buffer.asUint8List(),
       );
-      if (savedPath != null) {
-        messenger.showSnackBar(SnackBar(content: Text('模板已保存: $savedPath')));
+      if (savedPath != null && context.mounted) {
+        showAppToast(context, '模板已保存: $savedPath');
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('模板保存失败: $e')));
+      if (context.mounted) {
+        showAppToast(context, '模板保存失败，请重试。', isError: true);
+      }
     }
   }
 

@@ -7,6 +7,7 @@ import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import 'holding_actions.dart';
 import 'holding_batch_bar.dart';
@@ -111,7 +112,7 @@ class HoldingsPage extends ConsumerWidget {
       ],
       body: switch (state) {
         PortfolioLoading() =>
-          const Center(child: CircularProgressIndicator()),
+          const LoadingView(label: '正在加载持仓…'),
         PortfolioDegraded(:final error) => Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,

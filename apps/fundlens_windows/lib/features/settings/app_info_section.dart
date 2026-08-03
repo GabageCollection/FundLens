@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../theme/fundlens_tokens.dart';
 import '../../updates/update_checker.dart';
+import '../../widgets/app_toast.dart';
 import '../../updates/update_service.dart';
 import 'widgets/setting_info_row.dart';
 import 'widgets/settings_section_card.dart';
@@ -75,7 +76,7 @@ class _AppInfoSectionState extends ConsumerState<AppInfoSection> {
         case UpdateUpToDate():
           _showSnack('当前已是最新版本');
         case UpdateCheckFailed(:final message):
-          _showSnack(message);
+          _showSnack(message, isError: true);
         case UpdateAvailable(:final manifest, :final currentVersion):
           await _offerUpdate(manifest, currentVersion);
       }
@@ -98,9 +99,8 @@ class _AppInfoSectionState extends ConsumerState<AppInfoSection> {
     );
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+  void _showSnack(String message, {bool isError = false}) {
+    showAppToast(context, message, isError: isError);
   }
 }
 

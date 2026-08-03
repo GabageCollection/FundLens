@@ -142,6 +142,23 @@ abstract final class FundLensTheme {
           borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
         ),
       ),
+      // 全局轻提示:暖墨深底、圆角 8,风格与画布一致。
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: FundLensTokens.ink,
+        contentTextStyle: const TextStyle(
+          fontFamily: 'Noto Sans SC',
+          fontSize: 14,
+          color: Color(0xFFFFFFFF),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      // 加载指示统一主色,与视觉体系一致。
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: FundLensTokens.accent,
+      ),
       focusColor: FundLensTokens.accent.withValues(alpha: 0.16),
       // 主按钮:高 40,圆角 8,禁用态使用 disabled 灰。
       filledButtonTheme: FilledButtonThemeData(
@@ -179,7 +196,16 @@ abstract final class FundLensTheme {
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           minimumSize: const Size(64, FundLensTokens.buttonHeight),
           shape: controlShape,
-        ),
+        ).copyWith(side: focusSide),
+      ),
+      // 图标按钮:同样落实 2px 主色 Focus 轮廓,与其他按钮一致。
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(
+            FundLensTokens.minTapTarget,
+            FundLensTokens.minTapTarget,
+          ),
+        ).copyWith(side: focusSide),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
@@ -231,6 +257,26 @@ abstract final class FundLensTheme {
             color: FundLensTokens.accent,
             width: FundLensTokens.focusOutlineWidth,
           ),
+        ),
+        // 校验错误态:与盈利红同族(项目有意设计),边框与错误文字统一呈现。
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
+          borderSide: BorderSide(
+            color: colorScheme.error,
+            width: FundLensTokens.focusOutlineWidth,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
+          borderSide: BorderSide(
+            color: colorScheme.error,
+            width: FundLensTokens.focusOutlineWidth,
+          ),
+        ),
+        errorStyle: const TextStyle(
+          fontFamily: 'Noto Sans SC',
+          fontSize: 12,
+          color: FundLensTokens.profit,
         ),
       ),
       extensions: const [

@@ -18,6 +18,10 @@ namespace {
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 
+/// Minimum window size in logical pixels (CLAUDE.md: 1280×720).
+constexpr int kMinWindowWidth = 1280;
+constexpr int kMinWindowHeight = 720;
+
 /// Registry key for app theme preference.
 ///
 /// A value of 0 indicates apps should use dark mode. A non-zero or missing
@@ -212,6 +216,17 @@ Win32Window::MessageHandler(HWND hwnd,
         SetFocus(child_content_);
       }
       return 0;
+
+    case WM_GETMINMAXINFO: {
+      // 锁定最小窗口为 1280×720(逻辑像素),防止用户将窗口拖到无法操作的尺寸。
+      auto min_max = reinterpret_cast<MINMAXINFO*>(lparam);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(
+          MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST));
+      double scale_factor = dpi / 96.0;
+      min_max->ptMinTrackSize.x = Scale(kMinWindowWidth, scale_factor);
+      min_max->ptMinTrackSize.y = Scale(kMinWindowHeight, scale_factor);
+      return 0;
+    }
 
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);

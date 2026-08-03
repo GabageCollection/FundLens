@@ -10,6 +10,7 @@ import '../../backup/backup_service.dart';
 import '../../backup/database_restore_service.dart';
 import '../../backup/password_strength.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
 import 'persisted_settings.dart';
 import 'widgets/setting_info_row.dart';
 import 'widgets/settings_section_card.dart';
@@ -240,35 +241,25 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
   /// live database is touched. Returns true only when the user confirmed.
   Future<bool?> _showRestoreSummary(RestoreSession session) {
     final summary = session.summary;
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('恢复备份'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('备份时间：${_formatDateTime(summary.createdAtUtc.toLocal())}'),
-            const SizedBox(height: 8),
-            Text(
-              '数据摘要：持仓 ${summary.holdingCount} 条'
-              ' · 快照 ${summary.snapshotCount} 份',
-            ),
-            const SizedBox(height: 8),
-            const Text('将用该备份替换当前数据。替换前会在本机保留当前数据的恢复副本。'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
+    return showConfirmDialog(
+      context,
+      title: '恢复备份',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('备份时间：${_formatDateTime(summary.createdAtUtc.toLocal())}'),
+          const SizedBox(height: 8),
+          Text(
+            '数据摘要：持仓 ${summary.holdingCount} 条'
+            ' · 快照 ${summary.snapshotCount} 份',
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('确认恢复'),
-          ),
+          const SizedBox(height: 8),
+          const Text('将用该备份替换当前数据。替换前会在本机保留当前数据的恢复副本。'),
         ],
       ),
+      confirmLabel: '确认恢复',
+      destructive: true,
     );
   }
 

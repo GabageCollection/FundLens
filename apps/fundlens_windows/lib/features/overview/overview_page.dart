@@ -6,6 +6,7 @@ import '../../application/portfolio_providers.dart';
 import '../../application/portfolio_state.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import '../holdings/holding_editor_dialog.dart';
 import 'asset_spectrum.dart';
@@ -29,7 +30,7 @@ class OverviewPage extends ConsumerWidget {
       crumb: '组合',
       title: '资产总览',
       body: switch (state) {
-        PortfolioLoading() => const Center(child: CircularProgressIndicator()),
+        PortfolioLoading() => const LoadingView(label: '正在加载资产总览…'),
         PortfolioDegraded(:final error) => Center(child: Text('数据暂时不可用：$error')),
         PortfolioEmpty() => Center(
           child: FilledButton.icon(
