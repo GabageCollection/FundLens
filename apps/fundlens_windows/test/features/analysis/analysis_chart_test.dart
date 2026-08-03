@@ -45,7 +45,7 @@ final testRows = [
     share: DecimalValue.parse('0.152'),
   ),
   ChartBarRow(
-    label: '其他',
+    label: '其余 2 项',
     amount: DecimalValue.parse('8000'),
     share: DecimalValue.parse('0.101'),
     isAggregate: true,
@@ -80,7 +80,7 @@ void main() {
     );
     final rows = buildChartRows(summary, AnalysisDimension.assetClass);
     expect(rows.length, 6);
-    expect(rows.last.label, '其他');
+    expect(rows.last.label, '其余 2 项');
     expect(rows.last.isAggregate, isTrue);
     expect(rows.last.amount.canonical, '3000'); // 降序前 5 之后的最小 2 项:2000+1000
     expect(rows.last.share.canonical, '0.10714285'); // 3000 ÷ 28000,DecimalValue 除法按 8 位截断

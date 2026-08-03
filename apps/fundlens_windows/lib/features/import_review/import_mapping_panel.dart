@@ -229,14 +229,17 @@ class _PreviewTable extends StatelessWidget {
         borderRadius: BorderRadius.circular(FundLensTokens.radiusCard),
         side: FundLensTokens.cardBorder,
       ),
-      child: Table(
-        columnWidths: {
-          for (var i = 0; i < headings.length; i++) i: const FlexColumnWidth(),
-        },
-        border: const TableBorder(
-          horizontalInside: BorderSide(color: FundLensTokens.border),
-        ),
-        children: [
+      child: SingleChildScrollView(
+        // 高 DPI/200% 缩放或列数较多时横向滚动而非溢出。
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          columnWidths: {
+            for (var i = 0; i < headings.length; i++) i: const FlexColumnWidth(),
+          },
+          border: const TableBorder(
+            horizontalInside: BorderSide(color: FundLensTokens.border),
+          ),
+          children: [
           TableRow(
             decoration: const BoxDecoration(color: FundLensTokens.surfaceAlt),
             children: [
@@ -274,7 +277,8 @@ class _PreviewTable extends StatelessWidget {
                   ),
               ],
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -53,8 +53,9 @@ class _DataHealthButtonState extends ConsumerState<DataHealthButton> {
     return MenuAnchor(
       controller: _menuController,
       builder: (context, controller, child) {
-        return SizedBox(
-          height: FundLensTokens.buttonHeight,
+        // minHeight 而非固定高:高 DPI / 200% 缩放下文字增大不截断。
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: FundLensTokens.buttonHeight),
           child: OutlinedButton.icon(
             key: const ValueKey('data-status-button'),
             onPressed: () => controller.isOpen

@@ -82,7 +82,7 @@ List<ChartBarRow> buildChartRows(
     for (final (label, amount) in kept)
       ChartBarRow(label: label, amount: amount, share: shareOf(amount)),
     ChartBarRow(
-      label: '其他',
+      label: '其余 ${raw.length - 5} 项',
       amount: mergedAmount,
       share: shareOf(mergedAmount),
       isAggregate: true,

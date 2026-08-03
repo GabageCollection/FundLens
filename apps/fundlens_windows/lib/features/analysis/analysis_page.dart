@@ -132,12 +132,17 @@ class _CompositionChartCard extends ConsumerWidget {
       builder: (context, _) {
         final dimension = AnalysisDimension.values[tabController.index];
         final rows = buildChartRows(summary, dimension);
-        return _buildCard(theme, dimension, rows);
+        return _buildCard(context, theme, dimension, rows);
       },
     );
   }
 
-  Widget _buildCard(ThemeData theme, AnalysisDimension dimension, List<ChartBarRow> rows) {
+  Widget _buildCard(
+    BuildContext context,
+    ThemeData theme,
+    AnalysisDimension dimension,
+    List<ChartBarRow> rows,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(FundLensTokens.cardPadding),
@@ -176,7 +181,10 @@ class _CompositionChartCard extends ConsumerWidget {
               height: 264,
               key: const ValueKey('analysis-chart-area'),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
+                // 微交互动画 150ms;系统减少动画时完全关闭。
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 150),
                 child: switch (dimension) {
                   AnalysisDimension.source => PlatformProportionBar(
                     key: const ValueKey('platform-proportion-bar'),

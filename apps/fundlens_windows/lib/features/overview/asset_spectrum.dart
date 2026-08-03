@@ -223,9 +223,10 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
     }
 
     final disableAnimations = MediaQuery.of(context).disableAnimations;
+    // 微交互动画控制在 150ms 内;系统减少动画时完全关闭。
     final duration = disableAnimations
         ? Duration.zero
-        : const Duration(milliseconds: 400);
+        : const Duration(milliseconds: 150);
     // Re-run the orchestrated animation whenever the shares change (import or
     // snapshot switch); keyed on the exact geometry so taps stay stable.
     final signature = segments

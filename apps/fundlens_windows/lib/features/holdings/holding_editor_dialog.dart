@@ -210,8 +210,8 @@ class _HoldingEditorDialogState extends State<HoldingEditorDialog> {
     final theme = Theme.of(context);
     return AlertDialog(
       title: Text(widget.initial == null ? '添加持仓' : '编辑持仓'),
-      content: SizedBox(
-        width: 520,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(

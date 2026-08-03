@@ -17,7 +17,10 @@ Future<void> showHoldingDetailDrawer(BuildContext context, String holdingId) {
     barrierDismissible: true,
     barrierLabel: '关闭持仓详情',
     barrierColor: const Color(0x61000000),
-    transitionDuration: const Duration(milliseconds: 200),
+    // 抽屉滑入 150ms;系统减少动画时完全关闭。
+    transitionDuration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 150),
     pageBuilder: (context, animation, secondaryAnimation) {
       return Align(
         alignment: Alignment.centerRight,

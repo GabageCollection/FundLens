@@ -457,15 +457,19 @@ class _NavItem extends StatelessWidget {
                           ),
                           if (!collapsed) ...[
                             const SizedBox(width: FundLensTokens.space3),
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontFamily: 'Noto Sans SC',
-                                fontSize: 14,
-                                fontWeight: selected
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
-                                color: foreground,
+                            // Expanded + ellipsis:高 DPI/200% 缩放时文字不横向溢出。
+                            Expanded(
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Noto Sans SC',
+                                  fontSize: 14,
+                                  fontWeight: selected
+                                      ? FontWeight.w500
+                                      : FontWeight.w400,
+                                  color: foreground,
+                                ),
                               ),
                             ),
                           ],
