@@ -14,14 +14,14 @@
 
 ## 阶段
 
-- [ ] 阶段 0：规划文件与基线定位
-- [ ] 阶段 1：质量门禁全量执行（dart test / flutter test / flutter analyze / pytest / ruff+mypy）
+- [x] 阶段 0：规划文件与基线定位
+- [x] 阶段 1：质量门禁全量执行（dart test / flutter test / flutter analyze / pytest / ruff+mypy）
 - [x] 阶段 2：新增 15 步自动化回归集成测试 `integration_test/full_regression_test.dart`（6/6 全绿）
 - [x] 阶段 3：多窗口尺寸布局验证（四尺寸 × 六页面，4/4 无溢出）
-- [ ] 阶段 4：真实应用冒烟（Release exe + 真实引擎）
-- [ ] 阶段 5：优化前后截图对比（worktree 检出基线 + 外部截屏）
-- [ ] 阶段 6：缺陷修复（如有）
-- [ ] 阶段 7：报告 `docs/regression/2026-08-03-full-regression-report.md`、提交 master、重新打包 exe
+- [x] 阶段 4：真实应用冒烟（Release exe + 真实引擎）
+- [x] 阶段 5：优化前后截图对比（worktree 检出基线 + 外部截屏，12 张 OCR 验证）
+- [x] 阶段 6：缺陷修复（2 个：导入跨平台决议 / 手动刷新结果展示；门禁复跑全绿）
+- [x] 阶段 7：报告、提交 master、重新打包 exe（提交 3b61280 + 9483b46；`dist/installer/FundLens-Setup.exe` 275MB @ 19:55 编译成功）
 
 ## 遇到的错误
 

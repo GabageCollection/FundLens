@@ -74,4 +74,15 @@
   - after-settings：设置与备份（数据与行情/自动刷新）
   - 适配：detect_highlight.py 支持 warm 模式（#B65233 主色带），monitor_pages.ps1 改聚类捕获（round(y/12)*12）
 - **阶段 5 ✅ 完成**：before/after 12 张截图齐备（md5 全不同，页面标题全部 OCR 验证），目录 gitignore 不入库
-- **阶段 6 待办**：重跑全部门禁（dart test / flutter test / flutter analyze / pytest / ruff / mypy）——2 个缺陷修复后的最终确认
+- **阶段 6 ✅ 完成（缺陷修复 + 门禁复跑）**：
+  - 修复 1：`import_planner.dart` 显式决议跨平台匹配（新增 2 个单测）
+  - 修复 2：`market_settings_section.dart` 会话内刷新结果优先展示
+  - 门禁复跑全绿：dart test 19 ✓ / flutter test 539 ✓ / analyze No issues ✓ / pytest 86 passed ✓ / ruff+mypy ✓
+  - 提交：3b61280（fix）+ 9483b46（test/报告）
+- **阶段 7 ✅ 完成（报告、提交与打包）**：
+  - 报告 `docs/regression/2026-08-03-full-regression-report.md` 已定稿（含 5.5 缺陷、截图真实数据说明、gitignore 不入库）
+  - 提交：3b61280（2 缺陷修复）+ 9483b46（16 files +2330：集成测试 + 回归文档/脚本/报告）
+  - `tools/build_windows_release.ps1` 完整流水线 exit 0：引擎 PyInstaller 重建（19:52，dist 与 Release 一致）→ 门禁 → flutter build（19:53）→ verify_bundle → Inno Setup（19:55，`dist/installer/FundLens-Setup.exe` 275MB）
+  - **新 exe 冒烟 ✅**：主进程存活、窗口 1280×720、5s 稳定
+  - **新引擎直连冒烟 ✅**：health.check PASS（0.1.0）；fetch_quotes 1.1s → 510300 fresh 4.5990（baostock）、000001 failed（akshare 降级，应用保留原值属设计口径）
+  - 回归全流程完成：门禁 5 项全绿 + 15 步 6/6 + 四尺寸无溢出 + 12 张截图 OCR 验证 + 新 exe/引擎冒烟通过
