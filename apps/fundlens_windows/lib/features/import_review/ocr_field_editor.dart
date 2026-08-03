@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
+import '../../importing/import_models.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/confirm_dialog.dart';
 import 'import_review_controller.dart';
 import 'screenshot_crop_view.dart';
 
@@ -17,6 +19,24 @@ const _fieldLabels = {
 };
 
 String fieldLabel(String field) => _fieldLabels[field] ?? field;
+
+/// 当前 (holdingIndex, field) 上的阻断级问题:用于字段级错误提示。
+String? _blockingIssueFor(
+  ImportReviewController controller,
+  int holdingIndex,
+  String field,
+) {
+  final state = controller.state;
+  if (state is! ImportOcrReview) return null;
+  for (final issue in state.draft.issues) {
+    if (issue.holdingIndex == holdingIndex &&
+        issue.field == field &&
+        issue.severity == IssueSeverity.blocking) {
+      return issue.message;
+    }
+  }
+  return null;
+}
 
 /// Wizard step 3 for screenshots: left panel shows the source screenshot and
 /// its focused crop; right panel lists the OCR rows with confidence badges,
@@ -66,7 +86,21 @@ class _OcrReviewBody extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(onPressed: controller.back, child: const Text('返回')),
+              TextButton(
+                onPressed: () async {
+                  // 返回将丢弃当前截图的识别与编辑结果:先确认再离开。
+                  final leave = await showConfirmDialog(
+                    context,
+                    title: '返回上一步',
+                    content: const Text(
+                      '返回将丢弃当前截图的识别结果与编辑内容，确定返回吗？',
+                    ),
+                    confirmLabel: '返回',
+                  );
+                  if (leave && context.mounted) controller.back();
+                },
+                child: const Text('返回'),
+              ),
               const SizedBox(width: FundLensTokens.space2),
               FilledButton(
                 onPressed: controller.confirmOcrReview,
@@ -208,6 +242,8 @@ class _OcrFieldTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = (field.confidence * 100).round();
     final lowConfidence = field.confidence < 0.9;
+    // 非法输入(金额无法解析等)在字段下方就近提示,而非藏在汇总列表。
+    final errorText = _blockingIssueFor(controller, rowIndex, field.name);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -218,6 +254,7 @@ class _OcrFieldTile extends StatelessWidget {
             decoration: InputDecoration(
               labelText: fieldLabel(field.name),
               helperText: '截图 OCR · 第 ${field.pageIndex + 1} 页',
+              errorText: errorText,
               enabledBorder: lowConfidence
                   ? OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
@@ -287,6 +324,7 @@ class _PlainFieldTile extends StatelessWidget {
       decoration: InputDecoration(
         labelText: fieldLabel(field),
         helperText: provenance,
+        errorText: _blockingIssueFor(controller, index, field),
       ),
       onTap: () => controller.focusField(field, index),
       onChanged: (next) => controller.updateHoldingField(index, field, next),

@@ -154,6 +154,8 @@ class HorizontalBarChart extends StatelessWidget {
                           label: _rowSemantics(row),
                           child: Row(
                             children: [
+                              // 200% 缩放等窄约束下金额/占比列可收缩而非横向溢出;
+                              // 完整值经 Tooltip 提供(见 _rowSemantics)。
                               SizedBox(
                                 width: 84,
                                 child: Text(
@@ -165,19 +167,19 @@ class HorizontalBarChart extends StatelessWidget {
                               const SizedBox(width: FundLensTokens.space3),
                               Expanded(child: _Bar(row: row, maxAmount: maxAmount)),
                               const SizedBox(width: FundLensTokens.space3),
-                              SizedBox(
-                                width: 120,
+                              Flexible(
                                 child: Text(
                                   formatCurrency(row.amount),
+                                  overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.right,
                                   style: numberStyle,
                                 ),
                               ),
                               const SizedBox(width: FundLensTokens.space4),
-                              SizedBox(
-                                width: 56,
+                              Flexible(
                                 child: Text(
                                   formatShare(row.share),
+                                  overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.right,
                                   style: numberStyle,
                                 ),
@@ -299,11 +301,11 @@ class PlatformProportionBar extends StatelessWidget {
 
   final List<ChartBarRow> rows;
 
-  Color _colorFor(int index) => switch (index) {
-        0 => FundLensTokens.accent,
-        1 => FundLensTokens.chartBarShades[1],
-        _ => FundLensTokens.muted,
-      };
+  /// 堆叠段色按段序取暖墨档位,超档回退 muted;段名与占比始终以文字呈现。
+  Color _colorFor(int index) =>
+      index < FundLensTokens.chartBarShades.length
+          ? FundLensTokens.chartBarShades[index]
+          : FundLensTokens.muted;
 
   @override
   Widget build(BuildContext context) {
@@ -380,14 +382,25 @@ class PlatformProportionBar extends StatelessWidget {
                 ),
                 const SizedBox(width: FundLensTokens.space2),
                 Expanded(
-                  child: Text(row.label, style: theme.textTheme.bodyMedium),
+                  child: Text(
+                    row.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
+                  ),
                 ),
-                Text(formatCurrency(row.amount), style: numberStyle),
+                // 窄约束下金额/占比可收缩,避免横向溢出。
+                Flexible(
+                  child: Text(
+                    formatCurrency(row.amount),
+                    overflow: TextOverflow.ellipsis,
+                    style: numberStyle,
+                  ),
+                ),
                 const SizedBox(width: FundLensTokens.space4),
-                SizedBox(
-                  width: 52,
+                Flexible(
                   child: Text(
                     formatShare(row.share),
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
                     style: numberStyle,
                   ),

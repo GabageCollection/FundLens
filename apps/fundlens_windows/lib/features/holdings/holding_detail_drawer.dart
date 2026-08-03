@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../data_health/data_health_providers.dart';
 import 'holding_actions.dart';
 import 'holding_filters.dart';
 import 'holding_status.dart';
@@ -169,8 +170,17 @@ class HoldingDetailDrawer extends ConsumerWidget {
     final totalValue = ref.watch(portfolioSummaryProvider).totalValue;
     final share =
         totalValue.isZero ? null : h.currentValue.divide(totalValue);
-    final canRefresh = holdingSupportsQuoteRefresh(h) &&
-        ref.watch(quoteRefreshServiceProvider) != null;
+    final service = ref.watch(quoteRefreshServiceProvider);
+    final supportsRefresh = holdingSupportsQuoteRefresh(h);
+    // 已有一次刷新进行中:禁用入口,避免并发触发被误报为失败。
+    final refreshing =
+        ref.watch(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
+    final canRefresh = supportsRefresh && service != null && !refreshing;
+    final refreshDisabledReason = !supportsRefresh
+        ? '该资产类型不支持行情刷新'
+        : service == null
+        ? '行情服务未就绪'
+        : '正在刷新行情';
 
     final theme = Theme.of(context);
     return Material(
@@ -266,7 +276,7 @@ class HoldingDetailDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(width: FundLensTokens.space2),
                   Tooltip(
-                    message: canRefresh ? '' : '该资产类型不支持行情刷新或服务未就绪',
+                    message: canRefresh ? '' : refreshDisabledReason,
                     child: TextButton(
                       key: const ValueKey('drawer-refresh'),
                       onPressed: canRefresh
@@ -277,11 +287,16 @@ class HoldingDetailDrawer extends ConsumerWidget {
                               );
                               if (!context.mounted) return;
                               if (report == null) {
-                                // 刷新失败或进行中:提示,不显示 0 计数汇报。
+                                // 刷新进行中(并发拦截)不是失败:提示稍候。
+                                final inProgress = ref
+                                        .read(quoteRefreshUiStateProvider)
+                                    is QuoteRefreshInProgress;
                                 showHoldingToast(
                                   context,
-                                  '行情刷新失败，保留最近一次估值。请稍后重试。',
-                                  isError: true,
+                                  inProgress
+                                      ? '正在刷新行情，请稍候…'
+                                      : '行情刷新失败，保留最近一次估值。请稍后重试。',
+                                  isError: !inProgress,
                                 );
                                 return;
                               }
@@ -293,7 +308,7 @@ class HoldingDetailDrawer extends ConsumerWidget {
                               );
                             }
                           : null,
-                      child: const Text('刷新行情'),
+                      child: Text(refreshing ? '刷新中…' : '刷新行情'),
                     ),
                   ),
                   const Spacer(),

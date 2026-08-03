@@ -347,8 +347,16 @@ void main() {
     await tester.tap(find.text('选择截图'));
     await tester.pumpAndSettle();
 
-    // 截图复核步点击“返回”回到上传区并清理临时副本,来源保留。
+    // 截图复核步点击“返回”先弹丢弃确认:确认后回到上传区并清理临时副本,来源保留。
     await tapVisible(tester, '返回');
+    // 确认对话框里的"返回"才是确认离开的按钮(与底栏按钮同名)。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('返回'),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     expect(controller.state, isA<ImportSourceSelect>());
     expect(controller.source, ImportSource.screenshot);

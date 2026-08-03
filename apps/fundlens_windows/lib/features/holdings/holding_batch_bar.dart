@@ -7,6 +7,7 @@ import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../data_health/data_health_providers.dart';
 import 'holding_actions.dart';
 import 'holding_filters.dart';
 
@@ -39,53 +40,85 @@ class HoldingBatchBar extends ConsumerWidget {
 
     final canRefresh = ref.watch(quoteRefreshServiceProvider) != null &&
         selected.any(holdingSupportsQuoteRefresh);
+    // 已有一次刷新进行中:禁用入口,避免并发触发被误报为失败。
+    final refreshing =
+        ref.watch(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
 
     return Container(
-      height: 48,
+      // 宽度充足时单行 48 高;窄窗口(高 DPI / 200% 缩放)折叠为多行自适应。
+      constraints: const BoxConstraints(minHeight: 48),
       decoration: const BoxDecoration(
         color: FundLensTokens.surfaceAlt,
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: FundLensTokens.space4),
-      child: Row(
-        children: [
-          Text(
-            '已选 ${selected.length} 项',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(width: FundLensTokens.space4),
-          TextButton(
-            onPressed: () => _changeAssetClass(context, ref, selected),
-            child: const Text('修改资产类别'),
-          ),
-          TextButton(
-            onPressed: () => _changeSourcePlatform(context, ref, selected),
-            child: const Text('修改来源平台'),
-          ),
-          TextButton(
-            onPressed: canRefresh
-                ? () => _refreshQuotes(context, ref, selected)
-                : null,
-            child: const Text('刷新行情'),
-          ),
-          TextButton(
-            onPressed: () => _export(context, ref, selected),
-            child: const Text('导出'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: FundLensTokens.profit,
+      padding: const EdgeInsets.symmetric(
+        horizontal: FundLensTokens.space4,
+        vertical: FundLensTokens.space1,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final leading = <Widget>[
+            Text(
+              '已选 ${selected.length} 项',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            onPressed: () => _delete(context, ref, selected),
-            child: const Text('删除'),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () =>
-                ref.read(holdingSelectionProvider.notifier).state = const {},
-            child: const Text('取消选择'),
-          ),
-        ],
+            const SizedBox(width: FundLensTokens.space4),
+            TextButton(
+              onPressed: () => _changeAssetClass(context, ref, selected),
+              child: const Text('修改资产类别'),
+            ),
+            TextButton(
+              onPressed: () => _changeSourcePlatform(context, ref, selected),
+              child: const Text('修改来源平台'),
+            ),
+            TextButton(
+              onPressed: canRefresh && !refreshing
+                  ? () => _refreshQuotes(context, ref, selected)
+                  : null,
+              child: Text(refreshing ? '刷新中…' : '刷新行情'),
+            ),
+            TextButton(
+              onPressed: () => _export(context, ref, selected),
+              child: const Text('导出'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: FundLensTokens.profit,
+              ),
+              onPressed: () => _delete(context, ref, selected),
+              child: const Text('删除'),
+            ),
+          ];
+          // 窄窗口:折叠为多行,避免横向溢出;取消选择跟随其后。
+          if (constraints.maxWidth < 720) {
+            return Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: FundLensTokens.space2,
+              runSpacing: 0,
+              children: [
+                ...leading,
+                TextButton(
+                  onPressed: () => ref
+                      .read(holdingSelectionProvider.notifier)
+                      .state = const {},
+                  child: const Text('取消选择'),
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              ...leading,
+              const Spacer(),
+              TextButton(
+                onPressed: () =>
+                    ref.read(holdingSelectionProvider.notifier).state =
+                        const {},
+                child: const Text('取消选择'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -201,11 +234,15 @@ class HoldingBatchBar extends ConsumerWidget {
     final report = await HoldingActions.refreshQuotes(ref.container, selected);
     if (!context.mounted) return;
     if (report == null) {
-      // 刷新失败或进行中:提示,不显示 0 计数汇报。
+      // 刷新进行中(并发拦截)不是失败:提示稍候;其余情况才是失败。
+      final refreshing = ref
+          .read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
       showHoldingToast(
         context,
-        '行情刷新失败，保留最近一次估值。请稍后重试。',
-        isError: true,
+        refreshing
+            ? '正在刷新行情，请稍候…'
+            : '行情刷新失败，保留最近一次估值。请稍后重试。',
+        isError: !refreshing,
       );
       return;
     }

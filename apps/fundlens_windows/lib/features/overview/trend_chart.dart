@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../holdings/holding_status.dart';
 
 /// 趋势图上的一个数据点:某时刻的总资产与覆盖成本。
 ///
@@ -89,6 +90,8 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
     final theme = Theme.of(context);
     final points = ref.watch(trendPointsProvider);
     final filtered = filterTrendPoints(points, _range, DateTime.now());
+    // 引导态按历史快照数量判断(趋势点含当前持仓实时点,不算"第二个快照")。
+    final snapshotCount = ref.watch(snapshotsProvider).value?.length ?? 0;
 
     return Card(
       child: Padding(
@@ -119,7 +122,8 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
               ],
             ),
             const SizedBox(height: FundLensTokens.space4),
-            if (filtered.length < 2)
+            if (snapshotCount < 2)
+              // 历史快照不足 2 个:引导创建,而非范围过滤导致无点。
               SizedBox(
                 height: 180,
                 child: Center(
@@ -129,13 +133,31 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
                   ),
                 ),
               )
+            else if (filtered.length < 2)
+              // 快照足够但当前范围过滤后无点:切换范围查看。
+              SizedBox(
+                height: 180,
+                child: Center(
+                  child: Text(
+                    '所选时间范围内暂无数据，请切换范围查看',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              )
             else ...[
+              // 图表是纯绘制无文本:为读屏提供等价文字摘要,可见摘要置于图下。
               SizedBox(
                 height: 200,
                 width: double.infinity,
-                child: CustomPaint(
-                  key: const ValueKey('trend-chart'),
-                  painter: _TrendPainter(points: filtered),
+                child: Semantics(
+                  label: _trendSummary(filtered, _range),
+                  image: true,
+                  child: ExcludeSemantics(
+                    child: CustomPaint(
+                      key: const ValueKey('trend-chart'),
+                      painter: _TrendPainter(points: filtered),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: FundLensTokens.space2),
@@ -146,11 +168,41 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
                   _SeriesLegend(color: FundLensTokens.muted, label: '覆盖成本'),
                 ],
               ),
+              const SizedBox(height: FundLensTokens.space2),
+              // 可见摘要(读屏只朗读一次,经上方 Semantics 提供)。
+              ExcludeSemantics(
+                child: Text(
+                  _trendSummary(filtered, _range),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
             ],
           ],
         ),
       ),
     );
+  }
+
+  /// 图下文字摘要:范围 + 首末金额 + 差额与百分比,盈亏不靠颜色区分。
+  String _trendSummary(List<TrendPoint> points, TrendRange range) {
+    final first = points.first;
+    final last = points.last;
+    return '${range.label}：总资产 ¥'
+        '${HoldingValueFormatter.amount(first.totalValue)} → ¥'
+        '${HoldingValueFormatter.amount(last.totalValue)}'
+        '（${_deltaText(first.totalValue, last.totalValue)}）；'
+        '覆盖成本 ¥${HoldingValueFormatter.amount(first.coveredCost)} → ¥'
+        '${HoldingValueFormatter.amount(last.coveredCost)}'
+        '（${_deltaText(first.coveredCost, last.coveredCost)}）';
+  }
+
+  /// 首末差额:持平 / 带符号金额 + 百分比(起始为 0 时无百分比)。
+  static String _deltaText(DecimalValue start, DecimalValue end) {
+    final diff = end - start;
+    if (diff.isZero) return '持平';
+    final amountText = HoldingValueFormatter.signedAmount(diff);
+    if (start.isZero) return amountText;
+    return '$amountText，${HoldingValueFormatter.signedPercent(diff.divide(start))}';
   }
 }
 

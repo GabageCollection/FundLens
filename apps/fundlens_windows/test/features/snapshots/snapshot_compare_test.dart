@@ -94,7 +94,10 @@ Widget snapshotHarness({
       if (onDelete != null)
         snapshotDeletionProvider.overrideWithValue(onDelete),
     ],
-    child: MaterialApp(theme: FundLensTheme.light, home: const SnapshotsPage()),
+    child: MaterialApp(
+      theme: FundLensTheme.light,
+      home: const Scaffold(body: SnapshotsPage()),
+    ),
   );
 }
 

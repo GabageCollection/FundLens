@@ -25,6 +25,8 @@ class MarketSettingsSection extends ConsumerWidget {
     final nextRun = ref.watch(nextQuoteRefreshProvider);
     final uiState = ref.watch(quoteRefreshUiStateProvider);
     final service = ref.watch(quoteRefreshServiceProvider);
+    // 已有一次刷新进行中:禁用入口,避免并发触发被误报为失败。
+    final refreshing = uiState is QuoteRefreshInProgress;
 
     return SettingsSectionCard(
       key: const ValueKey('market-section'),
@@ -120,9 +122,10 @@ class MarketSettingsSection extends ConsumerWidget {
           ],
           const SizedBox(height: 12),
           FilledButton.tonal(
-            onPressed:
-                service == null ? null : () => _refreshNow(context, ref),
-            child: const Text('手动刷新行情'),
+            onPressed: service == null || refreshing
+                ? null
+                : () => _refreshNow(context, ref),
+            child: Text(refreshing ? '正在刷新行情…' : '手动刷新行情'),
           ),
         ],
       ),
@@ -145,7 +148,15 @@ class MarketSettingsSection extends ConsumerWidget {
     // 委托统一入口:同时维护全局刷新状态、新鲜集合与最近刷新记录。
     final report = await HoldingActions.refreshQuotes(ref.container, holdings);
     if (report == null && context.mounted) {
-      showAppToast(context, '行情引擎不可用，当前显示的是最近一次估值。请稍后重试刷新。', isError: true);
+      // 并发拦截(已有一次刷新进行中)不是失败:静默返回,按钮已显示"正在刷新"。
+      if (ref.read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress) {
+        return;
+      }
+      showAppToast(
+        context,
+        '行情刷新失败，保留最近一次估值。请稍后重试。',
+        isError: true,
+      );
     }
   }
 

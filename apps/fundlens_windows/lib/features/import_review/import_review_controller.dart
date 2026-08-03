@@ -1627,6 +1627,18 @@ final class ImportReviewController extends ChangeNotifier {
       }
 
       final currentValue = amountOf('current_value');
+      if (currentValue == null) {
+        // 缺失金额不静默记 0:生成阻断问题,字段级提示补填后才允许提交。
+        issues.add(
+          DataIssue(
+            code: 'import.missing_amount',
+            field: 'current_value',
+            severity: IssueSeverity.blocking,
+            message: '未识别到金额，请补填当前金额',
+            holdingIndex: holdings.length,
+          ),
+        );
+      }
       holdings.add(
         DraftHolding(
           sourcePlatform: platform,

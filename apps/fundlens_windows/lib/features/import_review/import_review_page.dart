@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import 'import_check_panel.dart';
 import 'import_mapping_panel.dart';
@@ -59,9 +60,7 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
               state: state,
               controller: controller,
             ),
-            ImportCommitting() => const Center(
-              child: CircularProgressIndicator(),
-            ),
+            ImportCommitting() => const LoadingView(label: '正在提交导入…'),
             ImportCommitted() => ImportResultView(
               state: state,
               controller: controller,
