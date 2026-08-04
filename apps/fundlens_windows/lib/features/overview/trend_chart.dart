@@ -6,6 +6,7 @@ import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../holdings/holding_status.dart';
+import 'overview_formatters.dart';
 
 /// 趋势图上的一个数据点:某时刻的总资产与覆盖成本。
 ///
@@ -92,6 +93,8 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
     final filtered = filterTrendPoints(points, _range, DateTime.now());
     // 引导态按历史快照数量判断(趋势点含当前持仓实时点,不算"第二个快照")。
     final snapshotCount = ref.watch(snapshotsProvider).value?.length ?? 0;
+    // 图下摘要延迟求值:仅在有数据分支使用,空态时避免白做格式化。
+    late final trendSummary = _trendSummary(filtered, _range);
 
     return Card(
       child: Padding(
@@ -150,7 +153,7 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
                 height: 200,
                 width: double.infinity,
                 child: Semantics(
-                  label: _trendSummary(filtered, _range),
+                  label: trendSummary,
                   image: true,
                   child: ExcludeSemantics(
                     child: CustomPaint(
@@ -172,7 +175,7 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
               // 可见摘要(读屏只朗读一次,经上方 Semantics 提供)。
               ExcludeSemantics(
                 child: Text(
-                  _trendSummary(filtered, _range),
+                  trendSummary,
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -187,12 +190,11 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
   String _trendSummary(List<TrendPoint> points, TrendRange range) {
     final first = points.first;
     final last = points.last;
-    return '${range.label}：总资产 ¥'
-        '${HoldingValueFormatter.amount(first.totalValue)} → ¥'
-        '${HoldingValueFormatter.amount(last.totalValue)}'
+    return '${range.label}：总资产 '
+        '${formatCurrency(first.totalValue)} → ${formatCurrency(last.totalValue)}'
         '（${_deltaText(first.totalValue, last.totalValue)}）；'
-        '覆盖成本 ¥${HoldingValueFormatter.amount(first.coveredCost)} → ¥'
-        '${HoldingValueFormatter.amount(last.coveredCost)}'
+        '覆盖成本 ${formatCurrency(first.coveredCost)} → '
+        '${formatCurrency(last.coveredCost)}'
         '（${_deltaText(first.coveredCost, last.coveredCost)}）';
   }
 

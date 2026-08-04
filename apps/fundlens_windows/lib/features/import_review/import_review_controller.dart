@@ -861,35 +861,37 @@ final class ImportReviewController extends ChangeNotifier {
   Future<void> acceptDroppedScreenshots(List<PickedImportFile> files) async {
     if (files.isEmpty) return;
     _source = _source ?? ImportSource.screenshot;
-    var tempPaths = const <String>[];
-    try {
-      _setState(const ImportParsing(null));
-      tempPaths = await _tempStore.copyToTemp([
-        for (final f in files) f.path,
-      ]);
-      await _runOcr(tempPaths);
-    } catch (e) {
-      _setState(
-        ImportFailed(
-          '截图识别失败: $e',
-          true,
-          retry: () => _retryOcr(tempPaths),
-        ),
-      );
-    }
+    await _ocrScreenshotFiles(files);
   }
 
-  /// 对同一批截图重新识别;失败再次提供重试入口。
-  Future<void> _retryOcr(List<String> tempPaths) async {
+  /// 复制截图到临时区并识别,失败时提供重试入口。
+  /// 临时副本只复制一次:重试仅重跑 OCR,避免每试一次就重复全量文件 I/O
+  /// 并留下无人清理的孤儿 job 目录(提交/放弃只清最新一批副本)。
+  /// 复制本身失败时副本尚未建立,重试仍会走完整「复制 + OCR」链路。
+  Future<void> _ocrScreenshotFiles(List<PickedImportFile> files) async {
+    var tempPaths = const <String>[];
+    await _runOcrWithRetry(() async {
+      if (tempPaths.isEmpty) {
+        tempPaths = await _tempStore.copyToTemp([
+          for (final f in files) f.path,
+        ]);
+      }
+      await _runOcr(tempPaths);
+    });
+  }
+
+  /// 统一执行 [body] 并处理失败:进入解析中态,失败时提供重试入口,
+  /// 重试会重新执行 [body]。
+  Future<void> _runOcrWithRetry(Future<void> Function() body) async {
     try {
       _setState(const ImportParsing(null));
-      await _runOcr(tempPaths);
+      await body();
     } catch (e) {
       _setState(
         ImportFailed(
           '截图识别失败: $e',
           true,
-          retry: () => _retryOcr(tempPaths),
+          retry: () => _runOcrWithRetry(body),
         ),
       );
     }
@@ -941,24 +943,9 @@ final class ImportReviewController extends ChangeNotifier {
   /// Step 2 (screenshots): opens the picker and runs OCR on each selected
   /// screenshot, showing real per-screenshot progress.
   Future<void> pickScreenshots() async {
-    var tempPaths = const <String>[];
-    try {
-      final files = await _picker.pickScreenshotFiles();
-      if (files.isEmpty) return;
-      _setState(const ImportParsing(null));
-      tempPaths = await _tempStore.copyToTemp([
-        for (final f in files) f.path,
-      ]);
-      await _runOcr(tempPaths);
-    } catch (e) {
-      _setState(
-        ImportFailed(
-          '截图识别失败: $e',
-          true,
-          retry: () => _retryOcr(tempPaths),
-        ),
-      );
-    }
+    final files = await _picker.pickScreenshotFiles();
+    if (files.isEmpty) return;
+    await _ocrScreenshotFiles(files);
   }
 
   Future<void> _runOcr(List<String> tempPaths) async {

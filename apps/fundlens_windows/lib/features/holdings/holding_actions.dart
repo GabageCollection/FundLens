@@ -119,4 +119,38 @@ abstract final class HoldingActions {
   static Future<void> export(List<Holding> visible, String path) {
     return const HoldingExportService().exportCsv(visible, path);
   }
+
+  /// 刷新行情后的统一反馈,消除各入口对「并发进行中/真失败」判定与文案的重复。
+  ///
+  /// [report] 为 null 时区分两种情形:
+  /// - 并发进行中([QuoteRefreshInProgress]):默认提示"稍候",设置页可传
+  ///   [silentWhenRefreshing] 静默(其按钮已展示"正在刷新");
+  /// - 其余为空:刷新失败,统一提示失败文案。
+  /// [report] 非 null 时交由 [onSuccess] 展示各入口特有的成功文案
+  /// (页面/批量条用计数汇总,抽屉按单只结果,设置页静默依赖状态行)。
+  static void showRefreshFeedback(
+    BuildContext context,
+    WidgetRef ref,
+    QuoteRefreshReport? report, {
+    void Function(QuoteRefreshReport report)? onSuccess,
+    bool silentWhenRefreshing = false,
+  }) {
+    if (report != null) {
+      onSuccess?.call(report);
+      return;
+    }
+    final refreshing =
+        ref.read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
+    if (refreshing) {
+      if (!silentWhenRefreshing) {
+        showHoldingToast(context, '正在刷新行情，请稍候…');
+      }
+      return;
+    }
+    showHoldingToast(
+      context,
+      '行情刷新失败，保留最近一次估值。请稍后重试。',
+      isError: true,
+    );
+  }
 }

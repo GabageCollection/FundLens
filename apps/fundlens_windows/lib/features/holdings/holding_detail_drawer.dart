@@ -18,9 +18,7 @@ Future<void> showHoldingDetailDrawer(BuildContext context, String holdingId) {
     barrierLabel: '关闭持仓详情',
     barrierColor: const Color(0x61000000),
     // 抽屉滑入 150ms;系统减少动画时完全关闭。
-    transitionDuration: MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 150),
+    transitionDuration: fundlensAnimationDuration(context),
     pageBuilder: (context, animation, secondaryAnimation) {
       return Align(
         alignment: Alignment.centerRight,
@@ -289,25 +287,16 @@ class HoldingDetailDrawer extends ConsumerWidget {
                                 [h],
                               );
                               if (!context.mounted) return;
-                              if (report == null) {
-                                // 刷新进行中(并发拦截)不是失败:提示稍候。
-                                final inProgress = ref
-                                        .read(quoteRefreshUiStateProvider)
-                                    is QuoteRefreshInProgress;
-                                showHoldingToast(
-                                  context,
-                                  inProgress
-                                      ? '正在刷新行情，请稍候…'
-                                      : '行情刷新失败，保留最近一次估值。请稍后重试。',
-                                  isError: !inProgress,
-                                );
-                                return;
-                              }
-                              showHoldingToast(
+                              HoldingActions.showRefreshFeedback(
                                 context,
-                                report.updated.isNotEmpty
-                                    ? '行情已更新'
-                                    : '行情未更新,保留原值',
+                                ref,
+                                report,
+                                onSuccess: (r) => showHoldingToast(
+                                  context,
+                                  r.updated.isNotEmpty
+                                      ? '行情已更新'
+                                      : '行情未更新,保留原值',
+                                ),
                               );
                             }
                           : null,

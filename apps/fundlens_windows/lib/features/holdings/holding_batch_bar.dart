@@ -89,6 +89,11 @@ class HoldingBatchBar extends ConsumerWidget {
               child: const Text('删除'),
             ),
           ];
+          final clearSelectionButton = TextButton(
+            onPressed: () =>
+                ref.read(holdingSelectionProvider.notifier).state = const {},
+            child: const Text('取消选择'),
+          );
           // 窄窗口:折叠为多行,避免横向溢出;取消选择跟随其后。
           if (constraints.maxWidth < 720) {
             return Wrap(
@@ -97,12 +102,7 @@ class HoldingBatchBar extends ConsumerWidget {
               runSpacing: 0,
               children: [
                 ...leading,
-                TextButton(
-                  onPressed: () => ref
-                      .read(holdingSelectionProvider.notifier)
-                      .state = const {},
-                  child: const Text('取消选择'),
-                ),
+                clearSelectionButton,
               ],
             );
           }
@@ -110,12 +110,7 @@ class HoldingBatchBar extends ConsumerWidget {
             children: [
               ...leading,
               const Spacer(),
-              TextButton(
-                onPressed: () =>
-                    ref.read(holdingSelectionProvider.notifier).state =
-                        const {},
-                child: const Text('取消选择'),
-              ),
+              clearSelectionButton,
             ],
           );
         },
@@ -233,24 +228,16 @@ class HoldingBatchBar extends ConsumerWidget {
   ) async {
     final report = await HoldingActions.refreshQuotes(ref.container, selected);
     if (!context.mounted) return;
-    if (report == null) {
-      // 刷新进行中(并发拦截)不是失败:提示稍候;其余情况才是失败。
-      final refreshing = ref
-          .read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
-      showHoldingToast(
-        context,
-        refreshing
-            ? '正在刷新行情，请稍候…'
-            : '行情刷新失败，保留最近一次估值。请稍后重试。',
-        isError: !refreshing,
-      );
-      return;
-    }
-    showHoldingToast(
+    HoldingActions.showRefreshFeedback(
       context,
-      '行情:更新 ${report.updated.length} · '
-      '保留 ${report.retained.length} · '
-      '失败 ${report.failed.length}',
+      ref,
+      report,
+      onSuccess: (r) => showHoldingToast(
+        context,
+        '行情:更新 ${r.updated.length} · '
+        '保留 ${r.retained.length} · '
+        '失败 ${r.failed.length}',
+      ),
     );
   }
 

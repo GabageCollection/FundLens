@@ -182,9 +182,7 @@ class _CompositionChartCard extends ConsumerWidget {
               key: const ValueKey('analysis-chart-area'),
               child: AnimatedSwitcher(
                 // 微交互动画 150ms;系统减少动画时完全关闭。
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : const Duration(milliseconds: 150),
+                duration: fundlensAnimationDuration(context),
                 child: switch (dimension) {
                   AnalysisDimension.source => PlatformProportionBar(
                     key: const ValueKey('platform-proportion-bar'),

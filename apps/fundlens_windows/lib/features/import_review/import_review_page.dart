@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
 import 'import_check_panel.dart';
@@ -222,58 +223,13 @@ class _FailedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 40,
-              color: FundLensTokens.warnText,
-            ),
-            const SizedBox(height: FundLensTokens.space3),
-            Text(
-              '导入未完成',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: FundLensTokens.space2),
-            Text(
-              state.message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: FundLensTokens.space2),
-            Text(
-              '本次未写入任何数据，可重试或返回重新选择。',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: FundLensTokens.muted,
-              ),
-            ),
-            const SizedBox(height: FundLensTokens.space4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (state.retry != null) ...[
-                  FilledButton(
-                    onPressed: () => state.retry?.call(),
-                    child: const Text('重试'),
-                  ),
-                  const SizedBox(width: FundLensTokens.space3),
-                ],
-                OutlinedButton(
-                  onPressed: controller.back,
-                  child: const Text('返回来源'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return ErrorRetryView(
+      title: '导入未完成',
+      message: state.message,
+      hint: '本次未写入任何数据，可重试或返回重新选择。',
+      onRetry: state.retry,
+      onSecondary: controller.back,
+      secondaryLabel: '返回来源',
     );
   }
 }

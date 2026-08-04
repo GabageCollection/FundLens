@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/portfolio_providers.dart';
 import '../../application/selection_state.dart';
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import 'overview_formatters.dart';
 
@@ -222,11 +223,8 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
       _nodes.putIfAbsent(assetClass, () => FocusNode());
     }
 
-    final disableAnimations = MediaQuery.of(context).disableAnimations;
     // 微交互动画控制在 150ms 内;系统减少动画时完全关闭。
-    final duration = disableAnimations
-        ? Duration.zero
-        : const Duration(milliseconds: 150);
+    final duration = fundlensAnimationDuration(context);
     // Re-run the orchestrated animation whenever the shares change (import or
     // snapshot switch); keyed on the exact geometry so taps stay stable.
     final signature = segments

@@ -150,27 +150,15 @@ class _SnapshotsPageState extends ConsumerState<SnapshotsPage> {
       },
     );
     final trimmed = label;
-    if (trimmed == null || trimmed.isEmpty) return;
+    if (trimmed == null) return;
 
-    setState(() => _busy = true);
-    try {
-      await ref
+    await _runSnapshotMutation(
+      mutation: () => ref
           .read(snapshotRepositoryProvider)
-          .createFromCurrent(label: trimmed);
-      ref.invalidate(snapshotsProvider);
-      if (!mounted) return;
-      showAppToast(context, '已创建快照「$trimmed」');
-    } catch (e) {
-      // 快照写入失败(磁盘满/数据库损坏等):提示重试,数据保持原状。
-      if (!mounted) return;
-      showAppToast(
-        context,
-        '快照创建失败，现有持仓与快照未受影响，请重试。',
-        isError: true,
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+          .createFromCurrent(label: trimmed),
+      successMessage: '已创建快照「$trimmed」',
+      failureMessage: '快照创建失败，现有持仓与快照未受影响，请重试。',
+    );
   }
 
   Future<void> _confirmDelete(PortfolioSnapshot snapshot) async {
@@ -186,20 +174,30 @@ class _SnapshotsPageState extends ConsumerState<SnapshotsPage> {
     );
     if (!confirmed) return;
 
+    await _runSnapshotMutation(
+      mutation: () => ref.read(snapshotDeletionProvider)(snapshot.id),
+      successMessage: '已删除快照「${snapshot.label}」',
+      failureMessage: '快照删除失败，历史记录未删除，请重试。',
+    );
+  }
+
+  /// 快照写操作统一守卫:置忙 → 执行变更 → 失效快照流 → 成功/失败提示 → 复位。
+  /// 创建与删除共用同一模板,新写操作(如重命名)直接复用。
+  Future<void> _runSnapshotMutation({
+    required Future<void> Function() mutation,
+    required String successMessage,
+    required String failureMessage,
+  }) async {
     setState(() => _busy = true);
     try {
-      await ref.read(snapshotDeletionProvider)(snapshot.id);
+      await mutation();
       ref.invalidate(snapshotsProvider);
       if (!mounted) return;
-      showAppToast(context, '已删除快照「${snapshot.label}」');
+      showAppToast(context, successMessage);
     } catch (e) {
-      // 删除失败(数据库错误等):提示重试,历史记录保持原状。
+      // 写操作失败(磁盘满/数据库损坏等):提示重试,数据保持原状。
       if (!mounted) return;
-      showAppToast(
-        context,
-        '快照删除失败，历史记录未删除，请重试。',
-        isError: true,
-      );
+      showAppToast(context, failureMessage, isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

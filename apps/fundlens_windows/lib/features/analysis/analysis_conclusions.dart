@@ -173,56 +173,49 @@ List<ConclusionItem> buildAnalysisConclusions({
 
   final classThreshold = thresholds.maxAssetClassShare;
   if (classThreshold != null) {
-    final ranked = summary.byAssetClass.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final top = ranked.isEmpty ? null : ranked.first;
-    final topShare = top == null || summary.totalValue.isZero
-        ? DecimalValue.zero
-        : top.value.divide(summary.totalValue);
-    final breached = top != null && topShare.compareTo(classThreshold) > 0;
-    thresholdItems.add(
-      ConclusionItem(
-        name: '类别上限',
-        result: top == null
-            ? '—'
-            : '${assetClassLabels[top.key]!} ${formatShare(topShare)}',
-        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
-        explanation: breached
-            ? '「${assetClassLabels[top.key]!}」占比超过你设置的类别上限。'
-            : '各资产类别占比在你设置的类别上限内。',
-      ),
+    // 单趟取最大类别,仅为拿名称文案;占比直接用组合汇总已算好的值。
+    MapEntry<AssetClass, DecimalValue>? top;
+    for (final entry in summary.byAssetClass.entries) {
+      if (top == null || entry.value.compareTo(top.value) > 0) top = entry;
+    }
+    final topName = top == null ? null : assetClassLabels[top.key]!;
+    final topShare = summary.largestAssetClassShare;
+    const okText = '各资产类别占比在你设置的类别上限内。';
+    _addThresholdConclusion(
+      thresholdItems,
+      name: '类别上限',
+      result: topName == null ? '—' : '$topName ${formatShare(topShare)}',
+      breached: top != null && topShare.compareTo(classThreshold) > 0,
+      // breached 为真时 top 必非空;空组合的回退文案与达标文案一致。
+      breachedText:
+          topName == null ? okText : '「$topName」占比超过你设置的类别上限。',
+      okText: okText,
     );
   }
 
   final cashThreshold = thresholds.minCashAndDepositShare;
   if (cashThreshold != null) {
     final cashShare = summary.cashAndDepositShare;
-    final breached = cashShare.compareTo(cashThreshold) < 0;
-    thresholdItems.add(
-      ConclusionItem(
-        name: '现金与存款',
-        result: formatShare(cashShare),
-        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
-        explanation: breached
-            ? '现金与存款占比低于你设置的下限。'
-            : '现金与存款占比不低于你设置的下限。',
-      ),
+    _addThresholdConclusion(
+      thresholdItems,
+      name: '现金与存款',
+      result: formatShare(cashShare),
+      breached: cashShare.compareTo(cashThreshold) < 0,
+      breachedText: '现金与存款占比低于你设置的下限。',
+      okText: '现金与存款占比不低于你设置的下限。',
     );
   }
 
   final equityThreshold = thresholds.maxEquityExposureShare;
   if (equityThreshold != null) {
     final equityShare = summary.equityExposureShare;
-    final breached = equityShare.compareTo(equityThreshold) > 0;
-    thresholdItems.add(
-      ConclusionItem(
-        name: '权益仓位',
-        result: formatShare(equityShare),
-        status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
-        explanation: breached
-            ? '权益类资产占比超过你设置的权益上限。'
-            : '权益类资产占比在你设置的权益上限内。',
-      ),
+    _addThresholdConclusion(
+      thresholdItems,
+      name: '权益仓位',
+      result: formatShare(equityShare),
+      breached: equityShare.compareTo(equityThreshold) > 0,
+      breachedText: '权益类资产占比超过你设置的权益上限。',
+      okText: '权益类资产占比在你设置的权益上限内。',
     );
   }
 
@@ -234,6 +227,26 @@ List<ConclusionItem> buildAnalysisConclusions({
     coverage,
     freshnessItem,
   ];
+}
+
+/// 追加一条阈值结论:超限/达标共用同一骨架,避免三个阈值块各自重复
+/// "状态三元 + 解释拼接"的样板。
+void _addThresholdConclusion(
+  List<ConclusionItem> items, {
+  required String name,
+  required String result,
+  required bool breached,
+  required String breachedText,
+  required String okText,
+}) {
+  items.add(
+    ConclusionItem(
+      name: name,
+      result: result,
+      status: breached ? ConclusionStatus.attention : ConclusionStatus.normal,
+      explanation: breached ? breachedText : okText,
+    ),
+  );
 }
 
 Holding? _largestHolding(List<Holding> holdings) {

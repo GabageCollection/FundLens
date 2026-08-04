@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'fundlens_tokens.dart';
 
+/// 微交互动画时长:150ms(设计系统动效规范);系统开启"减少动画"时完全关闭。
+Duration fundlensAnimationDuration(BuildContext context) =>
+    MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 150);
+
 /// [TextTheme] 之外的设计系统文字样式。
 @immutable
 class FundLensTextStyles extends ThemeExtension<FundLensTextStyles> {

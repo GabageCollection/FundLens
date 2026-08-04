@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/portfolio_providers.dart';
 import '../../application/schedule_policy.dart';
-import '../../widgets/app_toast.dart';
 import '../data_health/data_health_providers.dart';
 import '../holdings/holding_actions.dart';
 import 'persisted_settings.dart';
@@ -154,17 +153,10 @@ class MarketSettingsSection extends ConsumerWidget {
     final holdings = ref.read(holdingsProvider).value ?? [];
     // 委托统一入口:同时维护全局刷新状态、新鲜集合与最近刷新记录。
     final report = await HoldingActions.refreshQuotes(ref.container, holdings);
-    if (report == null && context.mounted) {
-      // 并发拦截(已有一次刷新进行中)不是失败:静默返回,按钮已显示"正在刷新"。
-      if (ref.read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress) {
-        return;
-      }
-      showAppToast(
-        context,
-        '行情刷新失败，保留最近一次估值。请稍后重试。',
-        isError: true,
-      );
-    }
+    if (!context.mounted) return;
+    // 成功静默依赖状态行展示;并发进行中静默(按钮已显示"正在刷新")。
+    HoldingActions.showRefreshFeedback(context, ref, report,
+        silentWhenRefreshing: true);
   }
 
   static String _formatDateTime(DateTime value) {

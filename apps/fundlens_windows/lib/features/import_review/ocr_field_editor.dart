@@ -20,22 +20,18 @@ const _fieldLabels = {
 
 String fieldLabel(String field) => _fieldLabels[field] ?? field;
 
-/// 当前 (holdingIndex, field) 上的阻断级问题:用于字段级错误提示。
-String? _blockingIssueFor(
-  ImportReviewController controller,
-  int holdingIndex,
-  String field,
-) {
-  final state = controller.state;
-  if (state is! ImportOcrReview) return null;
-  for (final issue in state.draft.issues) {
-    if (issue.holdingIndex == holdingIndex &&
-        issue.field == field &&
-        issue.severity == IssueSeverity.blocking) {
-      return issue.message;
-    }
+/// 预构建 (holdingIndex, field) → 阻断问题文案 的映射,供字段 tile 做 O(1) 查找。
+/// 每次击键都会重建整个复审体,若每个 tile 各自线性扫描 issues 列表,
+/// 单次重建代价为 O(行数² × 字段数);预建一次 map 降到 O(行数)。
+/// 键用 record 而非字符串拼接,编码格式由类型保证,构建与查找无法写岔。
+/// holdingIndex 可空(全局问题不归属某行),空键永远查不到,与原字符串键语义一致。
+Map<(int?, String), String> _blockingIssues(ImportDraft draft) {
+  final map = <(int?, String), String>{};
+  for (final issue in draft.issues) {
+    if (issue.severity != IssueSeverity.blocking) continue;
+    map[(issue.holdingIndex, issue.field)] = issue.message;
   }
-  return null;
+  return map;
 }
 
 /// Wizard step 3 for screenshots: left panel shows the source screenshot and
@@ -136,6 +132,7 @@ class _OcrEditor extends StatelessWidget {
         ),
       );
     }
+    final blockingIssues = _blockingIssues(draft);
     return ListView.builder(
       itemCount: draft.holdings.length,
       itemBuilder: (context, index) {
@@ -192,6 +189,7 @@ class _OcrEditor extends StatelessWidget {
                           controller.focusedField == field.name &&
                           controller.focusedHoldingIndex == index,
                       controller: controller,
+                      blockingIssues: blockingIssues,
                     )
                 else ...[
                   _PlainFieldTile(
@@ -200,6 +198,7 @@ class _OcrEditor extends StatelessWidget {
                     value: holding.productName,
                     provenance: _provenance(holding.dataOrigin),
                     controller: controller,
+                    blockingIssues: blockingIssues,
                   ),
                   _PlainFieldTile(
                     index: index,
@@ -207,6 +206,7 @@ class _OcrEditor extends StatelessWidget {
                     value: holding.currentValue.canonical,
                     provenance: _provenance(holding.dataOrigin),
                     controller: controller,
+                    blockingIssues: blockingIssues,
                   ),
                 ],
               ],
@@ -231,19 +231,21 @@ class _OcrFieldTile extends StatelessWidget {
     required this.field,
     required this.focused,
     required this.controller,
+    required this.blockingIssues,
   });
 
   final int rowIndex;
   final OcrFieldValue field;
   final bool focused;
   final ImportReviewController controller;
+  final Map<(int?, String), String> blockingIssues;
 
   @override
   Widget build(BuildContext context) {
     final percent = (field.confidence * 100).round();
     final lowConfidence = field.confidence < 0.9;
     // 非法输入(金额无法解析等)在字段下方就近提示,而非藏在汇总列表。
-    final errorText = _blockingIssueFor(controller, rowIndex, field.name);
+    final errorText = blockingIssues[(rowIndex, field.name)];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -308,6 +310,7 @@ class _PlainFieldTile extends StatelessWidget {
     required this.value,
     required this.provenance,
     required this.controller,
+    required this.blockingIssues,
   });
 
   final int index;
@@ -315,6 +318,7 @@ class _PlainFieldTile extends StatelessWidget {
   final String value;
   final String provenance;
   final ImportReviewController controller;
+  final Map<(int?, String), String> blockingIssues;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +328,7 @@ class _PlainFieldTile extends StatelessWidget {
       decoration: InputDecoration(
         labelText: fieldLabel(field),
         helperText: provenance,
-        errorText: _blockingIssueFor(controller, index, field),
+        errorText: blockingIssues[(index, field)],
       ),
       onTap: () => controller.focusField(field, index),
       onChanged: (next) => controller.updateHoldingField(index, field, next),

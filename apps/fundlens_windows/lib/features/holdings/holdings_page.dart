@@ -11,7 +11,6 @@ import '../../theme/fundlens_tokens.dart';
 import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
 import '../../widgets/page_scaffold.dart';
-import '../data_health/data_health_providers.dart';
 import 'holding_actions.dart';
 import 'holding_batch_bar.dart';
 import 'holding_detail_drawer.dart';
@@ -42,7 +41,8 @@ class HoldingsPage extends ConsumerWidget {
     final state = ref.watch(portfolioStateProvider);
     final filter = ref.watch(holdingFilterProvider);
 
-    // Ctrl+R 刷新全部可刷新持仓(全局快捷键集中在此页)。
+    // Ctrl+R 刷新全部可刷新持仓。快捷键注册在页面子树内,仅持仓页持有焦点时生效,
+    // 并非应用级全局;若需跨页生效应下沉到 AppShell 的 Shortcuts/Actions 层。
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(
@@ -147,23 +147,16 @@ class HoldingsPage extends ConsumerWidget {
     }
     final report = await HoldingActions.refreshQuotes(ref.container, holdings);
     if (!context.mounted) return;
-    if (report == null) {
-      final refreshing = ref
-          .read(quoteRefreshUiStateProvider) is QuoteRefreshInProgress;
-      showHoldingToast(
-        context,
-        refreshing
-            ? '正在刷新行情，请稍候…'
-            : '行情刷新失败，保留最近一次估值。请稍后重试。',
-        isError: !refreshing,
-      );
-      return;
-    }
-    showHoldingToast(
+    HoldingActions.showRefreshFeedback(
       context,
-      '行情:更新 ${report.updated.length} · '
-      '保留 ${report.retained.length} · '
-      '失败 ${report.failed.length}',
+      ref,
+      report,
+      onSuccess: (r) => showHoldingToast(
+        context,
+        '行情:更新 ${r.updated.length} · '
+        '保留 ${r.retained.length} · '
+        '失败 ${r.failed.length}',
+      ),
     );
   }
 
