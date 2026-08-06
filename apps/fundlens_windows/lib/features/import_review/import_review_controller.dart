@@ -942,8 +942,19 @@ final class ImportReviewController extends ChangeNotifier {
 
   /// Step 2 (screenshots): opens the picker and runs OCR on each selected
   /// screenshot, showing real per-screenshot progress.
+  ///
+  /// picker 打开本身也可能抛异常(系统文件选择器错误等),必须像旧版一样
+  /// 落入 [ImportFailed] 并提供重试入口,不能上抛为未处理异步异常。
   Future<void> pickScreenshots() async {
-    final files = await _picker.pickScreenshotFiles();
+    final List<PickedImportFile> files;
+    try {
+      files = await _picker.pickScreenshotFiles();
+    } catch (e) {
+      _setState(
+        ImportFailed('截图识别失败: $e', true, retry: pickScreenshots),
+      );
+      return;
+    }
     if (files.isEmpty) return;
     await _ocrScreenshotFiles(files);
   }

@@ -112,6 +112,38 @@ void main() {
     );
   });
 
+  testWidgets('screenshot picker 异常进入 ImportFailed 且重试后恢复', (tester) async {
+    final engine = FakeDataEngineClient()
+      ..responses['ocr.parse_screenshots'] = alipayOcrResponse();
+    final picker = FakeImportFilePicker()
+      ..screenshotError = StateError('picker 打开失败')
+      ..screenshots = const [
+        PickedImportFile(name: 'shot.png', path: 'originals/shot.png'),
+      ];
+    final controller = await pumpImportHarness(
+      tester,
+      engine: engine,
+      picker: picker,
+    );
+
+    await tester.tap(find.text('截图识别'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('选择截图'));
+    await tester.pumpAndSettle();
+
+    // picker 异常必须落入 ImportFailed(旧版行为),不能上抛为未处理异步异常。
+    expect(controller.state, isA<ImportFailed>());
+    expect(find.text('导入未完成'), findsOneWidget);
+    expect(find.textContaining('截图识别失败'), findsOneWidget);
+
+    // 重试重新打开 picker;恢复后走完整「复制 + OCR」链路进入 OCR 预览。
+    picker.screenshotError = null;
+    await tapVisible(tester, '重试');
+
+    expect(controller.state, isA<ImportOcrReview>());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('field selection shows its source crop', (tester) async {
     final engine = FakeDataEngineClient()
       ..responses['ocr.parse_screenshots'] = alipayOcrResponse();

@@ -78,6 +78,8 @@ final class FakeImportFilePicker implements ImportFilePicker {
   PickedImportFile? excelFile;
   PickedImportFile? tabularFile;
   List<PickedImportFile> screenshots = const [];
+  /// 非空时 [pickScreenshotFiles] 抛出该错误,用于模拟文件选择器异常。
+  Object? screenshotError;
 
   @override
   Future<PickedImportFile?> pickCsvFile() async => csvFile;
@@ -89,7 +91,11 @@ final class FakeImportFilePicker implements ImportFilePicker {
   Future<PickedImportFile?> pickTabularFile() async => tabularFile ?? csvFile;
 
   @override
-  Future<List<PickedImportFile>> pickScreenshotFiles() async => screenshots;
+  Future<List<PickedImportFile>> pickScreenshotFiles() async {
+    final error = screenshotError;
+    if (error != null) throw error;
+    return screenshots;
+  }
 }
 
 final class FakeScreenshotTempStore implements ScreenshotTempStore {
