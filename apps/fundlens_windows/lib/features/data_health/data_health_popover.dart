@@ -10,6 +10,7 @@ import '../import_review/import_review_controller.dart';
 import '../holdings/holding_filters.dart';
 import '../holdings/holding_status.dart';
 import 'data_health_models.dart';
+import 'data_health_presentation.dart';
 import 'data_health_providers.dart';
 
 /// 数据健康面板:状态头部 + 指标列表 + 最近活动 + 刷新失败区 + 操作区。
@@ -70,35 +71,6 @@ class DataHealthPopover extends ConsumerWidget {
   }
 }
 
-/// 数据健康五态的统一标签与图标;颜色按所在表面由调用方决定
-/// (小字用文字档色满足 AA,图标用原色),避免按钮与面板各写一份映射。
-(String, IconData) dataHealthPresentation(DataHealthStatus status) =>
-    switch (status) {
-      DataHealthStatus.normal => ('正常', Icons.check_circle_outline),
-      DataHealthStatus.partialMissing => ('部分缺失', Icons.error_outline),
-      DataHealthStatus.needsUpdate => ('需要更新', Icons.update),
-      DataHealthStatus.refreshing => ('正在刷新', Icons.sync),
-      DataHealthStatus.refreshFailed => ('刷新失败', Icons.error_outline),
-    };
-
-/// 文字档语义色:小字在画布上满足 WCAG AA(≥4.5:1)。
-Color dataHealthTextColor(DataHealthStatus status) => switch (status) {
-      DataHealthStatus.normal || DataHealthStatus.refreshing =>
-        FundLensTokens.accentText,
-      DataHealthStatus.partialMissing || DataHealthStatus.needsUpdate =>
-        FundLensTokens.warnText,
-      DataHealthStatus.refreshFailed => FundLensTokens.profitText,
-    };
-
-/// 图标原色:浅色表面上的图标/指示色,对比度足够。
-Color dataHealthIconColor(DataHealthStatus status) => switch (status) {
-      DataHealthStatus.normal || DataHealthStatus.refreshing =>
-        FundLensTokens.accent,
-      DataHealthStatus.partialMissing || DataHealthStatus.needsUpdate =>
-        FundLensTokens.warn,
-      DataHealthStatus.refreshFailed => FundLensTokens.profit,
-    };
-
 /// 面板顶部:状态图标 + 状态文字 + 数据截至时间。
 class _StatusHeader extends StatelessWidget {
   const _StatusHeader({required this.status, required this.asOfDate});
@@ -108,14 +80,13 @@ class _StatusHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, icon) = dataHealthPresentation(status);
-    final color = dataHealthIconColor(status);
+    final p = dataHealthPresentation(status);
     return Row(
       children: [
-        Icon(icon, color: color, size: 20),
+        Icon(p.icon, color: p.iconColor, size: 20),
         const SizedBox(width: FundLensTokens.space2),
         Text(
-          label,
+          p.label,
           style: const TextStyle(
             fontFamily: 'Noto Sans SC',
             fontSize: 16,
