@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/app_shell.dart';
 import '../../theme/fundlens_tokens.dart';
 import 'data_health_popover.dart';
+import 'data_health_presentation.dart';
 import 'data_health_providers.dart';
 
 /// 全局数据健康入口按钮:由真实持仓数据派生五态,图标 + 文字双语义表达,
@@ -22,8 +23,7 @@ class _DataHealthButtonState extends ConsumerState<DataHealthButton> {
   @override
   Widget build(BuildContext context) {
     final status = ref.watch(dataHealthStatusProvider);
-    final (label, icon) = dataHealthPresentation(status);
-    final color = dataHealthTextColor(status);
+    final p = dataHealthPresentation(status);
     return MenuAnchor(
       controller: _menuController,
       builder: (context, controller, child) {
@@ -35,8 +35,8 @@ class _DataHealthButtonState extends ConsumerState<DataHealthButton> {
             onPressed: () => controller.isOpen
                 ? controller.close()
                 : controller.open(),
-            icon: Icon(icon, size: 16, color: color),
-            label: Text(label, style: TextStyle(color: color)),
+            icon: Icon(p.icon, size: 16, color: p.textColor),
+            label: Text(p.label, style: TextStyle(color: p.textColor)),
           ),
         );
       },
