@@ -17,7 +17,7 @@
 ;   ticking an explicit checkbox on a separate confirmation dialog.
 
 #define AppName "FundLens"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 #define AppPublisher "FundLens"
 #define ReleaseDir "..\apps\fundlens_windows\build\windows\x64\runner\Release"
 
