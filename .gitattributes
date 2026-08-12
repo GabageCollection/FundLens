@@ -1,0 +1,5 @@
+# Flutter 工具链以 LF 写出以下生成文件;固定 eol=lf,
+# 避免 autocrlf=true 环境下每次构建后出现假性 modified。
+apps/fundlens_windows/windows/flutter/generated_plugin_registrant.cc text eol=lf
+apps/fundlens_windows/windows/flutter/generated_plugin_registrant.h text eol=lf
+apps/fundlens_windows/windows/flutter/generated_plugins.cmake text eol=lf

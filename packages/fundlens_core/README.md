@@ -1,39 +1,30 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# fundlens_core
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+FundLens 的纯 Dart 领域层:资产分类、估值、成本、浮动盈亏、收益覆盖率、
+集中度与快照差异的全部计算都在这里实现。
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/tools/pub/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+## 设计约束
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+- **零外部副作用**:不依赖 Flutter、数据库或网络,可在任意 Dart 环境运行与测试。
+- **十进制精度**:所有金额、价格、份额、比例使用 `Decimal`(经 `DecimalValue`
+  封装),禁止使用二进制浮点。
+- **计算口径**(与仓库 CLAUDE.md 一致):
+  - 浮动盈亏 = 当前金额 − 持有成本
+  - 持有收益率 = 浮动盈亏 ÷ 持有成本(成本为空或 0 时不计算)
+  - 总收益率 = 有成本资产的浮动盈亏之和 ÷ 有成本资产的成本之和
+  - 收益统计覆盖率 = 有成本资产当前金额之和 ÷ 总资产
+  - 占比与集中度由本包基于统一组合重新计算,不采信平台原始占比
 
-## Features
+## 结构
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+| 目录 | 内容 |
+|---|---|
+| `lib/src/model/` | `Holding`、`DecimalValue`、`FieldProvenance` 等核心模型 |
+| `lib/src/analysis/` | 组合汇总、收益与集中度、数据质量计算 |
+| `lib/src/snapshot/` | 不可变历史快照与快照差异(仅称"资产金额变化") |
 
-## Getting started
+## 测试
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```bash
+cd packages/fundlens_core && dart test
 ```
-
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.

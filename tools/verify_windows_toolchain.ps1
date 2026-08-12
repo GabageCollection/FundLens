@@ -1,4 +1,12 @@
+param(
+  # Flutter SDK 根目录;默认取 FUNDLENS_FLUTTER_ROOT 环境变量,再回退 D:\flutter。
+  [string]$FlutterRoot = ''
+)
+
 $ErrorActionPreference = 'Stop'
+
+if (-not $FlutterRoot) { $FlutterRoot = $env:FUNDLENS_FLUTTER_ROOT }
+if (-not $FlutterRoot) { $FlutterRoot = 'D:\flutter' }
 
 # Verify git is on PATH.
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -8,8 +16,8 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 # Use the locally installed Flutter SDK. If this path is not on PATH, the
 # PowerShell command resolution can find the extensionless shell wrapper first
 # and mis-run it, so we invoke the .bat entry directly.
-$flutter = 'D:\flutter\bin\flutter.bat'
-$dart = 'D:\flutter\bin\cache\dart-sdk\bin\dart.exe'
+$flutter = Join-Path $FlutterRoot 'bin\flutter.bat'
+$dart = Join-Path $FlutterRoot 'bin\cache\dart-sdk\bin\dart.exe'
 
 if (-not (Test-Path $flutter)) {
   throw "Flutter not found at $flutter"

@@ -2,6 +2,5 @@
 # Created by `dart pub`
 .dart_tool/
 
-# Avoid committing pubspec.lock for library packages; see
-# https://dart.dev/tools/pub/private-files#pubspec-lock.
-pubspec.lock
+# 本包为应用内部领域包(不发布 pub.dev),按 CLAUDE.md 约定提交
+# pubspec.lock 以保证全仓库可复现构建,不再忽略。
