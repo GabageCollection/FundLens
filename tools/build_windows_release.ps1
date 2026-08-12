@@ -9,12 +9,19 @@
 # manifest (e.g. a GitHub Releases asset). Baked into the app as the
 # FUNDLENS_UPDATE_MANIFEST_URL dart-define; when omitted the in-app update
 # check stays disabled.
+#
+# -FlutterRoot: Flutter SDK 根目录。默认取环境变量 FUNDLENS_FLUTTER_ROOT,
+# 再回退 D:\flutter。换机器时无需改脚本,设环境变量或传参即可。
 
 param(
-  [string]$UpdateManifestUrl = ''
+  [string]$UpdateManifestUrl = '',
+  [string]$FlutterRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $FlutterRoot) { $FlutterRoot = $env:FUNDLENS_FLUTTER_ROOT }
+if (-not $FlutterRoot) { $FlutterRoot = 'D:\flutter' }
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $appDir = Join-Path $repoRoot 'apps\fundlens_windows'
@@ -22,12 +29,13 @@ $releaseDir = Join-Path $appDir 'build\windows\x64\runner\Release'
 $engineDist = Join-Path $repoRoot 'dist\engine\fundlens_engine'
 
 # Flutter SDK locations (mirrors tools/verify_windows_toolchain.ps1).
-$flutter = 'D:\flutter\bin\flutter.bat'
-$dart = 'D:\flutter\bin\cache\dart-sdk\bin\dart.exe'
-$env:PATH = "D:\flutter\bin;$env:PATH"
-# Pub mirror used by this project's CI/dev environment.
-$env:PUB_HOSTED_URL = 'https://pub.flutter-io.cn'
-$env:FLUTTER_STORAGE_BASE_URL = 'https://storage.flutter-io.cn'
+$flutter = Join-Path $FlutterRoot 'bin\flutter.bat'
+$dart = Join-Path $FlutterRoot 'bin\cache\dart-sdk\bin\dart.exe'
+$env:PATH = "$FlutterRoot\bin;$env:PATH"
+# Pub 镜像:默认使用 flutter-io.cn,可用环境变量覆盖(如 CI 直连 pub.dev
+# 时设为 https://pub.dev;注意须与已提交 pubspec.lock 的 hosted URL 一致)。
+if (-not $env:PUB_HOSTED_URL) { $env:PUB_HOSTED_URL = 'https://pub.flutter-io.cn' }
+if (-not $env:FLUTTER_STORAGE_BASE_URL) { $env:FLUTTER_STORAGE_BASE_URL = 'https://storage.flutter-io.cn' }
 
 # Windows PowerShell 5.1 turns any native stderr output into a terminating
 # NativeCommandError under $ErrorActionPreference='Stop'; run each step with
@@ -45,7 +53,7 @@ function Invoke-Step([string]$Name, [scriptblock]$Body) {
 }
 
 Invoke-Step 'Verify Windows toolchain' {
-  powershell -NoProfile -File (Join-Path $repoRoot 'tools\verify_windows_toolchain.ps1')
+  powershell -NoProfile -File (Join-Path $repoRoot 'tools\verify_windows_toolchain.ps1') -FlutterRoot $FlutterRoot
 }
 Invoke-Step 'Build data engine bundle' {
   powershell -NoProfile -File (Join-Path $repoRoot 'tools\build_engine.ps1')

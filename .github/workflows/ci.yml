@@ -1,0 +1,75 @@
+# FundLens CI:与 CLAUDE.md 质量门禁一致的自动化回归。
+# 触发:master 推送与所有 PR。
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  dart-core:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # lockfile 的 hosted URL 指向 flutter-io.cn 镜像,pub get 须用同一镜像,
+      # 否则 pub 会把不同 host 视为不同来源并尝试重新解析。
+      - name: dart test packages/fundlens_core
+        working-directory: packages/fundlens_core
+        env:
+          PUB_HOSTED_URL: https://pub.flutter-io.cn
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        run: |
+          dart pub get
+          dart test
+
+  flutter-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+      # CI 有外网:移除 pubspec 中指向 localhost:8765 的 sqlite3mc url_pattern,
+      # 让 sqlite3 钩子直接从 GitHub release 下载 DLL(该 URL 仅供离线开发机
+      # 经 tools/with_sqlite3mc_server.py 使用,对应 DLL 被 .gitignore 不入库)。
+      - name: Drop offline sqlite3mc url_pattern
+        working-directory: apps/fundlens_windows
+        shell: pwsh
+        run: |
+          (Get-Content pubspec.yaml -Raw) -replace "(?m)^\s*url_pattern: http://localhost:8765/\`$FILENAME\r?\n", '' |
+            Set-Content pubspec.yaml -NoNewline
+      - name: flutter test + analyze
+        working-directory: apps/fundlens_windows
+        env:
+          PUB_HOSTED_URL: https://pub.flutter-io.cn
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        run: |
+          flutter pub get
+          flutter test
+          flutter analyze
+
+  python-engine:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: engine/requirements.lock
+      - name: Install locked dependencies
+        run: pip install -r engine/requirements.lock
+      # pyproject.toml 默认 addopts = "-m 'not live'" 跳过联网测试。
+      - name: pytest / ruff / mypy
+        run: |
+          python -m pytest engine/tests -q
+          python -m ruff check engine
+          python -m mypy engine/src
