@@ -9,8 +9,7 @@ build/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-packages/*/pubspec.lock
-apps/*/pubspec.lock
+# pubspec.lock 需提交入库以保证可复现构建（CLAUDE.md 阶段 1 约定）
 *.g.dart
 *.freezed.dart
 
@@ -49,6 +48,7 @@ dist/
 .kimi/
 .kimi-code/
 .claude/
+.worktrees/
 
 # Local sqlite3mc native binary used for offline testing; do not commit
 /tools/sqlite3mc/*.dll
