@@ -9,14 +9,17 @@ import 'package:fundlens_windows/app/fundlens_app.dart';
 import 'package:fundlens_windows/features/data_health/data_health_providers.dart';
 import 'package:fundlens_windows/theme/fundlens_tokens.dart';
 
-import '../features/overview/asset_spectrum_test.dart' show FakeHoldingRepository;
+import '../features/overview/asset_spectrum_test.dart'
+    show FakeHoldingRepository;
 
 /// 顶栏已含全局数据健康按钮(ConsumerWidget),需提供最小 ProviderScope:
 /// 空持仓仓库 + 计算器 + 最近导入记录(null),其余依赖走默认值。
 Widget buildTestApp() {
   return ProviderScope(
     overrides: [
-      holdingRepositoryProvider.overrideWithValue(FakeHoldingRepository(const [])),
+      holdingRepositoryProvider.overrideWithValue(
+        FakeHoldingRepository(const []),
+      ),
       portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
       lastImportRecordProvider.overrideWithValue(null),
     ],
@@ -41,24 +44,40 @@ void main() {
   const sizes = [Size(1280, 720), Size(1440, 900), Size(1920, 1080)];
 
   for (final size in sizes) {
-    testWidgets('shell exposes all six destinations at ${size.width}x${size.height}', (tester) async {
-      await pumpAtSize(tester, size);
-      for (final label in ['资产总览', '资产分析', '全部持仓', '历史快照', '导入与识别', '设置与备份']) {
-        expect(
-          find.descendant(of: find.byKey(const ValueKey('app-nav')), matching: find.text(label)),
-          findsOneWidget,
-          reason: '$label missing at $size',
-        );
-      }
-      expect(tester.takeException(), isNull);
-    });
+    testWidgets(
+      'shell exposes all six destinations at ${size.width}x${size.height}',
+      (tester) async {
+        await pumpAtSize(tester, size);
+        for (final label in [
+          '资产总览',
+          '资产分析',
+          '全部持仓',
+          '历史快照',
+          '导入与识别',
+          '设置与备份',
+        ]) {
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('app-nav')),
+              matching: find.text(label),
+            ),
+            findsOneWidget,
+            reason: '$label missing at $size',
+          );
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
 
-    testWidgets('no overflow and content visible at ${size.width}x${size.height}', (tester) async {
-      await pumpAtSize(tester, size);
-      expect(find.text('page-overview'), findsOneWidget);
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+    testWidgets(
+      'no overflow and content visible at ${size.width}x${size.height}',
+      (tester) async {
+        await pumpAtSize(tester, size);
+        expect(find.text('page-overview'), findsOneWidget);
+        expect(find.byType(AppShell), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('page switches retain state via IndexedStack', (tester) async {
@@ -85,18 +104,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('data-status button opens popover; 查看导入记录 navigates to importReview', (tester) async {
-    await pumpAtSize(tester, const Size(1440, 900));
-    expect(find.text('page-importReview'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('data-status-button')));
-    await tester.pumpAndSettle();
-    // 面板打开:出现四个操作入口。
-    expect(find.text('查看导入记录'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('data-health-imports')));
-    await tester.pumpAndSettle();
-    expect(find.text('page-importReview'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'data-status button opens popover; 查看导入记录 navigates to importReview',
+    (tester) async {
+      await pumpAtSize(tester, const Size(1440, 900));
+      expect(find.text('page-importReview'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('data-status-button')));
+      await tester.pumpAndSettle();
+      // 面板打开:出现四个操作入口。
+      expect(find.text('查看导入记录'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('data-health-imports')));
+      await tester.pumpAndSettle();
+      expect(find.text('page-importReview'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('navigation shows a visible focus indicator', (tester) async {
     await pumpAtSize(tester, const Size(1440, 900));
@@ -141,6 +163,33 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('app-nav'))).width,
       FundLensTokens.navWidth,
     );
+  });
+
+  testWidgets('折叠开关位于侧栏品牌区而非顶栏', (tester) async {
+    await pumpAtSize(tester, const Size(1100, 800));
+    // 展开与折叠两种状态下,开关都是侧栏(app-nav)的后代。
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('app-nav')),
+        matching: find.byKey(const ValueKey('nav-collapse-toggle')),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('nav-collapse-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('app-nav')),
+        matching: find.byKey(const ValueKey('nav-collapse-toggle')),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('≥1280 完整侧栏不显示折叠开关', (tester) async {
+    await pumpAtSize(tester, const Size(1440, 900));
+    expect(find.byKey(const ValueKey('nav-collapse-toggle')), findsNothing);
   });
 
   testWidgets('<768 切换为抽屉导航', (tester) async {

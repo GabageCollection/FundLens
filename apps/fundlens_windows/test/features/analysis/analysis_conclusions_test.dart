@@ -229,14 +229,8 @@ void main() {
     final names = items.map((i) => i.name).toList();
     expect(names.indexOf('类别上限'), greaterThan(names.indexOf('集中度')));
     expect(items[names.indexOf('类别上限')].status, ConclusionStatus.attention);
-    expect(
-      items[names.indexOf('现金与存款')].status,
-      ConclusionStatus.attention,
-    );
-    expect(
-      items[names.indexOf('权益仓位')].status,
-      ConclusionStatus.attention,
-    );
+    expect(items[names.indexOf('现金与存款')].status, ConclusionStatus.attention);
+    expect(items[names.indexOf('权益仓位')].status, ConclusionStatus.attention);
     expect(items[names.indexOf('类别上限')].result, contains('权益'));
   });
 
@@ -285,22 +279,32 @@ void main() {
         action: AppDestination.holdings,
         actionLabel: '补充资产分类',
       ),
-      ConclusionItem(name: '集中度', result: '持仓h-1 100.0%', explanation: '未设置集中度阈值,仅展示实际占比。'),
+      ConclusionItem(
+        name: '集中度',
+        result: '持仓h-1 100.0%',
+        explanation: '未设置集中度阈值,仅展示实际占比。',
+      ),
       ConclusionItem(
         name: '数据质量',
         result: '100.0%',
         status: ConclusionStatus.normal,
         explanation: '持仓字段完整,可直接进行结构分析。',
       ),
-      ConclusionItem(name: '收益覆盖', result: '100.0%', explanation: '全部资产均纳入收益统计。'),
-      ConclusionItem(name: '行情新鲜度', result: '—', explanation: '没有自动行情持仓,不涉及行情新鲜度。'),
+      ConclusionItem(
+        name: '收益覆盖',
+        result: '100.0%',
+        explanation: '全部资产均纳入收益统计。',
+      ),
+      ConclusionItem(
+        name: '行情新鲜度',
+        result: '—',
+        explanation: '没有自动行情持仓,不涉及行情新鲜度。',
+      ),
     ];
     await tester.pumpWidget(
       MaterialApp(
         theme: FundLensTheme.light,
-        home: Scaffold(
-          body: AnalysisConclusionsCard(items: items),
-        ),
+        home: Scaffold(body: AnalysisConclusionsCard(items: items)),
       ),
     );
     expect(find.text('资产结构'), findsOneWidget);

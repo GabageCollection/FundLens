@@ -22,6 +22,7 @@ final class ChartBarRow {
     required this.amount,
     required this.share,
     this.isAggregate = false,
+    this.color,
   });
 
   final String label;
@@ -34,6 +35,10 @@ final class ChartBarRow {
 
   /// 超过 6 项时占比最小的类别合并为"其他"聚合行。
   final bool isAggregate;
+
+  /// 条形装饰色;仅资产类别维度按类别段色着色,其余维度为 null
+  /// (回退主色/聚合灰)。颜色仅作装饰,名称金额占比始终以文字呈现。
+  final Color? color;
 }
 
 /// 按维度生成图表行:零金额过滤 → 金额降序 → ≤6 全显,>6 前 5 + 合并"其他"。
@@ -41,24 +46,28 @@ List<ChartBarRow> buildChartRows(
   PortfolioSummary summary,
   AnalysisDimension dimension,
 ) {
-  final raw = <(String, DecimalValue)>[];
+  final raw = <(String, DecimalValue, Color?)>[];
   switch (dimension) {
     case AnalysisDimension.assetClass:
       for (final entry in summary.byAssetClass.entries) {
         if (!entry.value.isZero) {
-          raw.add((assetClassLabels[entry.key]!, entry.value));
+          raw.add((
+            assetClassLabels[entry.key]!,
+            entry.value,
+            FundLensTokens.categoryColors[entry.key],
+          ));
         }
       }
     case AnalysisDimension.instrumentType:
       for (final entry in summary.byInstrumentType.entries) {
         if (!entry.value.isZero) {
-          raw.add((instrumentTypeLabels[entry.key]!, entry.value));
+          raw.add((instrumentTypeLabels[entry.key]!, entry.value, null));
         }
       }
     case AnalysisDimension.source:
       for (final entry in summary.bySource.entries) {
         if (!entry.value.isZero) {
-          raw.add((sourcePlatformLabels[entry.key]!, entry.value));
+          raw.add((sourcePlatformLabels[entry.key]!, entry.value, null));
         }
       }
   }
@@ -70,8 +79,13 @@ List<ChartBarRow> buildChartRows(
 
   if (raw.length <= 6) {
     return [
-      for (final (label, amount) in raw)
-        ChartBarRow(label: label, amount: amount, share: shareOf(amount)),
+      for (final (label, amount, color) in raw)
+        ChartBarRow(
+          label: label,
+          amount: amount,
+          share: shareOf(amount),
+          color: color,
+        ),
     ];
   }
   final kept = raw.take(5).toList();
@@ -79,8 +93,13 @@ List<ChartBarRow> buildChartRows(
       .skip(5)
       .fold(DecimalValue.zero, (sum, entry) => sum + entry.$2);
   return [
-    for (final (label, amount) in kept)
-      ChartBarRow(label: label, amount: amount, share: shareOf(amount)),
+    for (final (label, amount, color) in kept)
+      ChartBarRow(
+        label: label,
+        amount: amount,
+        share: shareOf(amount),
+        color: color,
+      ),
     ChartBarRow(
       label: '其余 ${raw.length - 5} 项',
       amount: mergedAmount,
@@ -165,9 +184,14 @@ class HorizontalBarChart extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: FundLensTokens.space3),
-                              Expanded(child: _Bar(row: row, maxAmount: maxAmount)),
+                              Expanded(
+                                child: _Bar(row: row, maxAmount: maxAmount),
+                              ),
                               const SizedBox(width: FundLensTokens.space3),
-                              Flexible(
+                              // 金额/占比定宽右对齐:行间数字按位对齐,便于扫读;
+                              // 完整值经 Tooltip 提供(见 _rowSemantics)。
+                              SizedBox(
+                                width: 104,
                                 child: Text(
                                   formatCurrency(row.amount),
                                   overflow: TextOverflow.ellipsis,
@@ -176,7 +200,8 @@ class HorizontalBarChart extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: FundLensTokens.space4),
-                              Flexible(
+                              SizedBox(
+                                width: 52,
                                 child: Text(
                                   formatShare(row.share),
                                   overflow: TextOverflow.ellipsis,
@@ -207,7 +232,10 @@ class HorizontalBarChart extends StatelessWidget {
             children: [
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text(formatAxisAmount(DecimalValue.zero), style: axisStyle),
+                child: Text(
+                  formatAxisAmount(DecimalValue.zero),
+                  style: axisStyle,
+                ),
               ),
               Align(
                 alignment: Alignment.center,
@@ -237,6 +265,9 @@ class _Bar extends StatelessWidget {
     final fraction = maxAmount.isZero
         ? 0.0
         : row.amount.divide(maxAmount).value.toDouble();
+    final barColor =
+        row.color ??
+        (row.isAggregate ? FundLensTokens.muted : FundLensTokens.accent);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
@@ -259,9 +290,7 @@ class _Bar extends StatelessWidget {
                 child: Container(
                   height: 14,
                   decoration: BoxDecoration(
-                    color: row.isAggregate
-                        ? FundLensTokens.muted
-                        : FundLensTokens.accent,
+                    color: barColor,
                     borderRadius: const BorderRadius.horizontal(
                       right: Radius.circular(4),
                     ),
@@ -302,10 +331,9 @@ class PlatformProportionBar extends StatelessWidget {
   final List<ChartBarRow> rows;
 
   /// 堆叠段色按段序取暖墨档位,超档回退 muted;段名与占比始终以文字呈现。
-  Color _colorFor(int index) =>
-      index < FundLensTokens.chartBarShades.length
-          ? FundLensTokens.chartBarShades[index]
-          : FundLensTokens.muted;
+  Color _colorFor(int index) => index < FundLensTokens.chartBarShades.length
+      ? FundLensTokens.chartBarShades[index]
+      : FundLensTokens.muted;
 
   @override
   Widget build(BuildContext context) {
@@ -388,16 +416,19 @@ class PlatformProportionBar extends StatelessWidget {
                     style: theme.textTheme.bodyMedium,
                   ),
                 ),
-                // 窄约束下金额/占比可收缩,避免横向溢出。
-                Flexible(
+                // 金额/占比定宽右对齐,与条形图行式一致,便于行间扫读。
+                SizedBox(
+                  width: 104,
                   child: Text(
                     formatCurrency(row.amount),
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
                     style: numberStyle,
                   ),
                 ),
                 const SizedBox(width: FundLensTokens.space4),
-                Flexible(
+                SizedBox(
+                  width: 52,
                   child: Text(
                     formatShare(row.share),
                     overflow: TextOverflow.ellipsis,

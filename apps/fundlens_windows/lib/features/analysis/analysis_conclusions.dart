@@ -187,8 +187,7 @@ List<ConclusionItem> buildAnalysisConclusions({
       result: topName == null ? '—' : '$topName ${formatShare(topShare)}',
       breached: top != null && topShare.compareTo(classThreshold) > 0,
       // breached 为真时 top 必非空;空组合的回退文案与达标文案一致。
-      breachedText:
-          topName == null ? okText : '「$topName」占比超过你设置的类别上限。',
+      breachedText: topName == null ? okText : '「$topName」占比超过你设置的类别上限。',
       okText: okText,
     );
   }
@@ -284,14 +283,18 @@ class AnalysisConclusionsCard extends StatelessWidget {
               '分析结论',
               style: theme.extension<FundLensTextStyles>()!.sectionTitle,
             ),
-            const SizedBox(height: FundLensTokens.space3),
-            for (final item in items)
+            const SizedBox(height: FundLensTokens.space2),
+            for (final (index, item) in items.indexed) ...[
+              // 行间细分隔线替代纯空白分组,结论逐行扫读更清晰。
+              if (index > 0)
+                const Divider(height: 1, color: FundLensTokens.border),
               _ConclusionRow(
                 item: item,
                 onAction: item.action == null
                     ? null
                     : () => _go(context, item.action!),
               ),
+            ],
           ],
         ),
       ),
@@ -310,7 +313,7 @@ class _ConclusionRow extends StatelessWidget {
     final theme = Theme.of(context);
     final numberStyle = theme.extension<FundLensTextStyles>()!.financialNumber;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space2),
+      padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -327,7 +330,15 @@ class _ConclusionRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (item.status != null) _StatusChip(item: item),
+              // 状态标签定宽右对齐成列,行间状态一眼可比对;无状态时不占位。
+              if (item.status != null)
+                SizedBox(
+                  width: 68,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _StatusChip(item: item),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: FundLensTokens.space1),
@@ -336,10 +347,7 @@ class _ConclusionRow extends StatelessWidget {
             children: [
               const SizedBox(width: 84),
               Expanded(
-                child: Text(
-                  item.explanation,
-                  style: theme.textTheme.bodySmall,
-                ),
+                child: Text(item.explanation, style: theme.textTheme.bodySmall),
               ),
               if (onAction != null)
                 TextButton(
@@ -367,23 +375,23 @@ class _StatusChip extends StatelessWidget {
   final ConclusionItem item;
 
   (Color, Color) get _colors => switch (item.status!) {
-        ConclusionStatus.normal => (FundLensTokens.lossSoft, FundLensTokens.loss),
-        // 小字前景用文字档,保证在软底上 ≥4.5:1。
-        ConclusionStatus.attention => (
-          FundLensTokens.warnSoft,
-          FundLensTokens.warnText,
-        ),
-        ConclusionStatus.warning => (
-          FundLensTokens.profitSoft,
-          FundLensTokens.profitText,
-        ),
-      };
+    ConclusionStatus.normal => (FundLensTokens.lossSoft, FundLensTokens.loss),
+    // 小字前景用文字档,保证在软底上 ≥4.5:1。
+    ConclusionStatus.attention => (
+      FundLensTokens.warnSoft,
+      FundLensTokens.warnText,
+    ),
+    ConclusionStatus.warning => (
+      FundLensTokens.profitSoft,
+      FundLensTokens.profitText,
+    ),
+  };
 
   String get _label => switch (item.status!) {
-        ConclusionStatus.normal => '正常',
-        ConclusionStatus.attention => '提示',
-        ConclusionStatus.warning => '需要处理',
-      };
+    ConclusionStatus.normal => '正常',
+    ConclusionStatus.attention => '提示',
+    ConclusionStatus.warning => '需要处理',
+  };
 
   @override
   Widget build(BuildContext context) {
