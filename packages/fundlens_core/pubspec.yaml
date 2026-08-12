@@ -1,5 +1,5 @@
 name: fundlens_core
-description: A starting point for Dart libraries or applications.
+description: "FundLens 纯 Dart 领域层:资产分类、估值、盈亏、覆盖率、集中度与快照差异计算。"
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
