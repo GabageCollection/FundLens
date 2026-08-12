@@ -117,3 +117,17 @@ powershell -File tests/release/clean_vm_acceptance.ps1 dist/installer/FundLens-S
 - 本机 Flutter 在 `D:\flutter`；构建脚本硬编码 `D:\flutter\bin\flutter.bat` 与 `dart.exe`，并设置 pub 镜像 `PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL`（`https://pub.flutter-io.cn`）。手动执行前确认 `D:\flutter\bin` 在 PATH。
 - `flutter test` / `flutter build` 在 Windows 上依赖 sqlite3mc DLL，必须经 `tools/with_sqlite3mc_server.py <端口> <命令>` 包装。
 - 关键场景回归：空成本/负收益、六类资产、行情过期/失败、OCR 低置信度、事务回滚、错误/损坏备份、Python 引擎崩溃恢复。
+
+## Agent skills
+
+### Issue tracker
+
+本仓库的 issue 与 spec 存于 GitHub Issues，使用 `gh` CLI 操作。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+triage 使用五个默认标签：`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+单一上下文（single-context）：`CONTEXT.md` 与 `docs/adr/` 位于仓库根目录。详见 `docs/agents/domain.md`。
