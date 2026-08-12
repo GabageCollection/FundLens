@@ -30,11 +30,11 @@ final class StructureThresholds {
 
   @override
   int get hashCode => Object.hash(
-        maxSingleHoldingShare,
-        maxAssetClassShare,
-        minCashAndDepositShare,
-        maxEquityExposureShare,
-      );
+    maxSingleHoldingShare,
+    maxAssetClassShare,
+    minCashAndDepositShare,
+    maxEquityExposureShare,
+  );
 }
 
 final structureThresholdsProvider = StateProvider<StructureThresholds>(

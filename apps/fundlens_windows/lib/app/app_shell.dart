@@ -135,19 +135,16 @@ class _AppShellState extends State<AppShell> {
                       _NavigationRegion(
                         selected: _selected,
                         collapsed: collapsed,
+                        collapsible: collapsible,
+                        onToggleCollapse: () =>
+                            setState(() => _navCollapsed = !_navCollapsed),
                         onSelect: _select,
                       ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _TopBar(
-                            drawerMode: drawerMode,
-                            collapsible: collapsible,
-                            collapsed: collapsed,
-                            onToggleCollapse: () =>
-                                setState(() => _navCollapsed = !_navCollapsed),
-                          ),
+                          _TopBar(drawerMode: drawerMode),
                           const Divider(height: 1),
                           Expanded(
                             child: IndexedStack(
@@ -174,12 +171,18 @@ class _NavigationRegion extends StatelessWidget {
     required this.selected,
     required this.collapsed,
     required this.onSelect,
+    this.collapsible = false,
+    this.onToggleCollapse,
   });
 
   final AppDestination selected;
 
   /// 折叠为 64px 图标栏:隐藏分组标签、文字与页脚,图标 + Tooltip。
   final bool collapsed;
+
+  /// 768–1279 区间允许手动折叠;折叠开关位于品牌区而非顶栏。
+  final bool collapsible;
+  final VoidCallback? onToggleCollapse;
 
   final ValueChanged<AppDestination> onSelect;
 
@@ -204,7 +207,35 @@ class _NavigationRegion extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _BrandBlock(collapsed: collapsed),
+              if (collapsed)
+                Column(
+                  children: [
+                    const _BrandBlock(collapsed: true),
+                    if (collapsible)
+                      _CollapseToggle(
+                        collapsed: true,
+                        onToggle: onToggleCollapse!,
+                      ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(child: _BrandBlock()),
+                    if (collapsible)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: FundLensTokens.space3,
+                          right: FundLensTokens.space3,
+                        ),
+                        child: _CollapseToggle(
+                          collapsed: false,
+                          onToggle: onToggleCollapse!,
+                        ),
+                      ),
+                  ],
+                ),
               const SizedBox(height: FundLensTokens.space2),
               for (final (label, destinations) in _navGroups) ...[
                 if (!collapsed)
@@ -241,6 +272,28 @@ class _NavigationRegion extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 折叠/展开开关:位于侧栏品牌区,图标与 tooltip 随当前态切换。
+class _CollapseToggle extends StatelessWidget {
+  const _CollapseToggle({required this.collapsed, required this.onToggle});
+
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const ValueKey('nav-collapse-toggle'),
+      icon: Icon(
+        collapsed ? Icons.chevron_right : Icons.chevron_left,
+        size: 18,
+      ),
+      color: FundLensTokens.sidebarInk,
+      tooltip: collapsed ? '展开导航' : '折叠导航',
+      onPressed: onToggle,
     );
   }
 }
@@ -487,20 +540,12 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// 顶部全局操作条：左侧为抽屉/折叠切换，右侧为数据健康入口与账户头像。
-/// 页面标题与面包屑已下沉至各页面的 PageHeader（Task 6–10）。
+/// 顶部全局操作条：左侧仅抽屉入口(窄屏)，右侧为数据健康入口与账户头像。
+/// 折叠开关已移入侧栏品牌区;页面标题与面包屑在各页面的 PageHeader。
 class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.drawerMode,
-    required this.collapsible,
-    required this.collapsed,
-    required this.onToggleCollapse,
-  });
+  const _TopBar({required this.drawerMode});
 
   final bool drawerMode;
-  final bool collapsible;
-  final bool collapsed;
-  final VoidCallback onToggleCollapse;
 
   @override
   Widget build(BuildContext context) {
@@ -518,13 +563,6 @@ class _TopBar extends StatelessWidget {
               icon: const Icon(Icons.menu),
               tooltip: '打开导航',
               onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          if (collapsible)
-            IconButton(
-              key: const ValueKey('nav-collapse-toggle'),
-              icon: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left),
-              tooltip: collapsed ? '展开导航' : '折叠导航',
-              onPressed: onToggleCollapse,
             ),
           const Spacer(),
           const DataHealthButton(),

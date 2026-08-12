@@ -65,7 +65,8 @@ Holding fixtureHolding({
 }
 
 Widget analysisHarness({List<Holding>? holdings}) {
-  final fixture = holdings ??
+  final fixture =
+      holdings ??
       [
         fixtureHolding(
           id: 'h-1',
@@ -92,7 +93,9 @@ Widget analysisHarness({List<Holding>? holdings}) {
       ),
       portfolioCalculatorProvider.overrideWithValue(PortfolioCalculator()),
       dataQualityCalculatorProvider.overrideWithValue(DataQualityCalculator()),
-      structureThresholdsProvider.overrideWith((ref) => const StructureThresholds()),
+      structureThresholdsProvider.overrideWith(
+        (ref) => const StructureThresholds(),
+      ),
     ],
     child: MaterialApp(theme: FundLensTheme.light, home: const AnalysisPage()),
   );
@@ -121,7 +124,14 @@ void main() {
   testWidgets('资产类别图表显示金额与占比', (tester) async {
     await tester.pumpWidget(analysisHarness());
     await tester.pumpAndSettle();
-    expect(find.text('资产类别'), findsOneWidget); // Tab
+    // KPI 汇总条也有“资产类别”标签,断言限定在 TabBar 内。
+    expect(
+      find.descendant(
+        of: find.byType(TabBar),
+        matching: find.text('资产类别'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('¥3,000.00'), findsOneWidget);
     expect(find.text('¥1,000.00'), findsOneWidget);
     expect(find.text('75.0%'), findsWidgets);
@@ -222,6 +232,32 @@ void main() {
     await pumpAnalysis(tester);
     expect(find.byType(PageScaffold), findsOneWidget);
     expect(find.text('资产分析'), findsOneWidget);
+  });
+
+  testWidgets('分析页顶部 KPI 区显示结构指标', (tester) async {
+    await tester.pumpWidget(analysisHarness());
+    await tester.pumpAndSettle();
+    // 夹具:权益 1000(无成本)+ 存款 3000(有成本),总资产 4000。
+    expect(find.text('总资产'), findsOneWidget);
+    expect(find.text('¥4,000.00'), findsOneWidget);
+    expect(find.text('持仓项数'), findsOneWidget);
+    expect(find.text('2 项'), findsOneWidget);
+    expect(find.text('2 类'), findsOneWidget);
+    expect(find.text('最大持仓占比'), findsOneWidget);
+    expect(find.text('收益覆盖率'), findsOneWidget);
+  });
+
+  testWidgets('结论卡行间以分隔线分组', (tester) async {
+    await tester.pumpWidget(analysisHarness());
+    await tester.pumpAndSettle();
+    final conclusionsCard = find.ancestor(
+      of: find.text('分析结论'),
+      matching: find.byType(Card),
+    );
+    expect(
+      find.descendant(of: conclusionsCard, matching: find.byType(Divider)),
+      findsWidgets,
+    );
   });
 
   testWidgets('窄屏(760px)下堆叠且不溢出', (tester) async {

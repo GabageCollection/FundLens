@@ -14,6 +14,7 @@ import '../../widgets/page_scaffold.dart';
 import '../holdings/holding_editor_dialog.dart';
 import 'analysis_chart.dart';
 import 'analysis_conclusions.dart';
+import 'analysis_summary_strip.dart';
 import 'structure_thresholds.dart';
 
 /// 资产分析页:三个构成维度(Tabs) + 图表 + 分析结论。
@@ -79,7 +80,7 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage>
   }
 }
 
-/// 主体:左 8 列图表卡 + 右 4 列结论卡;窄屏堆叠。
+/// 主体:顶部 KPI 汇总条 + 左 8 列图表卡 + 右 4 列结论卡;窄屏堆叠。
 class _AnalysisBody extends ConsumerWidget {
   const _AnalysisBody({required this.tabController});
 
@@ -95,20 +96,30 @@ class _AnalysisBody extends ConsumerWidget {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: FundLensTokens.pagePadding),
-      child: GridRow(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GridCol(span: 8, child: _CompositionChartCard(tabController: tabController)),
-          GridCol(
-            span: 4,
-            child: AnalysisConclusionsCard(
-              items: buildAnalysisConclusions(
-                summary: summary,
-                quality: quality,
-                holdings: holdings,
-                thresholds: thresholds,
-                freshQuoteHoldingIds: freshQuoteHoldingIds,
+          const AnalysisSummaryStrip(),
+          const SizedBox(height: FundLensTokens.cardGap),
+          GridRow(
+            children: [
+              GridCol(
+                span: 8,
+                child: _CompositionChartCard(tabController: tabController),
               ),
-            ),
+              GridCol(
+                span: 4,
+                child: AnalysisConclusionsCard(
+                  items: buildAnalysisConclusions(
+                    summary: summary,
+                    quality: quality,
+                    holdings: holdings,
+                    thresholds: thresholds,
+                    freshQuoteHoldingIds: freshQuoteHoldingIds,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

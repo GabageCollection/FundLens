@@ -29,9 +29,9 @@ PortfolioSummary fakeSummary({
 }
 
 Widget chartHarness(Widget child) => MaterialApp(
-      theme: FundLensTheme.light,
-      home: Scaffold(body: child),
-    );
+  theme: FundLensTheme.light,
+  home: Scaffold(body: child),
+);
 
 final testRows = [
   ChartBarRow(
@@ -83,7 +83,10 @@ void main() {
     expect(rows.last.label, '其余 2 项');
     expect(rows.last.isAggregate, isTrue);
     expect(rows.last.amount.canonical, '3000'); // 降序前 5 之后的最小 2 项:2000+1000
-    expect(rows.last.share.canonical, '0.10714285'); // 3000 ÷ 28000,DecimalValue 除法按 8 位截断
+    expect(
+      rows.last.share.canonical,
+      '0.10714285',
+    ); // 3000 ÷ 28000,DecimalValue 除法按 8 位截断
   });
 
   test('产品类型 9 类触发合并', () {
@@ -135,6 +138,69 @@ void main() {
     );
     final rows = buildChartRows(summary, AnalysisDimension.assetClass);
     expect(rows.single.share.canonical, '0');
+  });
+
+  test('资产类别维度按类别段色着色,聚合行不着色', () {
+    final summary = fakeSummary(
+      byAssetClass: {
+        AssetClass.cash: DecimalValue.parse('1000'),
+        AssetClass.equity: DecimalValue.parse('3000'),
+      },
+      totalValue: '4000',
+    );
+    final rows = buildChartRows(summary, AnalysisDimension.assetClass);
+    expect(rows[0].color, FundLensTokens.categoryColors[AssetClass.equity]);
+    expect(rows[1].color, FundLensTokens.categoryColors[AssetClass.cash]);
+  });
+
+  test('产品类型与来源平台维度不着色(回退主色)', () {
+    final summary = fakeSummary(
+      byInstrumentType: {InstrumentType.etf: DecimalValue.parse('3000')},
+      bySource: {SourcePlatform.alipay: DecimalValue.parse('3000')},
+      totalValue: '3000',
+    );
+    expect(
+      buildChartRows(summary, AnalysisDimension.instrumentType).single.color,
+      isNull,
+    );
+    expect(
+      buildChartRows(summary, AnalysisDimension.source).single.color,
+      isNull,
+    );
+  });
+
+  testWidgets('条形图按行着色渲染类别段色', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(
+        HorizontalBarChart(
+          rows: [
+            ChartBarRow(
+              label: '权益',
+              amount: DecimalValue.parse('30000'),
+              share: DecimalValue.parse('0.6'),
+              color: FundLensTokens.categoryColors[AssetClass.equity],
+            ),
+            ChartBarRow(
+              label: '存款',
+              amount: DecimalValue.parse('20000'),
+              share: DecimalValue.parse('0.4'),
+              color: FundLensTokens.categoryColors[AssetClass.deposit],
+            ),
+          ],
+        ),
+      ),
+    );
+    final colored = find.descendant(
+      of: find.byType(HorizontalBarChart),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration! as BoxDecoration).color ==
+                FundLensTokens.categoryColors[AssetClass.deposit],
+      ),
+    );
+    expect(colored, findsOneWidget);
   });
 
   testWidgets('条形图同时显示名称、金额与占比', (tester) async {
@@ -212,9 +278,7 @@ void main() {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      chartHarness(HorizontalBarChart(rows: testRows)),
-    );
+    await tester.pumpWidget(chartHarness(HorizontalBarChart(rows: testRows)));
     expect(tester.takeException(), isNull);
   });
 }
