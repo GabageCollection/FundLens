@@ -38,4 +38,11 @@ if ($forbidden) {
   throw "Forbidden release files: $($forbidden.FullName -join ', ')"
 }
 
+# HuggingFace download caches under the OCR models are download-time
+# metadata only and must be pruned by tools/build_engine.ps1.
+$cacheDirs = Get-ChildItem $BundlePath -Recurse -Directory -Filter '.cache' -ErrorAction SilentlyContinue
+if ($cacheDirs) {
+  throw "Forbidden model cache directories: $($cacheDirs.FullName -join ', ')"
+}
+
 Write-Host "verify_bundle: PASS ($BundlePath)"

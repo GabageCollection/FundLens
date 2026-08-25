@@ -106,6 +106,13 @@ if (-not (Test-Path (Join-Path $modelsStaging 'official_models\PP-OCRv5_mobile_r
   Write-Host '==> Using staged OCR models from engine/models'
 }
 
+# Prune HuggingFace download caches from the staged models: the .cache
+# trees hold only download metadata (not needed at runtime) and bloat the
+# installer. Model inference files (inference.*) are kept.
+$cacheDirs = Get-ChildItem $modelsStaging -Recurse -Directory -Filter '.cache' -ErrorAction SilentlyContinue
+foreach ($dir in $cacheDirs) { Remove-Item $dir.FullName -Recurse -Force }
+if ($cacheDirs) { Write-Host "==> Pruned $($cacheDirs.Count) HuggingFace .cache dirs from staged models" }
+
 Write-Host '==> Running PyInstaller (--clean --noconfirm)'
 Push-Location $repoRoot
 try {

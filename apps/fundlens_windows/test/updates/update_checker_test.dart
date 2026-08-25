@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_windows/updates/update_checker.dart';
 
@@ -90,6 +92,45 @@ void main() {
         fetcher: (_) async => throw Exception('offline'),
       );
       expect(await checker.check(), isA<UpdateCheckFailed>());
+    });
+  });
+
+  group('UpdateChecker real HTTP fetch', () {
+    // The published manifest lives at a GitHub Releases latest/download URL,
+    // which answers with a 302 redirect. This test drives the real _httpGet
+    // (no injected fetcher) against a local server that redirects, proving
+    // the redirect is followed.
+    test('follows the latest/download 302 redirect', () async {
+      const manifestJson =
+          '{"version":"2.0.0","url":"https://example.com/x.exe",'
+          '"sha256":"deadbeef","notes":""}';
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((request) {
+        if (request.uri.path == '/version.json') {
+          request.response
+            ..statusCode = HttpStatus.found
+            ..headers.set(HttpHeaders.locationHeader, '/real/version.json')
+            ..close();
+        } else if (request.uri.path == '/real/version.json') {
+          request.response
+            ..statusCode = HttpStatus.ok
+            ..headers.contentType = ContentType.json
+            ..write(manifestJson)
+            ..close();
+        } else {
+          request.response.statusCode = HttpStatus.notFound;
+          request.response.close();
+        }
+      });
+
+      final checker = UpdateChecker(
+        manifestUrl: 'http://127.0.0.1:${server.port}/version.json',
+        currentVersion: '1.0.0',
+      );
+      final result = await checker.check();
+      expect(result, isA<UpdateAvailable>());
+      expect((result as UpdateAvailable).manifest.version, '2.0.0');
     });
   });
 }

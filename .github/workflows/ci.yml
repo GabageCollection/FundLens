@@ -5,7 +5,9 @@ name: ci
 on:
   push:
     branches: [master]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   dart-core:
@@ -73,3 +75,68 @@ jobs:
           python -m pytest engine/tests -q
           python -m ruff check engine
           python -m mypy engine/src
+
+  # Full release pipeline on version tags / manual dispatch: engine bundle ->
+  # flutter test+analyze -> windows release build -> bundle verify ->
+  # Inno Setup installer -> artifact upload. Mirrors
+  # tools/build_windows_release.ps1; the url_pattern is removed first so the
+  # sqlite3 hook downloads sqlite3mc from GitHub (the local DLL is not
+  # committed), making tools/with_sqlite3mc_server.py a pass-through.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    env:
+      # Stable "latest release asset" URLs: they never change across versions,
+      # so the manifest URL baked into the app works for every future release.
+      FUNDLENS_UPDATE_MANIFEST_URL: https://github.com/GabageCollection/FundLens/releases/latest/download/version.json
+      FUNDLENS_INSTALLER_DOWNLOAD_URL: https://github.com/GabageCollection/FundLens/releases/latest/download/FundLens-Setup.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: engine/requirements.lock
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+      - name: Install Inno Setup 6
+        run: choco install innosetup --no-progress -y
+      - name: Drop offline sqlite3mc url_pattern
+        working-directory: apps/fundlens_windows
+        shell: pwsh
+        run: |
+          (Get-Content pubspec.yaml -Raw) -replace "(?m)^\s*url_pattern: http://localhost:8765/\`$FILENAME\r?\n", '' |
+            Set-Content pubspec.yaml -NoNewline
+      - name: Build release pipeline
+        env:
+          PUB_HOSTED_URL: https://pub.flutter-io.cn
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+          FUNDLENS_FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
+        shell: pwsh
+        run: >-
+          powershell -File tools/build_windows_release.ps1
+          -UpdateManifestUrl $env:FUNDLENS_UPDATE_MANIFEST_URL
+          -InstallerDownloadUrl $env:FUNDLENS_INSTALLER_DOWNLOAD_URL
+      - name: Upload installer artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FundLens-Setup
+          path: |
+            dist/installer/FundLens-Setup.exe
+            dist/installer/version.json
+          if-no-files-found: error
+      # Publish only on version tags: the installer and the update manifest
+      # become release assets under the stable latest/download URLs.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/installer/FundLens-Setup.exe
+            dist/installer/version.json
+          generate_release_notes: false

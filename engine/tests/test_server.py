@@ -22,7 +22,7 @@ def test_health_check_returns_version_one(run_rpc: Callable[[dict[str, Any]], di
     response = run_rpc(
         {"jsonrpc": "2.0", "id": "1", "method": "health.check", "params": {}, "schema_version": 1}
     )
-    assert response["result"] == {"status": "ok", "engine_version": "0.1.0"}
+    assert response["result"] == {"status": "ok", "engine_version": "1.1.0"}
     assert response["schema_version"] == 1
     assert response["id"] == "1"
     assert "error" not in response

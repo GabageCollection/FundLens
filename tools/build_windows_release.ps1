@@ -10,11 +10,16 @@
 # FUNDLENS_UPDATE_MANIFEST_URL dart-define; when omitted the in-app update
 # check stays disabled.
 #
+# -InstallerDownloadUrl: public HTTPS download address of the built
+# installer, written into version.json. Required together with
+# -UpdateManifestUrl to also emit dist/installer/version.json.
+#
 # -FlutterRoot: Flutter SDK 根目录。默认取环境变量 FUNDLENS_FLUTTER_ROOT,
 # 再回退 D:\flutter。换机器时无需改脚本,设环境变量或传参即可。
 
 param(
   [string]$UpdateManifestUrl = '',
+  [string]$InstallerDownloadUrl = '',
   [string]$FlutterRoot = ''
 )
 
@@ -119,6 +124,7 @@ $isccCandidates = @(
   "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
 )
 $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+$installerPath = Join-Path $repoRoot 'dist\installer\FundLens-Setup.exe'
 if ($iscc) {
   Invoke-Step 'Compile installer (Inno Setup)' {
     & $iscc (Join-Path $repoRoot 'installer\FundLens.iss')
@@ -127,4 +133,27 @@ if ($iscc) {
 } else {
   Write-Host '==> ISCC.exe not found; skipping installer compile.'
   Write-Host "    Install Inno Setup 6 and run: ISCC.exe installer\FundLens.iss"
+}
+
+# Update manifest: generated only when the installer exists and both public
+# URLs are known. The manifest's sha256 is computed from the installer that
+# was just compiled, so a manifest always matches its asset.
+if ((Test-Path $installerPath) -and $UpdateManifestUrl -and $InstallerDownloadUrl) {
+  $notesFile = Get-ChildItem (Join-Path $repoRoot 'dist') -Filter 'release-notes-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  $manifestArgs = @{
+    InstallerPath = $installerPath
+    DownloadUrl   = $InstallerDownloadUrl
+  }
+  if ($notesFile) { $manifestArgs.NotesFile = $notesFile.FullName }
+  Invoke-Step 'Generate update manifest (version.json)' {
+    # In-process call: a nested powershell.exe inherits this script's modified
+    # PATH and can lose core cmdlets (Get-FileHash) on some machines.
+    & (Join-Path $repoRoot 'tools\generate_update_manifest.ps1') @manifestArgs
+    # In-process scripts do not set LASTEXITCODE; normalize it so Invoke-Step's
+    # exit-code gate does not read a stale value from the previous step.
+    $global:LASTEXITCODE = 0
+  }
+} elseif ($UpdateManifestUrl -or $InstallerDownloadUrl) {
+  Write-Host '==> Skipping version.json: -UpdateManifestUrl and -InstallerDownloadUrl must be passed together, and the installer must exist.'
 }
