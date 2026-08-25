@@ -53,7 +53,14 @@ if (-not $OutPath) {
   $OutPath = Join-Path $repoRoot 'dist\installer\version.json'
 }
 
-$sha256 = (Get-FileHash $InstallerPath -Algorithm SHA256).Hash.ToLower()
+# Compute SHA-256 via .NET instead of Get-FileHash: the cmdlet lives in
+# Microsoft.PowerShell.Utility and can be unavailable when this script runs
+# inside a build pipeline with a modified PSModulePath.
+$sha256 = [System.BitConverter]::ToString(
+  [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.IO.File]::ReadAllBytes($InstallerPath)
+  )
+).Replace('-', '').ToLower()
 
 $manifest = [ordered]@{
   version = $Version
