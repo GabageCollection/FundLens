@@ -34,6 +34,7 @@
 ## 应用更新
 
 - 检查更新只在你主动点击时发生，应用不会自动联网检查；
+- 更新清单托管在 GitHub Releases：`https://github.com/GabageCollection/FundLens/releases/latest/download/version.json`，请求只读取清单，不携带任何持仓或个人信息；
 - 下载的安装包必须通过清单中公布的 SHA-256 校验才会被启动，校验失败的文件会被直接删除；
 - 更新为原位升级，`%APPDATA%` 下的用户数据（包括加密数据库）不受影响。
 

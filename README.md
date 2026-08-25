@@ -15,7 +15,7 @@ FundLens 是一款面向个人投资者的**本地资产快照分析工具**（W
 
 ## 安装
 
-从 [Releases](../../releases) 页面下载最新的 `FundLens-Setup.exe`，运行安装程序即可。
+从 [Releases](../../releases) 页面下载最新的 `FundLens-Setup.exe`，运行安装程序即可。安装后可在设置与备份的应用信息卡片中手动检查更新（更新清单托管于 GitHub Releases，下载的安装包经 SHA-256 校验后才启动安装）。
 
 - 系统要求：Windows 10 / 11（64 位）
 - 最低窗口尺寸 1280 × 720，推荐 1440 × 900 及以上；支持高 DPI 缩放
