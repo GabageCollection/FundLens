@@ -12,7 +12,7 @@ FundLens Windows V1 是一款面向个人投资者的本地资产快照分析工
 - **加密本地存储**：Drift + sqlite3mc（SQLCipher 兼容）加密 SQLite；数据库密钥由 Windows Credential Manager（flutter_secure_storage）保护。
 - **内置 Python 数据引擎**：仅负责本地 PaddleOCR 中文识别、产品名称匹配、行情获取和字段标准化。通过 stdin/stdout 逐行 JSON-RPC 2.0 通信，`schema_version = 1`。不计算总资产、收益、风险，不写入正式持仓。
 - **引擎协议契约**：`schemas/engine_protocol_v1.schema.json` 定义请求/成功/失败信封（`schema_version = 1`）；引擎只暴露 `health.check`、`ocr.parse_screenshots`、`product.match_candidates`、`market.fetch_quotes` 四个方法。
-- **数据库 schema**：当前 `schemaVersion = 1`，尚无 Drift 迁移机制；改表前需先设计版本迁移与旧备份升级路径。
+- **数据库 schema**：当前 `schemaVersion = 1`。迁移框架已就位（`AppDatabase.migration` + `migrationSteps` 逐步升级）：改表时提升 `schemaVersion` 并在 `migrationSteps` 追加对应 `MigrationStep`，禁止修改已发布的步骤；旧备份经 `DatabaseRestoreService` 的 `PRAGMA user_version` 检查拒绝不兼容版本。
 
 ## 不可变数据原则
 
@@ -117,6 +117,7 @@ powershell -File tests/release/clean_vm_acceptance.ps1 dist/installer/FundLens-S
 - 本机 Flutter 在 `D:\flutter`；构建脚本支持 `-FlutterRoot` 参数或 `FUNDLENS_FLUTTER_ROOT` 环境变量指定 SDK 路径（回退 `D:\flutter`），pub 镜像 `PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL` 可用环境变量覆盖（默认 `https://pub.flutter-io.cn`，须与已提交 pubspec.lock 的 hosted URL 一致）。手动执行前确认 `D:\flutter\bin` 在 PATH。
 - `flutter test` / `flutter build` 在 Windows 上依赖 sqlite3mc DLL，必须经 `tools/with_sqlite3mc_server.py 8765 <命令>` 包装（pubspec 钩子 url_pattern 写死 8765 端口；该 DLL 不入库，新 worktree 需从主仓库 `tools/sqlite3mc/` 复制）。
 - CI：`.github/workflows/ci.yml` 三 job 对齐本门禁（dart test / flutter test+analyze / pytest+ruff+mypy）；CI 有外网，会移除 pubspec 中离线用的 sqlite3mc localhost url_pattern 让钩子直连 GitHub 下载。
+- 更新清单：release job 把 `releases/latest/download/version.json`（跨版本稳定的 latest 资产 URL）烘焙进应用（FUNDLENS_UPDATE_MANIFEST_URL），并用 `tools/generate_update_manifest.ps1` 生成清单（SHA-256 来自刚编译的安装包）；发布时先传 exe 再传 version.json。
 - 关键场景回归：空成本/负收益、六类资产、行情过期/失败、OCR 低置信度、事务回滚、错误/损坏备份、Python 引擎崩溃恢复。
 
 ## Agent skills

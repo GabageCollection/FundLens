@@ -80,22 +80,27 @@ final class DriftSnapshotRepository implements SnapshotRepository {
 
   @override
   Future<List<PortfolioSnapshot>> getAll() async {
+    // Two queries total: one for snapshots, one for all their holdings,
+    // grouped in memory. The previous per-snapshot loop ran one query per
+    // snapshot, which degraded badly with hundreds of snapshots.
     final snapshots = await _db.select(_db.snapshotTable).get();
-    final result = <PortfolioSnapshot>[];
-    for (final snapshot in snapshots) {
-      final holdingsQuery = _db.select(_db.snapshotHoldingTable)
-        ..where((row) => row.snapshotId.equals(snapshot.id));
-      final holdings = await holdingsQuery.get();
-      result.add(
+    if (snapshots.isEmpty) return const [];
+    final holdingRows = await _db.select(_db.snapshotHoldingTable).get();
+    final holdingsBySnapshot = <String, List<SnapshotHolding>>{};
+    for (final row in holdingRows) {
+      holdingsBySnapshot
+          .putIfAbsent(row.snapshotId, () => <SnapshotHolding>[])
+          .add(_toSnapshotHolding(row));
+    }
+    return [
+      for (final snapshot in snapshots)
         PortfolioSnapshot(
           id: snapshot.id,
           label: snapshot.label,
           createdAt: dateTimeFromEpochMillis(snapshot.createdAt),
-          holdings: holdings.map(_toSnapshotHolding).toList(),
+          holdings: holdingsBySnapshot[snapshot.id] ?? const [],
         ),
-      );
-    }
-    return result;
+    ];
   }
 
   SnapshotHoldingTableCompanion _snapshotHoldingCompanion(

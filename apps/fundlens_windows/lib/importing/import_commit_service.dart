@@ -58,21 +58,23 @@ final class ImportCommitService {
     final previousUpdates = <String, Holding>{};
     final removedHoldings = <Holding>[];
     await _repository.inTransaction(() async {
+      // Read the pre-commit state once per commit instead of once per
+      // updated row: the previous loop was O(updates x holdings).
+      final currentById = {
+        for (final h in await _repository.getAll()) h.id: h,
+      };
       for (final holding in plan.updates) {
-        final existing = (await _repository.getAll())
-            .where((h) => h.id == holding.id)
-            .toList();
-        if (existing.isNotEmpty) previousUpdates[holding.id] = existing.single;
+        final existing = currentById[holding.id];
+        if (existing != null) previousUpdates[holding.id] = existing;
         await _repository.upsert(holding);
       }
       for (final holding in plan.inserts) {
         insertedHoldings.add(holding);
         await _repository.upsert(holding);
       }
-      final current = await _repository.getAll();
       for (final id in plan.removeIds) {
-        final existing = current.where((h) => h.id == id).toList();
-        if (existing.isNotEmpty) removedHoldings.add(existing.single);
+        final existing = currentById[id];
+        if (existing != null) removedHoldings.add(existing);
       }
       await _repository.deleteByIds(plan.removeIds);
     });
