@@ -58,8 +58,17 @@ class FundLensTextStyles extends ThemeExtension<FundLensTextStyles> {
 /// 页面标题 24/32、区块标题 18/26、正文 14/22、辅助 12/18;
 /// 按钮与输入框高 40,卡片圆角 12、1px 边框、无阴影。
 abstract final class FundLensTheme {
-  static ThemeData get light {
-    const textTheme = TextTheme(
+  /// 浅色暖墨主题。
+  static ThemeData get light => _build(FundLensPalette.light);
+
+  /// 深色暖墨主题:同一色相体系整体压暗,组件规格完全一致。
+  static ThemeData get dark => _build(FundLensPalette.dark);
+
+  static ThemeData _build(FundLensPalette palette) {
+    // 主题构建前切换全局调色板,使下方 FundLensTokens 语义色读取
+    // 都指向当前明暗实例。
+    FundLensTokens.applyPalette(palette);
+    final textTheme = TextTheme(
       // 页面标题:24px / 行高 32 / w600,中文保留克制的宋体气质。
       titleLarge: TextStyle(
         fontFamily: 'Noto Serif SC',
@@ -91,7 +100,8 @@ abstract final class FundLensTheme {
       ),
     );
 
-    const colorScheme = ColorScheme.light(
+    final isDark = identical(palette, FundLensPalette.dark);
+    final colorScheme = (isDark ? ColorScheme.dark : ColorScheme.light)(
       primary: FundLensTokens.accentStrong,
       onPrimary: Color(0xFFFFFFFF),
       surface: FundLensTokens.surface,
@@ -111,7 +121,7 @@ abstract final class FundLensTheme {
     );
 
     /// 键盘 Focus:清晰的 2px 主色轮廓。
-    const focusSide = WidgetStateBorderSide.fromMap({
+    final focusSide = WidgetStateBorderSide.fromMap({
       WidgetState.focused: BorderSide(
         color: FundLensTokens.accent,
         width: FundLensTokens.focusOutlineWidth,
@@ -123,7 +133,7 @@ abstract final class FundLensTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: FundLensTokens.canvas,
       textTheme: textTheme,
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: FundLensTokens.border,
         thickness: 1,
         space: 1,
@@ -162,8 +172,29 @@ abstract final class FundLensTheme {
         behavior: SnackBarBehavior.floating,
       ),
       // 加载指示统一主色,与视觉体系一致。
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: FundLensTokens.accent,
+      ),
+      // Hover/按压反馈:暖墨体系的极浅主色底,替代 Material 默认灰调。
+      // 覆盖全部 InkWell/InkResponse/ListTile/按钮的默认态;表格行等
+      // 自定义控件可用 FundLensTokens.hoverBackground 保持一致。
+      hoverColor: FundLensTokens.hoverBackground,
+      splashColor: FundLensTokens.accent.withValues(alpha: 0.10),
+      highlightColor: FundLensTokens.accent.withValues(alpha: 0.05),
+      // 桌面端滚动条:常驻细轨道,悬停加粗,让用户总能感知滚动位置。
+      scrollbarTheme: ScrollbarThemeData(
+        thumbVisibility: const WidgetStatePropertyAll(true),
+        thickness: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.hovered) ? 10 : 7,
+        ),
+        radius: const Radius.circular(FundLensTokens.radiusControl),
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.hovered)
+              ? FundLensTokens.muted
+              : FundLensTokens.disabled,
+        ),
+        trackColor: WidgetStatePropertyAll(FundLensTokens.surfaceAlt),
+        trackBorderColor: WidgetStatePropertyAll(FundLensTokens.border),
       ),
       focusColor: FundLensTokens.accent.withValues(alpha: 0.16),
       // 主按钮:高 40,圆角 8,禁用态使用 disabled 灰。
@@ -186,7 +217,7 @@ abstract final class FundLensTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: FundLensTokens.ink,
           disabledForegroundColor: FundLensTokens.disabled,
-          side: const BorderSide(color: FundLensTokens.borderStrong),
+          side: BorderSide(color: FundLensTokens.borderStrong),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           minimumSize: const Size(64, FundLensTokens.buttonHeight),
           padding: const EdgeInsets.symmetric(
@@ -228,7 +259,7 @@ abstract final class FundLensTheme {
                 ? FundLensTokens.surface
                 : FundLensTokens.surfaceAlt,
           ),
-          side: const WidgetStatePropertyAll(
+          side: WidgetStatePropertyAll(
             BorderSide(color: FundLensTokens.border),
           ),
         ),
@@ -251,15 +282,15 @@ abstract final class FundLensTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
-          borderSide: const BorderSide(color: FundLensTokens.borderStrong),
+          borderSide: BorderSide(color: FundLensTokens.borderStrong),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
-          borderSide: const BorderSide(color: FundLensTokens.borderStrong),
+          borderSide: BorderSide(color: FundLensTokens.borderStrong),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
-          borderSide: const BorderSide(
+          borderSide: BorderSide(
             color: FundLensTokens.accent,
             width: FundLensTokens.focusOutlineWidth,
           ),
@@ -279,13 +310,13 @@ abstract final class FundLensTheme {
             width: FundLensTokens.focusOutlineWidth,
           ),
         ),
-        errorStyle: const TextStyle(
+        errorStyle: TextStyle(
           fontFamily: 'Noto Sans SC',
           fontSize: 12,
           color: FundLensTokens.profit,
         ),
       ),
-      extensions: const [
+      extensions: [
         FundLensTextStyles(
           financialNumber: TextStyle(
             fontFamily: 'IBM Plex Mono',

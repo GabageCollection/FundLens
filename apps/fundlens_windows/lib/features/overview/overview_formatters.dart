@@ -22,6 +22,27 @@ String formatSignedCurrency(DecimalValue value) {
   return '+${formatCurrency(value)}';
 }
 
+/// [formatCurrency] 的 double 版本,仅供动画中间帧使用。
+String formatCurrencyDouble(double value) {
+  final abs = value.abs();
+  final whole = abs.truncate();
+  final frac = ((abs - whole) * 100).round().toString().padLeft(2, '0');
+  final grouped = whole.toString().replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (m) => ',',
+  );
+  final body = '¥$grouped.$frac';
+  return value.isNegative ? '-$body' : body;
+}
+
+/// [formatSignedCurrency] 的 double 版本,仅供动画中间帧使用。
+String formatSignedCurrencyDouble(double value) =>
+    value.isNegative ? formatCurrencyDouble(value) : '+${formatCurrencyDouble(value)}';
+
+/// 占比的 double 版本(如 0.452 -> 45.2%),仅供动画中间帧使用。
+String formatShareDouble(double value) =>
+    '${(value * 100).toStringAsFixed(1)}%';
+
 String _two(int value) => value.toString().padLeft(2, '0');
 
 /// “数据截至”时间:`2026-07-31 14:05`。

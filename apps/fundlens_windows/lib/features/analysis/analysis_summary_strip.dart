@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/animated_amount_text.dart';
 import '../overview/overview_formatters.dart';
 import 'analysis_labels.dart';
 
@@ -31,14 +32,26 @@ class AnalysisSummaryStrip extends ConsumerWidget {
         .where((amount) => !amount.isZero)
         .length;
     final cells = <Widget>[
-      _KpiCell(label: '总资产', value: formatCurrency(summary.totalValue)),
-      _KpiCell(label: '持仓项数', value: '${holdings.length} 项'),
-      _KpiCell(label: '资产类别', value: '$classCount 类'),
+      _KpiCell(
+        label: '总资产',
+        value: summary.totalValue,
+        format: formatCurrency,
+        interpolateFormat: formatCurrencyDouble,
+      ),
+      _KpiCell(label: '持仓项数', staticValue: '${holdings.length} 项'),
+      _KpiCell(label: '资产类别', staticValue: '$classCount 类'),
       _KpiCell(
         label: '最大持仓占比',
-        value: formatShare(summary.largestHoldingShare),
+        value: summary.largestHoldingShare,
+        format: formatShare,
+        interpolateFormat: formatShareDouble,
       ),
-      _KpiCell(label: '收益覆盖率', value: formatShare(summary.returnCoverage)),
+      _KpiCell(
+        label: '收益覆盖率',
+        value: summary.returnCoverage,
+        format: formatShare,
+        interpolateFormat: formatShareDouble,
+      ),
     ];
     return Card(
       child: Padding(
@@ -92,10 +105,27 @@ class _CellDivider extends StatelessWidget {
 }
 
 class _KpiCell extends StatelessWidget {
-  const _KpiCell({required this.label, required this.value});
+  const _KpiCell({
+    required this.label,
+    this.value,
+    this.format,
+    this.interpolateFormat,
+    this.staticValue,
+  }) : assert(
+          (value != null && format != null && interpolateFormat != null) ||
+              staticValue != null,
+          'provide either an animated DecimalValue or a staticValue',
+        );
 
   final String label;
-  final String value;
+
+  /// 动画数值(与 [format]/[interpolateFormat] 成对提供)。
+  final DecimalValue? value;
+  final String Function(DecimalValue)? format;
+  final String Function(double)? interpolateFormat;
+
+  /// 静态文本(计数类指标无动画意义)。
+  final String? staticValue;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +133,14 @@ class _KpiCell extends StatelessWidget {
     final kpi = theme.extension<FundLensTextStyles>()!.kpiNumber;
     final tooltip = _kpiTooltips[label];
     final labelWidget = Text(label, style: theme.textTheme.bodySmall);
+    final valueWidget = value != null
+        ? AnimatedAmountText(
+            value: value!,
+            format: format!,
+            interpolateFormat: interpolateFormat!,
+            style: kpi,
+          )
+        : Text(staticValue!, style: kpi);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -116,7 +154,7 @@ class _KpiCell extends StatelessWidget {
               children: [
                 labelWidget,
                 const SizedBox(width: FundLensTokens.space1),
-                const Icon(
+                Icon(
                   Icons.info_outline,
                   size: 13,
                   color: FundLensTokens.muted,
@@ -125,7 +163,7 @@ class _KpiCell extends StatelessWidget {
             ),
           ),
         const SizedBox(height: FundLensTokens.space1),
-        Text(value, style: kpi),
+        valueWidget,
       ],
     );
   }

@@ -39,7 +39,7 @@ class ErrorRetryView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 40,
               color: FundLensTokens.warnText,

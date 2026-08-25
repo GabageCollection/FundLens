@@ -179,7 +179,7 @@ void main() {
       return (lighter + 0.05) / (darker + 0.05);
     }
 
-    const cases = <(String, Color, Color, double)>[
+    final cases = <(String, Color, Color, double)>[
       ('warnText/warnSoft', FundLensTokens.warnText, FundLensTokens.warnSoft, 4.5),
       ('warnText/surface', FundLensTokens.warnText, FundLensTokens.surface, 4.5),
       ('warnText/canvas', FundLensTokens.warnText, FundLensTokens.canvas, 4.5),

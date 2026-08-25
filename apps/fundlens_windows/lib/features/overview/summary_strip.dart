@@ -5,6 +5,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import '../../application/portfolio_providers.dart';
 import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
+import '../../widgets/animated_amount_text.dart';
 import 'asset_spectrum.dart';
 import 'overview_formatters.dart';
 
@@ -39,8 +40,18 @@ class SummaryStrip extends ConsumerWidget {
     final holdings = ref.watch(holdingsProvider).value ?? const <Holding>[];
     final asOf = _dataAsOf(holdings);
     final cells = <Widget>[
-      _SummaryCell(label: '总资产', value: formatCurrency(summary.totalValue)),
-      _SummaryCell(label: '覆盖成本', value: formatCurrency(summary.totalCost)),
+      _SummaryCell(
+        label: '总资产',
+        value: summary.totalValue,
+        format: formatCurrency,
+        interpolateFormat: formatCurrencyDouble,
+      ),
+      _SummaryCell(
+        label: '覆盖成本',
+        value: summary.totalCost,
+        format: formatCurrency,
+        interpolateFormat: formatCurrencyDouble,
+      ),
       _SignedSummaryCell(label: '浮动盈亏', value: summary.totalFloatingProfit),
       _SignedSummaryCell(
         label: '总收益率',
@@ -49,7 +60,9 @@ class SummaryStrip extends ConsumerWidget {
       ),
       _SummaryCell(
         label: '收益覆盖率',
-        value: formatPercent(summary.returnCoverage),
+        value: summary.returnCoverage,
+        format: formatPercent,
+        interpolateFormat: formatShareDouble,
       ),
     ];
     return Card(
@@ -136,7 +149,7 @@ class _LabelWithTooltip extends StatelessWidget {
         children: [
           labelWidget,
           const SizedBox(width: FundLensTokens.space1),
-          const Icon(
+          Icon(
             Icons.info_outline,
             size: 13,
             color: FundLensTokens.muted,
@@ -148,10 +161,17 @@ class _LabelWithTooltip extends StatelessWidget {
 }
 
 class _SummaryCell extends StatelessWidget {
-  const _SummaryCell({required this.label, required this.value});
+  const _SummaryCell({
+    required this.label,
+    required this.value,
+    required this.format,
+    required this.interpolateFormat,
+  });
 
   final String label;
-  final String value;
+  final DecimalValue value;
+  final String Function(DecimalValue) format;
+  final String Function(double) interpolateFormat;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +182,12 @@ class _SummaryCell extends StatelessWidget {
       children: [
         _LabelWithTooltip(label: label),
         const SizedBox(height: FundLensTokens.space1),
-        Text(value, style: kpi),
+        AnimatedAmountText(
+          value: value,
+          format: format,
+          interpolateFormat: interpolateFormat,
+          style: kpi,
+        ),
       ],
     );
   }
@@ -197,16 +222,25 @@ class _SignedSummaryCell extends StatelessWidget {
     final color = signed.isNegative
         ? FundLensTokens.loss
         : FundLensTokens.profit;
-    final text = asPercent
-        ? '${signed.isNegative ? '-' : '+'}'
-              '${(signed.value.abs().toDouble() * 100).toStringAsFixed(1)}%'
-        : formatSignedCurrency(signed);
+    String format(DecimalValue v) => asPercent
+        ? '${v.isNegative ? '-' : '+'}'
+              '${(v.value.abs().toDouble() * 100).toStringAsFixed(1)}%'
+        : formatSignedCurrency(v);
+    String interpolateFormat(double v) => asPercent
+        ? '${v < 0 ? '-' : '+'}'
+              '${(v.abs() * 100).toStringAsFixed(1)}%'
+        : formatSignedCurrencyDouble(v);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _LabelWithTooltip(label: label),
         const SizedBox(height: FundLensTokens.space1),
-        Text(text, style: kpi.copyWith(color: color)),
+        AnimatedAmountText(
+          value: signed,
+          format: format,
+          interpolateFormat: interpolateFormat,
+          style: kpi.copyWith(color: color),
+        ),
       ],
     );
   }
