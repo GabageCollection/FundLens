@@ -73,3 +73,25 @@ def test_engine_stdout_is_valid_utf8_with_chinese_payload() -> None:
     assert "error" not in response
     candidates = response["result"]["candidates"]
     assert candidates, "expected at least one match candidate"
+
+def test_request_line_with_bom_is_accepted() -> None:
+    """PowerShell on some hosts prefixes the first piped stdin line with a
+    UTF-8 BOM; the server must strip it before json.loads."""
+    from fundlens_engine.server import main
+    import io
+
+    request = '{"jsonrpc":"2.0","id":"b1","method":"health.check","params":{},"schema_version":1}'
+    stdin = io.StringIO("\ufeff" + request + "\n")
+    stdout = io.StringIO()
+    import sys as _sys
+
+    old_in, old_out = _sys.stdin, _sys.stdout
+    _sys.stdin, _sys.stdout = stdin, stdout
+    try:
+        main()
+    finally:
+        _sys.stdin, _sys.stdout = old_in, old_out
+    response = json.loads(stdout.getvalue().strip())
+    assert response["id"] == "b1"
+    assert response["result"]["status"] == "ok"
+

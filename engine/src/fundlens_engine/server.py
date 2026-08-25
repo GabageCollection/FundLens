@@ -144,7 +144,9 @@ def main() -> None:
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(message)s")
     logger.info("fundlens engine ready")
     for line in sys.stdin:
-        line = line.strip()
+        # PowerShell on some hosts prefixes the first piped line with a
+        # UTF-8 BOM (decoded as \ufeff); json.loads rejects it.
+        line = line.strip().removeprefix('\ufeff')
         if not line:
             continue
         response = handle_line(line)

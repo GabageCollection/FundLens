@@ -156,6 +156,11 @@ foreach ($pkg in @('paddleocr', 'paddlex', 'paddle')) {
 # ConvertFrom-Json below.
 $previousOutputEncoding = [Console]::OutputEncoding
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
+# $OutputEncoding controls how piped strings are encoded into the engine's
+# stdin. Some hosts emit a UTF-8 BOM; the engine strips it, but force
+# BOM-less UTF-8 here for determinism.
+$previousOutputEncodingVar = $OutputEncoding
+$OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 
 Write-Host '==> Health-checking bundled engine (JSON-RPC schema_version 1)'
 $healthRequest = '{"jsonrpc":"2.0","id":"health-1","method":"health.check","params":{},"schema_version":1}'
@@ -193,4 +198,5 @@ if ($ocrResponse.error -or $null -eq $ocrResponse.result.rows) {
   throw "Engine OCR smoke test failed: $ocrLine"
 }
 [Console]::OutputEncoding = $previousOutputEncoding
+$OutputEncoding = $previousOutputEncodingVar
 Write-Host "==> Engine OCR smoke OK ($($ocrResponse.result.rows.Count) rows recognized)"
