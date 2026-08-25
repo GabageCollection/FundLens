@@ -218,7 +218,7 @@ class HoldingSortMenu extends StatelessWidget {
               final current = option == sort;
               return MenuItemButton(
                 leadingIcon: current
-                    ? const Icon(Icons.check, size: 18, color: FundLensTokens.accent)
+                    ? Icon(Icons.check, size: 18, color: FundLensTokens.accent)
                     : const SizedBox(width: 18),
                 onPressed: () => onSelected(option),
                 child: Text(option.label),

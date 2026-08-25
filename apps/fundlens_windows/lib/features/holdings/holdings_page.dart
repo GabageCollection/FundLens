@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +21,7 @@ import 'holding_filters.dart';
 import 'holding_grid.dart';
 import 'holding_status.dart';
 import 'holding_toolbar.dart';
+import '../settings/persisted_settings.dart';
 
 /// 全部持仓页:工具栏 + 批量条 + 计数 + 虚拟表格 + 空状态。
 class HoldingsPage extends ConsumerWidget {
@@ -35,6 +38,22 @@ class HoldingsPage extends ConsumerWidget {
         if (!context.mounted) return;
         ref.read(holdingFilterProvider.notifier).state = pendingFilter;
         ref.read(pendingHoldingFilterProvider.notifier).state = null;
+      });
+    }
+
+    // 恢复上次会话的排序(只恢复一次;未知字段名静默忽略)。
+    final restoredSort = ref.watch(restoredHoldingSortProvider);
+    if (restoredSort != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        final field =
+            HoldingSortField.values.asNameMap()[restoredSort.field];
+        ref.read(restoredHoldingSortProvider.notifier).state = null;
+        if (field == null) return;
+        final current = ref.read(holdingFilterProvider);
+        ref.read(holdingFilterProvider.notifier).state = current.copyWith(
+          sort: HoldingSort(field, restoredSort.ascending),
+        );
       });
     }
 
@@ -111,9 +130,11 @@ class HoldingsPage extends ConsumerWidget {
         ),
         HoldingSortMenu(
           sort: filter.sort,
-          onSelected: (sort) =>
-              ref.read(holdingFilterProvider.notifier).state =
-                  filter.copyWith(sort: sort),
+          onSelected: (sort) {
+            ref.read(holdingFilterProvider.notifier).state =
+                filter.copyWith(sort: sort);
+            unawaited(persistHoldingSort(ref, sort));
+          },
         ),
         FilledButton.icon(
           onPressed: () => _addHolding(context, ref),
@@ -206,15 +227,21 @@ class _ReadyBody extends ConsumerWidget {
                   ? const _NoResultBody()
                   : const SizedBox.shrink())
               : HoldingGrid(
+                  rowHeight:
+                      ref.watch(tableDensityProvider) == TableDensity.compact
+                      ? FundLensTokens.rowHeightCompact
+                      : FundLensTokens.rowHeight,
                   holdings: visible,
                   totalValue:
                       ref.watch(portfolioSummaryProvider).totalValue,
                   freshQuoteHoldingIds:
                       ref.watch(freshQuoteHoldingIdsProvider),
                   sort: filter.sort,
-                  onSortChanged: (sort) =>
-                      ref.read(holdingFilterProvider.notifier).state =
-                          filter.copyWith(sort: sort),
+                  onSortChanged: (sort) {
+                    ref.read(holdingFilterProvider.notifier).state =
+                        filter.copyWith(sort: sort);
+                    unawaited(persistHoldingSort(ref, sort));
+                  },
                   selectedIds: ref.watch(holdingSelectionProvider),
                   onSelectedChanged: (id, selected) {
                     final next = {...ref.read(holdingSelectionProvider)};

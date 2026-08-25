@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/data_health/data_health_button.dart';
+import '../features/settings/persisted_settings.dart';
 import '../theme/fundlens_tokens.dart';
 
 /// The six fixed destinations of the FundLens desktop shell.
@@ -55,7 +59,7 @@ class SelectDestinationIntent extends Intent {
 /// Desktop shell: fixed-width warm-ink sidebar plus an expanded content
 /// region. Page switches use [IndexedStack] so each page keeps its
 /// search/filter state.
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.pages})
     : assert(
         pages.length == AppDestination.values.length,
@@ -66,23 +70,82 @@ class AppShell extends StatefulWidget {
   final List<Widget> pages;
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell>
+    with SingleTickerProviderStateMixin {
   AppDestination _selected = AppDestination.overview;
 
-  /// 768–1279 区间用户手动折叠状态,会话内保持。
+  /// 页面切换淡入:只驱动 FadeTransition 的不透明度,不重建页面子树
+  /// (IndexedStack 无 key,切换时元素树保留,页面状态不丢失)。
+  late final AnimationController _fadeController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 150),
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  /// 768–1279 区间用户手动折叠状态;由 [navCollapsedProvider] 跨会话保持。
   bool _navCollapsed = false;
+
+  bool _restoredViewState = false;
 
   void _select(AppDestination destination) {
     if (_selected != destination) {
       setState(() => _selected = destination);
+      // 系统"减少动画"开启时跳过淡入。
+      if (!MediaQuery.disableAnimationsOf(context)) {
+        _fadeController.forward(from: 0);
+      }
+      ref.read(lastDestinationProvider.notifier).state = destination.name;
+      unawaited(
+        persistSetting(
+          ref.container,
+          SettingKeys.uiLastDestination,
+          destination.name,
+        ),
+      );
     }
+  }
+
+  /// 恢复上次会话的视图状态(侧栏折叠 + 最后选中页),仅执行一次。
+  void _restoreViewStateOnce() {
+    if (_restoredViewState) return;
+    _restoredViewState = true;
+    final collapsed = ref.read(navCollapsedProvider);
+    final lastName = ref.read(lastDestinationProvider);
+    final last = lastName == null
+        ? null
+        : AppDestination.values.asNameMap()[lastName];
+    if (collapsed != _navCollapsed || (last != null && last != _selected)) {
+      setState(() {
+        _navCollapsed = collapsed;
+        if (last != null) _selected = last;
+      });
+    }
+  }
+
+  void _toggleNavCollapsed() {
+    setState(() => _navCollapsed = !_navCollapsed);
+    ref.read(navCollapsedProvider.notifier).state = _navCollapsed;
+    unawaited(
+      persistSetting(
+        ref.container,
+        SettingKeys.uiNavCollapsed,
+        _navCollapsed ? '1' : '0',
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    _restoreViewStateOnce();
     final shortcuts = <ShortcutActivator, Intent>{
       for (final (index, destination) in AppDestination.values.indexed)
         SingleActivator(
@@ -136,8 +199,7 @@ class _AppShellState extends State<AppShell> {
                         selected: _selected,
                         collapsed: collapsed,
                         collapsible: collapsible,
-                        onToggleCollapse: () =>
-                            setState(() => _navCollapsed = !_navCollapsed),
+                        onToggleCollapse: _toggleNavCollapsed,
                         onSelect: _select,
                       ),
                     Expanded(
@@ -147,9 +209,15 @@ class _AppShellState extends State<AppShell> {
                           _TopBar(drawerMode: drawerMode),
                           const Divider(height: 1),
                           Expanded(
-                            child: IndexedStack(
+                            child: FadeTransition(
+                              opacity: CurvedAnimation(
+                                parent: _fadeController,
+                                curve: Curves.easeOut,
+                              ),
+                              child: IndexedStack(
                               index: _selected.index,
                               children: widget.pages,
+                              ),
                             ),
                           ),
                         ],
@@ -248,7 +316,7 @@ class _NavigationRegion extends StatelessWidget {
                     ),
                     child: Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Noto Sans SC',
                         fontSize: 12,
                         letterSpacing: 1.1,
@@ -346,7 +414,7 @@ class _BrandBlock extends StatelessWidget {
         children: [
           badge,
           const SizedBox(width: FundLensTokens.space3),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -397,7 +465,7 @@ class _SidebarFooter extends StatelessWidget {
           ),
         ),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -567,7 +635,7 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
           const DataHealthButton(),
           const SizedBox(width: 12),
-          const CircleAvatar(
+          CircleAvatar(
             radius: 16,
             backgroundColor: FundLensTokens.ink,
             child: Text(

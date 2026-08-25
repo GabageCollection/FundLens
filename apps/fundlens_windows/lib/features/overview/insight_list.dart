@@ -256,7 +256,7 @@ class _InsightRow extends StatelessWidget {
     final iconColor = isWarning ? FundLensTokens.warn : FundLensTokens.muted;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space3),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
       child: Row(

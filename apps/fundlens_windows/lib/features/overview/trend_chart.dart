@@ -86,6 +86,9 @@ class PortfolioTrendChart extends ConsumerStatefulWidget {
 class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
   TrendRange _range = TrendRange.month1;
 
+  /// 当前悬停的数据点下标;null 表示无悬停。
+  int? _hoveredIndex;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -156,15 +159,17 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
                   label: trendSummary,
                   image: true,
                   child: ExcludeSemantics(
-                    child: CustomPaint(
-                      key: const ValueKey('trend-chart'),
-                      painter: _TrendPainter(points: filtered),
+                    child: _HoverableTrendChart(
+                      points: filtered,
+                      hoveredIndex: _hoveredIndex,
+                      onHoverChanged: (index) =>
+                          setState(() => _hoveredIndex = index),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: FundLensTokens.space2),
-              const Row(
+              Row(
                 children: [
                   _SeriesLegend(color: FundLensTokens.accent, label: '总资产'),
                   SizedBox(width: FundLensTokens.space4),
@@ -228,9 +233,12 @@ class _SeriesLegend extends StatelessWidget {
 }
 
 class _TrendPainter extends CustomPainter {
-  const _TrendPainter({required this.points});
+  const _TrendPainter({required this.points, this.hoveredIndex});
 
   final List<TrendPoint> points;
+
+  /// 悬停点下标:绘制竖直参考线与两条线的悬停圆点。
+  final int? hoveredIndex;
 
   static const _leftPad = 56.0;
   static const _rightPad = 8.0;
@@ -267,14 +275,7 @@ class _TrendPainter extends CustomPainter {
       size.height - _bottomPad,
     );
 
-    double xFor(int index) {
-      final first = points.first.at.millisecondsSinceEpoch;
-      final last = points.last.at.millisecondsSinceEpoch;
-      if (last == first) return chartRect.center.dx;
-      final at = points[index].at.millisecondsSinceEpoch;
-      return chartRect.left +
-          (at - first) / (last - first) * chartRect.width;
-    }
+    double xFor(int index) => xForIndex(points, chartRect, index);
 
     double yFor(double value) =>
         chartRect.bottom - (value - min) / (max - min) * chartRect.height;
@@ -283,7 +284,7 @@ class _TrendPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = FundLensTokens.border
       ..strokeWidth = 1;
-    const labelStyle = TextStyle(
+    final labelStyle = TextStyle(
       fontFamily: 'IBM Plex Mono',
       fontSize: 11,
       color: FundLensTokens.muted,
@@ -357,9 +358,183 @@ class _TrendPainter extends CustomPainter {
 
     drawSeries((p) => p.coveredCost.value.toDouble(), FundLensTokens.muted, 1.5);
     drawSeries((p) => p.totalValue.value.toDouble(), FundLensTokens.accent, 2);
+
+    final hovered = hoveredIndex;
+    if (hovered != null && hovered >= 0 && hovered < points.length) {
+      final x = xFor(hovered);
+      // 竖直参考线:仅 1px 边框色,不喧宾夺主。
+      canvas.drawLine(
+        Offset(x, chartRect.top),
+        Offset(x, chartRect.bottom),
+        Paint()
+          ..color = FundLensTokens.borderStrong
+          ..strokeWidth = 1,
+      );
+      final point = points[hovered];
+      for (final (valueOf, color) in [
+        ((TrendPoint p) => p.coveredCost.value.toDouble(), FundLensTokens.muted),
+        ((TrendPoint p) => p.totalValue.value.toDouble(), FundLensTokens.accent),
+      ]) {
+        final center = Offset(x, yFor(valueOf(point)));
+        canvas.drawCircle(center, 4.5, Paint()..color = FundLensTokens.surface);
+        canvas.drawCircle(center, 3.5, Paint()..color = color);
+      }
+    }
   }
 
   @override
   bool shouldRepaint(_TrendPainter oldDelegate) =>
-      oldDelegate.points != points;
+      oldDelegate.points != points ||
+      oldDelegate.hoveredIndex != hoveredIndex;
+}
+
+/// The painter's chart rect for a given canvas size.
+Rect trendChartRect(Size size) => Rect.fromLTRB(
+      _TrendPainter._leftPad,
+      _TrendPainter._topPad,
+      size.width - _TrendPainter._rightPad,
+      size.height - _TrendPainter._bottomPad,
+    );
+
+/// X position of points[index] inside [chartRect] (time-proportional).
+double xForIndex(List<TrendPoint> points, Rect chartRect, int index) {
+  final first = points.first.at.millisecondsSinceEpoch;
+  final last = points.last.at.millisecondsSinceEpoch;
+  if (last == first) return chartRect.center.dx;
+  final at = points[index].at.millisecondsSinceEpoch;
+  return chartRect.left + (at - first) / (last - first) * chartRect.width;
+}
+
+/// Trend chart with hover hit-testing: moving the pointer over the chart
+/// highlights the nearest data point (crosshair + dots) and shows a small
+/// value card with that point's date and both series values.
+class _HoverableTrendChart extends StatefulWidget {
+  const _HoverableTrendChart({
+    required this.points,
+    required this.hoveredIndex,
+    required this.onHoverChanged,
+  });
+
+  final List<TrendPoint> points;
+  final int? hoveredIndex;
+  final ValueChanged<int?> onHoverChanged;
+
+  @override
+  State<_HoverableTrendChart> createState() => _HoverableTrendChartState();
+}
+
+class _HoverableTrendChartState extends State<_HoverableTrendChart> {
+  Size _size = Size.zero;
+
+  void _onHover(PointerEvent event, Size size) {
+    if (widget.points.isEmpty || size.width <= 0) return;
+    final rect = trendChartRect(size);
+    // 命中最近的数据点(按 x 距离);指针在绘图区外时清除悬停。
+    if (event.localPosition.dy < rect.top - 12 ||
+        event.localPosition.dy > rect.bottom + 24) {
+      if (widget.hoveredIndex != null) widget.onHoverChanged(null);
+      return;
+    }
+    var best = 0;
+    var bestDistance = double.infinity;
+    for (var i = 0; i < widget.points.length; i++) {
+      final distance = (xForIndex(widget.points, rect, i) - event.localPosition.dx).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    if (best != widget.hoveredIndex) widget.onHoverChanged(best);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _size = Size(constraints.maxWidth, constraints.maxHeight);
+        final hovered = widget.hoveredIndex;
+        final rect = trendChartRect(_size);
+        return MouseRegion(
+          onHover: (event) => _onHover(event, _size),
+          onExit: (_) => widget.onHoverChanged(null),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CustomPaint(
+                key: const ValueKey('trend-chart'),
+                size: Size.infinite,
+                painter: _TrendPainter(
+                  points: widget.points,
+                  hoveredIndex: hovered,
+                ),
+              ),
+              if (hovered != null &&
+                  hovered >= 0 &&
+                  hovered < widget.points.length)
+                Positioned(
+                  // 浮层跟随悬停点,贴近右缘时翻转到左侧,避免溢出卡片。
+                  left: _tooltipLeft(hovered, rect),
+                  top: 0,
+                  child: _TrendTooltip(point: widget.points[hovered]),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  double _tooltipLeft(int index, Rect rect) {
+    const tooltipWidth = 190.0;
+    final x = xForIndex(widget.points, rect, index);
+    final preferred = x + 12;
+    return preferred + tooltipWidth > rect.right
+        ? (x - 12 - tooltipWidth).clamp(0.0, double.infinity)
+        : preferred;
+  }
+}
+
+/// 悬停数值卡:日期 + 总资产 + 覆盖成本,白底细边框、无阴影。
+class _TrendTooltip extends StatelessWidget {
+  const _TrendTooltip({required this.point});
+
+  final TrendPoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final at = point.at;
+    final date = '${at.year}-${at.month.toString().padLeft(2, '0')}-'
+        '${at.day.toString().padLeft(2, '0')}';
+    TextStyle? valueStyle(TextStyle? base) => base?.copyWith(
+          fontFamily: 'IBM Plex Mono',
+          fontSize: 12,
+        );
+    return IgnorePointer(
+      child: Container(
+        width: 190,
+        padding: const EdgeInsets.all(FundLensTokens.space2),
+        decoration: BoxDecoration(
+          color: FundLensTokens.surface,
+          borderRadius: BorderRadius.circular(FundLensTokens.radiusSmall),
+          border: Border.all(color: FundLensTokens.borderStrong),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(date, style: theme.textTheme.bodySmall),
+            const SizedBox(height: FundLensTokens.space1),
+            Text(
+              '总资产 ${formatCurrency(point.totalValue)}',
+              style: valueStyle(theme.textTheme.bodySmall),
+            ),
+            Text(
+              '覆盖成本 ${formatCurrency(point.coveredCost)}',
+              style: valueStyle(theme.textTheme.bodySmall),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

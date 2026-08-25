@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/app_dependencies.dart';
 import '../../application/portfolio_providers.dart';
+import '../settings/persisted_settings.dart';
 import 'holding_status.dart';
 
 /// 表头与排序下拉共用的可排序字段。
@@ -114,6 +115,18 @@ final class HoldingFilterState {
 /// 持仓页交互筛选状态。
 final holdingFilterProvider =
     StateProvider<HoldingFilterState>((ref) => const HoldingFilterState());
+
+/// Persists the holdings sort order so the next launch restores it.
+///
+/// Only the sort is persisted; query/facet filters stay session-local.
+Future<void> persistHoldingSort(WidgetRef ref, HoldingSort sort) async {
+  await persistSetting(ref.container, SettingKeys.uiHoldingSortField, sort.field.name);
+  await persistSetting(
+    ref.container,
+    SettingKeys.uiHoldingSortAscending,
+    sort.ascending ? '1' : '0',
+  );
+}
 
 /// 待应用的预选筛选:数据健康面板等入口写入,持仓页构建时消费一次并清空。
 final pendingHoldingFilterProvider =

@@ -287,7 +287,7 @@ class AnalysisConclusionsCard extends StatelessWidget {
             for (final (index, item) in items.indexed) ...[
               // 行间细分隔线替代纯空白分组,结论逐行扫读更清晰。
               if (index > 0)
-                const Divider(height: 1, color: FundLensTokens.border),
+                Divider(height: 1, color: FundLensTokens.border),
               _ConclusionRow(
                 item: item,
                 onAction: item.action == null

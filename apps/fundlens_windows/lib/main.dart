@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -9,6 +10,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app/fundlens_app.dart';
 import 'application/app_dependencies.dart';
@@ -36,6 +38,10 @@ import 'updates/update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 恢复上次会话的窗口尺寸与位置;首次运行使用默认 1440×900。
+  await windowManager.ensureInitialized();
+  await _restoreWindowBounds();
 
   final supportDir = await getApplicationSupportDirectory();
   final packageInfo = await PackageInfo.fromPlatform();
@@ -156,6 +162,9 @@ Future<void> main() async {
     ),
   );
 
+  // 窗口移动/缩放后持久化位置与尺寸;关闭事件由系统保证最终一次保存。
+  windowManager.addListener(_WindowBoundsPersistence());
+
   unawaited(runStartupAutomation(container));
   unawaited(() async {
     final removed = await importTempStore.sweepOrphans();
@@ -178,6 +187,68 @@ String _engineDirectory() {
     dir = dir.parent;
   }
   return p.join(Directory.current.path, 'engine');
+}
+
+/// 监听窗口几何变化并落盘。
+class _WindowBoundsPersistence extends WindowListener {
+  Timer? _debounce;
+
+  @override
+  void onWindowResized() => _schedule();
+
+  @override
+  void onWindowMoved() => _schedule();
+
+  @override
+  void onWindowClose() => unawaited(saveWindowBounds());
+
+  void _schedule() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), saveWindowBounds);
+  }
+}
+
+/// 窗口位置持久化文件(%APPDATA%/../FundLens 支持目录下)。
+Future<File> _windowBoundsFile() async {
+  final supportDir = await getApplicationSupportDirectory();
+  return File(p.join(supportDir.path, 'window_bounds.json'));
+}
+
+/// 恢复窗口尺寸与位置。文件缺失或损坏时静默使用系统默认。
+Future<void> _restoreWindowBounds() async {
+  try {
+    final file = await _windowBoundsFile();
+    if (!file.existsSync()) return;
+    final json = jsonDecode(await file.readAsString());
+    if (json is! Map) return;
+    final width = (json['width'] as num?)?.toDouble();
+    final height = (json['height'] as num?)?.toDouble();
+    final x = (json['x'] as num?)?.toDouble();
+    final y = (json['y'] as num?)?.toDouble();
+    if (width != null && height != null && width >= 1280 && height >= 720) {
+      await windowManager.setSize(Size(width, height));
+    }
+    if (x != null && y != null) {
+      await windowManager.setPosition(Offset(x, y));
+    }
+  } catch (_) {
+    // 窗口状态丢失不影响启动;下次退出时会重新写入。
+  }
+}
+
+/// 保存当前窗口尺寸与位置。由 [FundLensWindowListener] 在移动/缩放后调用。
+Future<void> saveWindowBounds() async {
+  try {
+    final size = await windowManager.getSize();
+    final position = await windowManager.getPosition();
+    final file = await _windowBoundsFile();
+    await file.writeAsString(
+      '{"width":${size.width},"height":${size.height},'
+      '"x":${position.dx},"y":${position.dy}}',
+    );
+  } catch (_) {
+    // 保存失败无用户可见影响。
+  }
 }
 
 /// Root widget kept provider-free so widget smoke tests can pump the shell

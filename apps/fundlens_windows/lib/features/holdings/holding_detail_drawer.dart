@@ -187,7 +187,7 @@ class HoldingDetailDrawer extends ConsumerWidget {
     return Material(
       color: FundLensTokens.surface,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(left: BorderSide(color: FundLensTokens.border)),
         ),
         child: Column(

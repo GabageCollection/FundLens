@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -202,15 +203,49 @@ void main() {
     });
 
     testWidgets('快照足够时显示趋势图与范围切换', (tester) async {
+      // 快照日期相对今天:默认范围为近 1 月(30 天),固定绝对日期会随
+      // 时间漂移掉出窗口导致图表不渲染。
+      final now = DateTime.now();
       await _pump(tester, snapshots: [
-        _snapshot('s1', DateTime(2026, 7, 10), '100000.00'),
-        _snapshot('s2', DateTime(2026, 7, 25), '110000.00'),
+        _snapshot('s1', now.subtract(const Duration(days: 20)), '100000.00'),
+        _snapshot('s2', now.subtract(const Duration(days: 5)), '110000.00'),
       ]);
       expect(find.text('近1月'), findsOneWidget);
       expect(find.text('近3月'), findsOneWidget);
       expect(find.text('近1年'), findsOneWidget);
       expect(find.text('全部'), findsWidgets);
       expect(find.byKey(const ValueKey('trend-chart')), findsOneWidget);
+    });
+
+    testWidgets('悬停趋势图显示十字线数值卡', (tester) async {
+      final now = DateTime.now();
+      await _pump(tester, snapshots: [
+        _snapshot('s1', now.subtract(const Duration(days: 20)), '100000.00'),
+        _snapshot('s2', now.subtract(const Duration(days: 5)), '110000.00'),
+      ]);
+      final chart = find.byKey(const ValueKey('trend-chart'));
+      expect(chart, findsOneWidget);
+
+      // 无悬停时没有数值卡(数值卡是独立 Text,与图下摘要的长文本区分)。
+      expect(find.text('覆盖成本 ¥90,000.00'), findsNothing);
+
+      // 悬停到图表中心:命中最近的数据点 s2 并显示数值卡。
+      final center = tester.getCenter(chart);
+      final gesture = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.addPointer(location: center);
+      await tester.pump();
+      await gesture.moveTo(center);
+      await tester.pump();
+
+      expect(find.text('总资产 ¥110,000.00'), findsOneWidget);
+      expect(find.text('覆盖成本 ¥90,000.00'), findsOneWidget);
+
+      // 移出图表后数值卡消失。
+      await gesture.moveTo(Offset(center.dx, -100));
+      await tester.pump();
+      expect(find.text('总资产 ¥110,000.00'), findsNothing);
     });
   });
 

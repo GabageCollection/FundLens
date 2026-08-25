@@ -4,6 +4,7 @@ import '../../theme/fundlens_tokens.dart';
 import '../../widgets/grid_row.dart';
 import '../../widgets/page_scaffold.dart';
 import 'app_info_section.dart';
+import 'appearance_section.dart';
 import 'asset_rules_section.dart';
 import 'backup_section.dart';
 import 'market_settings_section.dart';
@@ -33,6 +34,7 @@ class SettingsPage extends StatelessWidget {
                   MarketSettingsSection(),
                   SnapshotSettingsSection(),
                   PrivacySection(),
+                  AppearanceSection(),
                 ],
               ),
             ),

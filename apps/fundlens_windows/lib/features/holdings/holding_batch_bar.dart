@@ -47,7 +47,7 @@ class HoldingBatchBar extends ConsumerWidget {
     return Container(
       // 宽度充足时单行 48 高;窄窗口(高 DPI / 200% 缩放)折叠为多行自适应。
       constraints: const BoxConstraints(minHeight: 48),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FundLensTokens.surfaceAlt,
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),

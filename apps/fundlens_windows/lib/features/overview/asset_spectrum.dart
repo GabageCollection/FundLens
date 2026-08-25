@@ -412,7 +412,7 @@ class _SelectedDetailRail extends StatelessWidget {
     final text = Theme.of(context).textTheme.bodyMedium;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FundLensTokens.accentSoft,
         border: Border(
           left: BorderSide(color: FundLensTokens.accent, width: 3),

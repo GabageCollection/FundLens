@@ -95,7 +95,7 @@ class _HeaderRow extends StatelessWidget {
     );
     return Container(
       height: 40,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FundLensTokens.surfaceAlt,
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),
@@ -127,7 +127,7 @@ class _HoldingRow extends StatelessWidget {
     final profit = holding.currentFloatingProfit;
     return Container(
       height: 48,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FundLensTokens.surface,
         border: Border(bottom: BorderSide(color: FundLensTokens.border)),
       ),

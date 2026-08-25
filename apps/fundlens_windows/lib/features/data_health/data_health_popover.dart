@@ -87,7 +87,7 @@ class _StatusHeader extends StatelessWidget {
         const SizedBox(width: FundLensTokens.space2),
         Text(
           p.label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans SC',
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -97,7 +97,7 @@ class _StatusHeader extends StatelessWidget {
         const Spacer(),
         Text(
           asOfDate == null ? '暂无数据' : '数据截至 ${formatDate(asOfDate!)}',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans SC',
             fontSize: 12,
             color: FundLensTokens.muted,
@@ -177,7 +177,7 @@ class _MetricRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 14,
               color: FundLensTokens.ink,
@@ -202,7 +202,7 @@ class _CoverageValue extends StatelessWidget {
   Widget build(BuildContext context) {
     final ratio = metric.ratio;
     if (ratio == null) {
-      return const Text(
+      return Text(
         '不适用',
         style: TextStyle(
           fontFamily: 'IBM Plex Mono',
@@ -217,7 +217,7 @@ class _CoverageValue extends StatelessWidget {
       children: [
         Text(
           '${metric.count}/${metric.total}',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'IBM Plex Mono',
             fontSize: 14,
             color: FundLensTokens.inkSoft,
@@ -226,7 +226,7 @@ class _CoverageValue extends StatelessWidget {
         const SizedBox(width: FundLensTokens.space2),
         Text(
           '$suffix · $percent%',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans SC',
             fontSize: 12,
             color: FundLensTokens.muted,
@@ -248,7 +248,7 @@ class _PercentValue extends StatelessWidget {
     final percent = (double.parse(value.canonical) * 100).toStringAsFixed(0);
     return Text(
       '$percent%',
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'IBM Plex Mono',
         fontSize: 14,
         color: FundLensTokens.inkSoft,
@@ -267,7 +267,7 @@ class _CountValue extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '$count 条',
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'IBM Plex Mono',
         fontSize: 14,
         color: FundLensTokens.inkSoft,
@@ -308,7 +308,7 @@ class _ActivityRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 14,
               color: FundLensTokens.ink,
@@ -317,7 +317,7 @@ class _ActivityRow extends StatelessWidget {
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 12,
               color: FundLensTokens.muted,

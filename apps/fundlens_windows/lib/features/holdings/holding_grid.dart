@@ -184,6 +184,7 @@ class HoldingGrid extends StatefulWidget {
     required this.onSelectedChanged,
     required this.onSelectAllChanged,
     required this.onRowTap,
+    this.rowHeight = FundLensTokens.rowHeight,
   });
 
   final List<Holding> holdings;
@@ -195,6 +196,9 @@ class HoldingGrid extends StatefulWidget {
   final void Function(String id, bool selected) onSelectedChanged;
   final void Function(bool selectAll) onSelectAllChanged;
   final void Function(Holding holding)? onRowTap;
+
+  /// 行高:默认 [FundLensTokens.rowHeight](舒适 56),紧凑密度为 44。
+  final double rowHeight;
 
   @override
   State<HoldingGrid> createState() => _HoldingGridState();
@@ -268,7 +272,7 @@ class _HoldingGridState extends State<HoldingGrid> {
         final contentWidth =
             layout.scrollable ? layout.scrollContentWidth : scrollRegionWidth;
         return DecoratedBox(
-          decoration: const BoxDecoration(color: FundLensTokens.surface),
+          decoration: BoxDecoration(color: FundLensTokens.surface),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -290,13 +294,14 @@ class _HoldingGridState extends State<HoldingGrid> {
                       child: ListView.builder(
                         key: const ValueKey('holding-grid-frozen'),
                         controller: _frozenController,
-                        itemExtent: FundLensTokens.rowHeight,
+                        itemExtent: widget.rowHeight,
                         itemCount: widget.holdings.length,
                         itemBuilder: (context, index) {
                           final holding = widget.holdings[index];
                           return HoldingGridFrozenRow(
                             key: ValueKey('frozen-${holding.id}'),
                             holding: holding,
+                            rowHeight: widget.rowHeight,
                             nameWidth: layout.nameWidth,
                             selected: widget.selectedIds.contains(holding.id),
                             onSelectedChanged: widget.onSelectedChanged,
@@ -331,12 +336,13 @@ class _HoldingGridState extends State<HoldingGrid> {
                           child: ListView.builder(
                             key: const ValueKey('holding-grid-detail'),
                             controller: _detailController,
-                            itemExtent: FundLensTokens.rowHeight,
+                            itemExtent: widget.rowHeight,
                             itemCount: widget.holdings.length,
                             itemBuilder: (context, index) {
                               final holding = widget.holdings[index];
                               return HoldingGridRowView(
                                 key: ValueKey('detail-${holding.id}'),
+                                rowHeight: widget.rowHeight,
                                 specs: specs,
                                 widths: layout.columnWidths,
                                 cellContext: HoldingCellContext(
@@ -547,6 +553,7 @@ class HoldingGridFrozenRow extends StatelessWidget {
     required this.selected,
     required this.onSelectedChanged,
     required this.onTap,
+    this.rowHeight = FundLensTokens.rowHeight,
   });
 
   final Holding holding;
@@ -555,12 +562,16 @@ class HoldingGridFrozenRow extends StatelessWidget {
   final void Function(String id, bool selected) onSelectedChanged;
   final VoidCallback? onTap;
 
+  /// 行高(密度);默认舒适 56。
+  final double rowHeight;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _RowFrame(
       selected: selected,
       onTap: onTap,
+      rowHeight: rowHeight,
       child: Row(
         children: [
           SizedBox(
@@ -617,6 +628,7 @@ class HoldingGridRowView extends StatelessWidget {
     required this.cellContext,
     required this.selected,
     required this.onTap,
+    this.rowHeight = FundLensTokens.rowHeight,
   });
 
   final List<HoldingColumnSpec> specs;
@@ -625,12 +637,16 @@ class HoldingGridRowView extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
+  /// 行高(密度);默认舒适 56。
+  final double rowHeight;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _RowFrame(
       selected: selected,
       onTap: onTap,
+      rowHeight: rowHeight,
       // 滚动区行不参与焦点遍历:冻结区行已承载焦点,避免 Tab 重复。
       focusable: false,
       child: Row(
@@ -700,11 +716,15 @@ class _RowFrame extends StatefulWidget {
     required this.onTap,
     required this.child,
     this.focusable = true,
+    this.rowHeight = FundLensTokens.rowHeight,
   });
 
   final bool selected;
   final VoidCallback? onTap;
   final Widget child;
+
+  /// 行高(密度);默认舒适 56。
+  final double rowHeight;
 
   /// 是否参与 Tab 焦点遍历:冻结区行承载焦点,滚动区行仅鼠标/触屏点击。
   final bool focusable;
@@ -749,8 +769,8 @@ class _RowFrameState extends State<_RowFrame> {
         focusNode: _focusNode,
         canRequestFocus: widget.focusable,
         onTap: widget.onTap == null ? null : _handleTap,
-        hoverColor: FundLensTokens.canvas,
-        focusColor: FundLensTokens.canvas,
+        hoverColor: FundLensTokens.hoverBackground,
+        focusColor: FundLensTokens.hoverBackground,
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: focused
@@ -763,7 +783,7 @@ class _RowFrameState extends State<_RowFrame> {
           // 前景绘制:边框叠加在内容之上,不参与布局,避免 2px 边框引起
           // 内容内缩与列错位(表格行高与列宽保持原值)。
           position: DecorationPosition.foreground,
-          child: SizedBox(height: FundLensTokens.rowHeight, child: widget.child),
+          child: SizedBox(height: widget.rowHeight, child: widget.child),
         ),
       ),
     );

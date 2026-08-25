@@ -45,6 +45,24 @@ abstract final class SettingKeys {
 
   /// Integer string with the recorded size in bytes of the most recent backup.
   static const backupLastFileSizeBytes = 'backup.lastFileSizeBytes';
+
+  /// '0' or '1'; missing means the sidebar is expanded.
+  static const uiNavCollapsed = 'ui.navCollapsed';
+
+  /// [AppDestination.name] of the last selected page; missing means overview.
+  static const uiLastDestination = 'ui.lastDestination';
+
+  /// [HoldingSortField.name]; missing means the default sort.
+  static const uiHoldingSortField = 'ui.holdingSortField';
+
+  /// '0' or '1'; missing means descending.
+  static const uiHoldingSortAscending = 'ui.holdingSortAscending';
+
+  /// [ThemeModePreference.name]; missing means system.
+  static const uiThemeMode = 'ui.themeMode';
+
+  /// [TableDensity.name]; missing means comfortable.
+  static const uiTableDensity = 'ui.tableDensity';
 }
 
 /// Whether the automatic quote refresh is enabled. Runtime source of truth;
@@ -98,6 +116,35 @@ final lastBackupInfoProvider = StateProvider<({String path, DateTime at, int byt
   (ref) => null,
 );
 
+/// Theme mode preference. 'system' follows the OS light/dark setting.
+enum ThemeModePreference { system, light, dark }
+
+/// Table row density for data-dense pages.
+enum TableDensity { comfortable, compact }
+
+/// Sidebar collapsed state (768–1279 window band). Persisted across launches.
+final navCollapsedProvider = StateProvider<bool>((ref) => false);
+
+/// Last selected navigation destination name (AppDestination.name).
+/// Persisted; the shell restores it on the next launch.
+final lastDestinationProvider = StateProvider<String?>((ref) => null);
+
+/// Theme mode preference. Persisted under [SettingKeys.uiThemeMode].
+final themeModeProvider = StateProvider<ThemeModePreference>(
+  (ref) => ThemeModePreference.system,
+);
+
+/// Table density preference. Persisted under [SettingKeys.uiTableDensity].
+final tableDensityProvider = StateProvider<TableDensity>(
+  (ref) => TableDensity.comfortable,
+);
+
+/// 上次会话的持仓排序(字段名 + 升序),由持仓页首次构建时消费一次。
+/// 此处只存原始字符串,避免 settings 层依赖 holdings 层的排序类型。
+final restoredHoldingSortProvider = StateProvider<({String field, bool ascending})?>(
+  (ref) => null,
+);
+
 /// Loads every persisted setting into its runtime provider.
 ///
 /// Called once after the database opens and again after a restore (the
@@ -140,6 +187,25 @@ Future<void> loadPersistedSettings(ProviderContainer container) async {
       (path != null && at != null && bytes != null)
           ? (path: path, at: at, bytes: bytes)
           : null;
+
+  container.read(navCollapsedProvider.notifier).state =
+      all[SettingKeys.uiNavCollapsed] == '1';
+  container.read(lastDestinationProvider.notifier).state =
+      all[SettingKeys.uiLastDestination];
+  container.read(themeModeProvider.notifier).state =
+      ThemeModePreference.values.asNameMap()[all[SettingKeys.uiThemeMode]] ??
+          ThemeModePreference.system;
+  container.read(tableDensityProvider.notifier).state =
+      TableDensity.values.asNameMap()[all[SettingKeys.uiTableDensity]] ??
+          TableDensity.comfortable;
+
+  final sortField = all[SettingKeys.uiHoldingSortField];
+  if (sortField != null) {
+    container.read(restoredHoldingSortProvider.notifier).state = (
+      field: sortField,
+      ascending: all[SettingKeys.uiHoldingSortAscending] == '1',
+    );
+  }
 }
 
 /// Persists one setting value. Failures are swallowed: a lost write simply
