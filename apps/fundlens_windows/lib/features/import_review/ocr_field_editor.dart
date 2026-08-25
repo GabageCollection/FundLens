@@ -121,7 +121,7 @@ class _OcrEditor extends StatelessWidget {
     if (state is! ImportOcrReview) return const SizedBox.shrink();
     final draft = state.draft;
     if (draft.holdings.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           '没有识别到持仓行，可返回重选或删除截图',
           style: TextStyle(
@@ -163,7 +163,7 @@ class _OcrEditor extends StatelessWidget {
                         holding.productName.isEmpty
                             ? '持仓 ${index + 1}'
                             : holding.productName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Noto Serif SC',
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -178,7 +178,7 @@ class _OcrEditor extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Divider(height: 1, color: FundLensTokens.border),
+                Divider(height: 1, color: FundLensTokens.border),
                 const SizedBox(height: FundLensTokens.space2),
                 if (ocrRow != null)
                   for (final field in ocrRow.fields.values)
@@ -262,7 +262,7 @@ class _OcrFieldTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(
                         FundLensTokens.radiusControl,
                       ),
-                      borderSide: const BorderSide(color: FundLensTokens.warn),
+                      borderSide: BorderSide(color: FundLensTokens.warn),
                     )
                   : null,
             ),

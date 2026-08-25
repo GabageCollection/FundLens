@@ -152,7 +152,7 @@ class _StepChip extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: done
-              ? const Icon(Icons.check, size: 14, color: FundLensTokens.canvas)
+              ? Icon(Icons.check, size: 14, color: FundLensTokens.canvas)
               : Text(
                   '$index',
                   style: TextStyle(
@@ -203,7 +203,7 @@ class _ParsingBody extends StatelessWidget {
             state.currentStep != null && state.totalSteps != null
                 ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
                 : '正在解析文件…',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 14,
               color: FundLensTokens.muted,

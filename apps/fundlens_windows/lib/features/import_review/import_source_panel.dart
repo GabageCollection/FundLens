@@ -134,7 +134,7 @@ class _SourceBanner extends StatelessWidget {
             const SizedBox(width: FundLensTokens.space3),
             Text(
               source.label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Noto Serif SC',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -201,7 +201,7 @@ class _SourceCards extends StatelessWidget {
                 children: [
                   Text(
                     '选择数据来源',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Serif SC',
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -209,7 +209,7 @@ class _SourceCards extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: FundLensTokens.space2),
-                  const Text(
+                  Text(
                     '所有文件只在本机处理，不会上传',
                     style: TextStyle(
                       fontFamily: 'Noto Sans SC',
@@ -281,7 +281,7 @@ class _SourceCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   option.source.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Serif SC',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -291,7 +291,7 @@ class _SourceCard extends StatelessWidget {
                 const SizedBox(height: FundLensTokens.space1),
                 Text(
                   option.subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans SC',
                     fontSize: 12,
                     color: FundLensTokens.muted,
@@ -379,7 +379,7 @@ class _TabularUploadState extends ConsumerState<_TabularUpload> {
                   ),
                 ),
                 const SizedBox(height: FundLensTokens.space2),
-                const Text(
+                Text(
                   '支持 .csv / .xlsx / .xls · 单个文件 ≤ 20 MB',
                   style: TextStyle(
                     fontFamily: 'Noto Sans SC',
@@ -388,7 +388,7 @@ class _TabularUploadState extends ConsumerState<_TabularUpload> {
                   ),
                 ),
                 const SizedBox(height: FundLensTokens.space2),
-                const Text(
+                Text(
                   '字段将自动识别，识别不全时可手动调整映射',
                   style: TextStyle(
                     fontFamily: 'Noto Sans SC',
@@ -449,7 +449,7 @@ class _ScreenshotUploadState extends ConsumerState<_ScreenshotUpload> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '识别模板',
                   style: TextStyle(
                     fontFamily: 'Noto Sans SC',
@@ -502,7 +502,7 @@ class _ScreenshotUploadState extends ConsumerState<_ScreenshotUpload> {
             alignment: Alignment.center,
             child: Text(
               _dragOver ? '松开以识别' : '或将截图拖拽到此处 · 支持 png / jpg / webp',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Noto Sans SC',
                 fontSize: 12,
                 color: FundLensTokens.muted,
@@ -550,7 +550,7 @@ class _TemplateDownloads extends StatelessWidget {
     }
     return Row(
       children: [
-        const Text(
+        Text(
           '下载模板',
           style: TextStyle(
             fontFamily: 'Noto Sans SC',
@@ -606,9 +606,9 @@ class _LastImportRecord extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.history, size: 16, color: FundLensTokens.muted),
+          Icon(Icons.history, size: 16, color: FundLensTokens.muted),
           const SizedBox(width: FundLensTokens.space2),
-          const Text(
+          Text(
             '最近一次导入',
             style: TextStyle(
               fontFamily: 'Noto Sans SC',
@@ -620,7 +620,7 @@ class _LastImportRecord extends StatelessWidget {
           Text(
             '$formatted · 新增 ${record.inserted} / 更新 ${record.updated}'
             ' / 移除 ${record.removed} / 跳过 ${record.skipped}',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 12,
               color: FundLensTokens.ink,

@@ -43,7 +43,7 @@ class _CheckBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '确认导入',
               style: TextStyle(
                 fontFamily: 'Noto Serif SC',
@@ -157,7 +157,7 @@ class _SummaryTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 12,
               color: FundLensTokens.muted,
@@ -193,7 +193,7 @@ class _IssueSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '需要处理的数据问题',
           style: TextStyle(
             fontFamily: 'Noto Serif SC',
@@ -219,7 +219,7 @@ class _CandidateSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '选择匹配产品（跨平台疑似重复）',
           style: TextStyle(
             fontFamily: 'Noto Serif SC',
@@ -245,7 +245,7 @@ class _CandidateSection extends StatelessWidget {
                 children: [
                   Text(
                     '选择匹配产品: ${(controller.state as ImportCheck).draft.holdings[entry.key].productName}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans SC',
                       fontSize: 14,
                       color: FundLensTokens.ink,
@@ -310,7 +310,7 @@ class _ResolutionSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '重复记录处理方式',
           style: TextStyle(
             fontFamily: 'Noto Serif SC',
@@ -320,7 +320,7 @@ class _ResolutionSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: FundLensTokens.space2),
-        const Text(
+        Text(
           '以下记录可能与现有持仓重复，请逐条选择处理方式。',
           style: TextStyle(
             fontFamily: 'Noto Sans SC',
@@ -348,7 +348,7 @@ class _ResolutionSection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       name.isEmpty ? '持仓 ${index + 1}' : name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Noto Sans SC',
                         fontSize: 14,
                         color: FundLensTokens.ink,
@@ -426,7 +426,7 @@ class _OptionsCardState extends State<_OptionsCard> {
           children: [
             Row(
               children: [
-                const Text(
+                Text(
                   '导入模式',
                   style: TextStyle(
                     fontFamily: 'Noto Sans SC',
@@ -463,7 +463,7 @@ class _OptionsCardState extends State<_OptionsCard> {
                 ),
                 child: Text(
                   '全量导入将移除不再出现的 ${plan.removeIds.length} 条同平台持仓',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans SC',
                     fontSize: 12,
                     color: FundLensTokens.warnText,
@@ -476,7 +476,7 @@ class _OptionsCardState extends State<_OptionsCard> {
               value: _createSnapshot,
               onChanged: (value) =>
                   setState(() => _createSnapshot = value ?? false),
-              title: const Text(
+              title: Text(
                 '导入完成后创建历史快照',
                 style: TextStyle(
                   fontFamily: 'Noto Sans SC',
@@ -484,7 +484,7 @@ class _OptionsCardState extends State<_OptionsCard> {
                   color: FundLensTokens.ink,
                 ),
               ),
-              subtitle: const Text(
+              subtitle: Text(
                 '快照冻结当前所有持仓，供后续对比资产变化',
                 style: TextStyle(
                   fontFamily: 'Noto Sans SC',

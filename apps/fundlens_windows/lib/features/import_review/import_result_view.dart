@@ -25,13 +25,13 @@ class _ResultBody extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
+              Icon(
                 Icons.check_circle_outline,
                 size: 44,
                 color: FundLensTokens.profit,
               ),
               const SizedBox(height: FundLensTokens.space3),
-              const Text(
+              Text(
                 '导入完成',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -116,7 +116,7 @@ class _ResultBody extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: FundLensTokens.space3),
-              const Text(
+              Text(
                 '导入已写入本地数据库；如需回退可在结果页撤销，或从“历史快照”恢复。',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -180,7 +180,7 @@ class _ResultRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans SC',
               fontSize: 14,
               color: FundLensTokens.muted,

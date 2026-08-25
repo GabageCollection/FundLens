@@ -15,8 +15,12 @@ import '../../importing/tabular_import_parser.dart';
 import '../../security/selected_path_guard.dart';
 import '../../storage/holding_repository.dart';
 import '../../storage/snapshot_repository.dart';
+import 'import_check_summary_builder.dart';
+import 'import_draft_field_edit.dart';
 import 'import_draft_persistence.dart';
+import 'import_duplicate_detection.dart';
 import 'import_file_picker.dart';
+import 'import_ocr_draft_builder.dart';
 import 'import_review_state.dart';
 
 // 状态机、文件选择与草稿持久化已拆分为独立文件;此处 re-export,
@@ -89,9 +93,12 @@ final class ImportReviewController extends ChangeNotifier {
     this._freshQuoteIds,
     ImportPlanner? planner,
     ImportCommitService? commitService,
+    ImportDuplicateDetector? duplicateDetector,
   }) : _repository = repository,
        _planner = planner ?? ImportPlanner(),
-       _commitService = commitService ?? ImportCommitService(repository);
+       _commitService = commitService ?? ImportCommitService(repository),
+       _duplicateDetector =
+           duplicateDetector ?? ImportDuplicateDetector(_engine);
 
   final DataEngineClient _engine;
   final HoldingRepository _repository;
@@ -105,6 +112,7 @@ final class ImportReviewController extends ChangeNotifier {
   final ImportRecordStore _recordStore;
   final DataQualityCalculator? _dataQuality;
   final Set<String> Function()? _freshQuoteIds;
+  final ImportDuplicateDetector _duplicateDetector;
 
   ImportReviewState _state = const ImportSourceSelect();
   ImportReviewState get state => _state;
@@ -544,54 +552,18 @@ final class ImportReviewController extends ChangeNotifier {
     await _refreshDuplicates(draft, current);
   }
 
-  /// Flags draft rows whose normalized name matches a holding on another
-  /// platform as possible duplicates, and asks the engine for product
-  /// candidates. The engine proposes; the user must select explicitly.
+  /// Duplicate flags and engine-proposed product candidates are computed
+  /// by [ImportDuplicateDetector]; the engine proposes, the user selects.
   Future<void> _refreshDuplicates(
     ImportDraft draft,
     List<Holding> current,
   ) async {
-    final duplicates = <int>{};
-    final groups = <int, List<ProductCandidate>>{};
-    for (var i = 0; i < draft.holdings.length; i++) {
-      final holding = draft.holdings[i];
-      final normalized = ImportPlanner.normalizeProductName(
-        holding.productName,
-      );
-      final sameName = current
-          .where(
-            (c) =>
-                ImportPlanner.normalizeProductName(c.productName) ==
-                    normalized &&
-                c.sourcePlatform != holding.sourcePlatform,
-          )
-          .toList();
-      if (sameName.isEmpty) continue;
-      duplicates.add(i);
-      try {
-        final result = await _engine.call('product.match_candidates', {
-          'query': holding.productName,
-          'catalog': [
-            for (final c in sameName)
-              {
-                'product_code': c.productCode ?? '',
-                'name': c.productName,
-                'product_type': c.instrumentType.name,
-              },
-          ],
-        });
-        final candidates = [
-          for (final item in result['candidates'] as List? ?? const [])
-            ProductCandidate.fromJson(importAsMap(item)),
-        ];
-        if (candidates.length > 1) groups[i] = candidates;
-      } catch (_) {
-        // Engine unavailable: keep the duplicate note without candidates.
-      }
-    }
-    _duplicateIndexes = duplicates;
-    _candidateGroups = groups;
-    _candidateSelections.removeWhere((i, _) => !groups.containsKey(i));
+    final result = await _duplicateDetector.detect(draft, current);
+    _duplicateIndexes = result.duplicateIndexes;
+    _candidateGroups = result.candidateGroups;
+    _candidateSelections.removeWhere(
+      (i, _) => !result.candidateGroups.containsKey(i),
+    );
   }
 
   /// The user chooses how a possible-duplicate row should be written.
@@ -616,49 +588,12 @@ final class ImportReviewController extends ChangeNotifier {
     ImportPlan plan,
     List<Holding> current,
     ImportDraft draft,
-  ) {
-    final zero = DecimalValue.parse('0');
-    final insertValue = plan.inserts.fold(
-      zero,
-      (sum, h) => sum + h.currentValue,
-    );
-    final currentById = {for (final h in current) h.id: h};
-    var updateDelta = zero;
-    for (final update in plan.updates) {
-      final old = currentById[update.id];
-      final oldValue = old?.currentValue ?? zero;
-      updateDelta = updateDelta + update.currentValue - oldValue;
-    }
-    var removedValue = zero;
-    for (final id in plan.removeIds) {
-      final removed = currentById[id];
-      if (removed != null) removedValue = removedValue + removed.currentValue;
-    }
-    final totalChange = insertValue + updateDelta - removedValue;
-    const abnormalCodes = {
-      'import.invalid_amount',
-      'import.invalid_sign',
-      'import.missing_current_value',
-      'ocr.unparseable_number',
-      'import.ambiguous_code',
-      'import.ambiguous_name',
-    };
-    final abnormalCount = [
-      ...draft.issues,
-      ...plan.issues,
-    ].where((i) => abnormalCodes.contains(i.code)).length;
-    final unclassifiedCount = draft.holdings
-        .where((h) => h.assetClass == AssetClass.other)
-        .length;
-    return ImportCheckSummary(
-      insertCount: plan.inserts.length,
-      updateCount: plan.updates.length,
-      duplicateCount: _duplicateIndexes.length,
-      abnormalCount: abnormalCount,
-      unclassifiedCount: unclassifiedCount,
-      totalValueChange: totalChange,
-    );
-  }
+  ) => buildImportCheckSummary(
+    plan: plan,
+    current: current,
+    draft: draft,
+    duplicateCount: _duplicateIndexes.length,
+  );
 
   Future<void> _persistTable(
     TabularTable table,
@@ -775,18 +710,6 @@ final class ImportReviewController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static const _amountFields = {
-    'current_value',
-    'holding_profit',
-    'cumulative_profit',
-    'cost_price',
-    'quantity',
-    'currentValue',
-    'holdingProfit',
-    'cumulativeProfit',
-    'costPrice',
-  };
-
   /// Applies a user edit to a draft field. A valid value clears the
   /// issues recorded for that field; an invalid amount adds a blocking
   /// issue, which disables commit until corrected.
@@ -796,66 +719,16 @@ final class ImportReviewController extends ChangeNotifier {
     String text,
   ) async {
     final draft = _draft;
-    if (draft == null || holdingIndex >= draft.holdings.length) return;
-    final holding = draft.holdings[holdingIndex];
+    if (draft == null) return;
 
-    DecimalValue? amount;
-    if (_amountFields.contains(field)) {
-      amount = parseImportAmount(text);
-      if (amount == null) {
-        _replaceIssues(draft, holdingIndex, field, [
-          DataIssue(
-            code: 'import.invalid_amount',
-            field: field,
-            severity: IssueSeverity.blocking,
-            message: '金额无法解析: $text',
-            holdingIndex: holdingIndex,
-          ),
-        ]);
-        notifyListeners();
-        return;
-      }
+    final edit = applyDraftFieldEdit(draft, holdingIndex, field, text);
+    final invalidIssue = edit.invalidAmountIssue;
+    if (invalidIssue != null) {
+      replaceDraftFieldIssues(draft, holdingIndex, field, [invalidIssue]);
+      notifyListeners();
+      return;
     }
-
-    final updated = DraftHolding(
-      sourcePlatform: holding.sourcePlatform,
-      productName: field == 'product_name' || field == 'productName'
-          ? text
-          : holding.productName,
-      productCode: holding.productCode,
-      instrumentType: holding.instrumentType,
-      assetClass: holding.assetClass,
-      currentValue: field == 'current_value' || field == 'currentValue'
-          ? amount!
-          : holding.currentValue,
-      quantity: field == 'quantity' ? amount : holding.quantity,
-      currentPrice: holding.currentPrice,
-      costPrice: field == 'cost_price' || field == 'costPrice'
-          ? amount
-          : holding.costPrice,
-      costAmount: holding.costAmount,
-      holdingProfit: field == 'holding_profit' || field == 'holdingProfit'
-          ? amount
-          : holding.holdingProfit,
-      cumulativeProfit:
-          field == 'cumulative_profit' || field == 'cumulativeProfit'
-          ? amount
-          : holding.cumulativeProfit,
-      currency: holding.currency,
-      platformTags: holding.platformTags,
-      note: holding.note,
-      dataOrigin: holding.dataOrigin,
-      metadata: holding.metadata,
-    );
-
-    _replaceIssues(draft, holdingIndex, field, const []);
-    _draft = ImportDraft(
-      holdings: [
-        for (var i = 0; i < draft.holdings.length; i++)
-          i == holdingIndex ? updated : draft.holdings[i],
-      ],
-      issues: draft.issues,
-    );
+    _draft = edit.draft!;
     await _replan();
     await _persist();
     if (_state is ImportCheck) {
@@ -868,16 +741,6 @@ final class ImportReviewController extends ChangeNotifier {
     }
   }
 
-  void _replaceIssues(
-    ImportDraft draft,
-    int holdingIndex,
-    String field,
-    List<DataIssue> replacement,
-  ) {
-    draft.issues
-      ..removeWhere((i) => i.holdingIndex == holdingIndex && i.field == field)
-      ..addAll(replacement);
-  }
 
   /// Step 4: commits the current plan, optionally creating a snapshot.
   /// Full mode with proposed removals requires [confirmedFullRemovals] — the
@@ -1011,77 +874,9 @@ final class ImportReviewController extends ChangeNotifier {
   }
 
   ImportDraft _draftFromOcr(Map<String, Object?> response, String template) {
-    final platform = template == 'alipay'
-        ? SourcePlatform.alipay
-        : SourcePlatform.ths;
-    final rows = <OcrRow>[];
-    final holdings = <DraftHolding>[];
-    final issues = <DataIssue>[];
-
-    final rawRows = response['rows'] as List? ?? const [];
-    for (var i = 0; i < rawRows.length; i++) {
-      final rawRow = importAsMap(rawRows[i]);
-      final fields = <String, OcrFieldValue>{
-        for (final entry in importAsMap(rawRow['fields']).entries)
-          entry.key: OcrFieldValue.fromJson(importAsMap(entry.value)),
-      };
-      rows.add(
-        OcrRow(
-          index: i,
-          pageIndex: (rawRow['page_index'] as num?)?.toInt() ?? 0,
-          fields: fields,
-        ),
-      );
-
-      for (final rawIssue in rawRow['issues'] as List? ?? const []) {
-        issues.add(importIssueFromJson(importAsMap(rawIssue)));
-      }
-
-      final normalized = importAsMap(rawRow['normalized']);
-      DecimalValue? amountOf(String field) {
-        final normalizedValue = normalized[field] as String?;
-        if (normalizedValue != null) {
-          final parsed = parseImportAmount(normalizedValue);
-          if (parsed != null) return parsed;
-        }
-        final rawText = fields[field]?.rawText;
-        return rawText == null ? null : parseImportAmount(rawText);
-      }
-
-      final currentValue = amountOf('current_value');
-      if (currentValue == null) {
-        // 缺失金额不静默记 0:生成阻断问题,字段级提示补填后才允许提交。
-        issues.add(
-          DataIssue(
-            code: 'import.missing_amount',
-            field: 'current_value',
-            severity: IssueSeverity.blocking,
-            message: '未识别到金额，请补填当前金额',
-            holdingIndex: holdings.length,
-          ),
-        );
-      }
-      holdings.add(
-        DraftHolding(
-          sourcePlatform: platform,
-          productName: fields['product_name']?.rawText ?? '',
-          instrumentType: InstrumentType.offExchangeFund,
-          assetClass: AssetClass.other,
-          currentValue: currentValue ?? DecimalValue.parse('0'),
-          quantity: amountOf('quantity'),
-          costPrice: amountOf('cost_price'),
-          holdingProfit: amountOf('holding_profit'),
-          cumulativeProfit: amountOf('cumulative_profit'),
-          dataOrigin: DataOrigin.ocr,
-        ),
-      );
-    }
-
-    for (final rawIssue in response['issues'] as List? ?? const []) {
-      issues.add(importIssueFromJson(importAsMap(rawIssue)));
-    }
-
-    _ocrRows = rows;
-    return ImportDraft(holdings: holdings, issues: issues);
+    final result = buildDraftFromOcr(response, template);
+    _ocrRows = result.rows;
+    return result.draft;
   }
+
 }

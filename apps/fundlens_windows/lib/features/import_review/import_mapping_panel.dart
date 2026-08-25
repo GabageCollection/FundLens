@@ -38,7 +38,7 @@ class _MappingBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '字段映射',
               style: TextStyle(
                 fontFamily: 'Noto Serif SC',
@@ -48,7 +48,7 @@ class _MappingBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: FundLensTokens.space2),
-            const Text(
+            Text(
               '已按常见表头自动识别下列映射，可手动修改；带“必填”的字段必须选择对应列。',
               style: TextStyle(
                 fontFamily: 'Noto Sans SC',
@@ -63,7 +63,7 @@ class _MappingBody extends StatelessWidget {
               onChanged: (mapping) => controller.setMapping(mapping),
             ),
             const SizedBox(height: FundLensTokens.space4),
-            const Text(
+            Text(
               '数据预览',
               style: TextStyle(
                 fontFamily: 'Noto Serif SC',
@@ -130,7 +130,7 @@ class _MappingTable extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Noto Sans SC',
                             fontSize: 14,
                             color: FundLensTokens.ink,
@@ -138,7 +138,7 @@ class _MappingTable extends StatelessWidget {
                         ),
                         if (required) ...[
                           const SizedBox(width: FundLensTokens.space1),
-                          const Text(
+                          Text(
                             '必填',
                             style: TextStyle(
                               fontFamily: 'Noto Sans SC',
@@ -211,7 +211,7 @@ class _PreviewTable extends StatelessWidget {
     final headings = table.headings;
     final preview = table.dataRows.take(8).toList();
     if (preview.isEmpty) {
-      return const Text(
+      return Text(
         '文件中没有数据行',
         style: TextStyle(
           fontFamily: 'Noto Sans SC',
@@ -236,19 +236,19 @@ class _PreviewTable extends StatelessWidget {
           columnWidths: {
             for (var i = 0; i < headings.length; i++) i: const FlexColumnWidth(),
           },
-          border: const TableBorder(
+          border: TableBorder(
             horizontalInside: BorderSide(color: FundLensTokens.border),
           ),
           children: [
           TableRow(
-            decoration: const BoxDecoration(color: FundLensTokens.surfaceAlt),
+            decoration: BoxDecoration(color: FundLensTokens.surfaceAlt),
             children: [
               for (final heading in headings)
                 Padding(
                   padding: const EdgeInsets.all(FundLensTokens.space2),
                   child: Text(
                     heading.isEmpty ? '列' : heading,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans SC',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -268,7 +268,7 @@ class _PreviewTable extends StatelessWidget {
                       i < row.length ? row[i] : '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Noto Sans SC',
                         fontSize: 12,
                         color: FundLensTokens.inkSoft,
