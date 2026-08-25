@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,8 +39,39 @@ Holding goldenHolding({
   );
 }
 
+/// Golden 测试容差比较器:跨机器(开发机/CI runner)的字体抗锯齿与
+/// 光栅化差异会引入极小像素差,0.3% 以内的差异视为渲染环境噪声;
+/// 超过该阈值才判定为真实 UI 回归并生成 failures/ 对比图。
+const double _kGoldenDiffTolerance = 0.003;
+
+class _TolerantGoldenFileComparator extends LocalFileComparator {
+  _TolerantGoldenFileComparator(super.testFile);
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+    final passed = result.passed || result.diffPercent <= _kGoldenDiffTolerance;
+    if (passed) {
+      result.dispose();
+      return true;
+    }
+    final error = await generateFailureOutput(result, golden, basedir);
+    result.dispose();
+    throw FlutterError(error);
+  }
+}
+
 void main() {
   testWidgets('overview golden at 1440x900', (tester) async {
+    final previousComparator = goldenFileComparator;
+    goldenFileComparator = _TolerantGoldenFileComparator(
+      Uri.parse('test/features/overview/overview_golden_test.dart'),
+    );
+    addTearDown(() => goldenFileComparator = previousComparator);
+
     final holdings = [
       goldenHolding(
         id: 'h-1',
