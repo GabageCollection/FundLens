@@ -149,8 +149,15 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 20));
         if (file.existsSync() && file.lengthSync() > 0) break;
       }
+      // 文件落盘不等于 toast 已入树:在真实帧中轮询 toast 出现,
+      // 避免 toast 在 runAsync 退出后才挂载导致竞态(CI 高负载下出现)。
+      for (var i = 0; i < 50; i++) {
+        await tester.pump();
+        if (find.textContaining('已导出').evaluate().isNotEmpty) return;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
     });
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final content = File(path).readAsStringSync();
     expect(content, contains('产品名称'));
