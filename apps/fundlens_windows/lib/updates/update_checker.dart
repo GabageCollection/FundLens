@@ -152,7 +152,7 @@ final class UpdateChecker {
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('HTTP ${response.statusCode}', uri: url);
       }
-      return response.transform(utf8.decoder).join();
+      return await response.transform(utf8.decoder).join();
     } finally {
       client.close();
     }
