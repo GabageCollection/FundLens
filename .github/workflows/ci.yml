@@ -85,6 +85,9 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
+    permissions:
+      # softprops/action-gh-release 创建 Release 与上传资产需要写权限。
+      contents: write
     env:
       # Stable "latest release asset" URLs: they never change across versions,
       # so the manifest URL baked into the app works for every future release.
