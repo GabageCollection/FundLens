@@ -139,8 +139,14 @@ if ($iscc) {
 # URLs are known. The manifest's sha256 is computed from the installer that
 # was just compiled, so a manifest always matches its asset.
 if ((Test-Path $installerPath) -and $UpdateManifestUrl -and $InstallerDownloadUrl) {
-  $notesFile = Get-ChildItem (Join-Path $repoRoot 'dist') -Filter 'release-notes-*.md' -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  # dist/ 不入库,CI 上不存在;release notes 的规范来源是
+  # docs/releases/release-notes-v<版本>.md(随版本提交),dist/ 仅作本地回退。
+  $notesFile = Get-ChildItem (Join-Path $repoRoot 'docs\releases') -Filter 'release-notes-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object Name -Descending | Select-Object -First 1
+  if (-not $notesFile) {
+    $notesFile = Get-ChildItem (Join-Path $repoRoot 'dist') -Filter 'release-notes-*.md' -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  }
   $manifestArgs = @{
     InstallerPath = $installerPath
     DownloadUrl   = $InstallerDownloadUrl
