@@ -128,10 +128,7 @@ List<(String, String)> drawerUpdatedRows(Holding h) {
   final d = local.day.toString().padLeft(2, '0');
   final hh = local.hour.toString().padLeft(2, '0');
   final mm = local.minute.toString().padLeft(2, '0');
-  return [
-    ('最后更新', '$y-$m-$d $hh:$mm'),
-    ('估值日期', holdingValuationDateText(h)),
-  ];
+  return [('最后更新', '$y-$m-$d $hh:$mm'), ('估值日期', holdingValuationDateText(h))];
 }
 
 /// 右侧持仓详情抽屉:六个分节 + 编辑/刷新/删除操作。
@@ -169,8 +166,7 @@ class HoldingDetailDrawer extends ConsumerWidget {
     final h = holding;
 
     final totalValue = ref.watch(portfolioSummaryProvider).totalValue;
-    final share =
-        totalValue.isZero ? null : h.currentValue.divide(totalValue);
+    final share = totalValue.isZero ? null : h.currentValue.divide(totalValue);
     final service = ref.watch(quoteRefreshServiceProvider);
     final supportsRefresh = holdingSupportsQuoteRefresh(h);
     // 已有一次刷新进行中:禁用入口,避免并发触发被误报为失败。
@@ -195,8 +191,10 @@ class HoldingDetailDrawer extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                FundLensTokens.space4, FundLensTokens.space3,
-                FundLensTokens.space2, FundLensTokens.space3,
+                FundLensTokens.space4,
+                FundLensTokens.space3,
+                FundLensTokens.space2,
+                FundLensTokens.space3,
               ),
               child: Row(
                 children: [
@@ -205,7 +203,9 @@ class HoldingDetailDrawer extends ConsumerWidget {
                       h.productName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.extension<FundLensTextStyles>()!.sectionTitle,
+                      style: theme
+                          .extension<FundLensTextStyles>()!
+                          .sectionTitle,
                     ),
                   ),
                   IconButton(
@@ -293,9 +293,7 @@ class HoldingDetailDrawer extends ConsumerWidget {
                                 report,
                                 onSuccess: (r) => showHoldingToast(
                                   context,
-                                  r.updated.isNotEmpty
-                                      ? '行情已更新'
-                                      : '行情未更新,保留原值',
+                                  r.updated.isNotEmpty ? '行情已更新' : '行情未更新,保留原值',
                                 ),
                               );
                             }
@@ -365,11 +363,7 @@ class _Section extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.bodyMedium!
-                .copyWith(fontWeight: FontWeight.w600),
-          ),
+          Text(title, style: FundLensTextStyles.of(context).bodyStrong),
           const SizedBox(height: FundLensTokens.space2),
           for (final (label, value) in rows)
             Padding(
@@ -384,10 +378,7 @@ class _Section extends StatelessWidget {
                     child: Text(label, style: theme.textTheme.bodySmall),
                   ),
                   Expanded(
-                    child: Text(
-                      value,
-                      style: _valueStyle(theme, label),
-                    ),
+                    child: Text(value, style: _valueStyle(theme, label)),
                   ),
                 ],
               ),

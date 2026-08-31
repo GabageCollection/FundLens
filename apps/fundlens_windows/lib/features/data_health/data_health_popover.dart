@@ -4,6 +4,7 @@ import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../application/portfolio_providers.dart';
 import '../../app/app_shell.dart';
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../holdings/holding_actions.dart';
 import '../import_review/import_review_controller.dart';
@@ -59,10 +60,7 @@ class DataHealthPopover extends ConsumerWidget {
                 _RefreshFailed(reason: failedReason),
               ],
               const SizedBox(height: FundLensTokens.space4),
-              _Actions(
-                isFailed: failedReason != null,
-                onNavigate: onNavigate,
-              ),
+              _Actions(isFailed: failedReason != null, onNavigate: onNavigate),
             ],
           ),
         ),
@@ -85,23 +83,11 @@ class _StatusHeader extends StatelessWidget {
       children: [
         Icon(p.icon, color: p.iconColor, size: 20),
         const SizedBox(width: FundLensTokens.space2),
-        Text(
-          p.label,
-          style: TextStyle(
-            fontFamily: 'Noto Sans SC',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: FundLensTokens.ink,
-          ),
-        ),
+        Text(p.label, style: FundLensTextStyles.of(context).panelTitle),
         const Spacer(),
         Text(
           asOfDate == null ? '暂无数据' : '数据截至 ${formatDate(asOfDate!)}',
-          style: TextStyle(
-            fontFamily: 'Noto Sans SC',
-            fontSize: 12,
-            color: FundLensTokens.muted,
-          ),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
@@ -120,10 +106,7 @@ class _MetricList extends StatelessWidget {
       children: [
         _MetricRow(
           label: '持仓识别率',
-          right: _CoverageValue(
-            metric: metrics.recognitionRate,
-            suffix: '已识别',
-          ),
+          right: _CoverageValue(metric: metrics.recognitionRate, suffix: '已识别'),
         ),
         _MetricRow(
           label: '资产分类率',
@@ -175,14 +158,7 @@ class _MetricRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space1),
       child: Row(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 14,
-              color: FundLensTokens.ink,
-            ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const Spacer(),
           right,
         ],
@@ -204,11 +180,9 @@ class _CoverageValue extends StatelessWidget {
     if (ratio == null) {
       return Text(
         '不适用',
-        style: TextStyle(
-          fontFamily: 'IBM Plex Mono',
-          fontSize: 14,
-          color: FundLensTokens.muted,
-        ),
+        style: FundLensTextStyles.of(
+          context,
+        ).financialNumber.copyWith(color: FundLensTokens.muted),
       );
     }
     final percent = (ratio * 100).toStringAsFixed(0);
@@ -217,20 +191,14 @@ class _CoverageValue extends StatelessWidget {
       children: [
         Text(
           '${metric.count}/${metric.total}',
-          style: TextStyle(
-            fontFamily: 'IBM Plex Mono',
-            fontSize: 14,
-            color: FundLensTokens.inkSoft,
-          ),
+          style: FundLensTextStyles.of(
+            context,
+          ).financialNumber.copyWith(color: FundLensTokens.inkSoft),
         ),
         const SizedBox(width: FundLensTokens.space2),
         Text(
           '$suffix · $percent%',
-          style: TextStyle(
-            fontFamily: 'Noto Sans SC',
-            fontSize: 12,
-            color: FundLensTokens.muted,
-          ),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
@@ -248,11 +216,9 @@ class _PercentValue extends StatelessWidget {
     final percent = (double.parse(value.canonical) * 100).toStringAsFixed(0);
     return Text(
       '$percent%',
-      style: TextStyle(
-        fontFamily: 'IBM Plex Mono',
-        fontSize: 14,
-        color: FundLensTokens.inkSoft,
-      ),
+      style: FundLensTextStyles.of(
+        context,
+      ).financialNumber.copyWith(color: FundLensTokens.inkSoft),
     );
   }
 }
@@ -267,11 +233,9 @@ class _CountValue extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '$count 条',
-      style: TextStyle(
-        fontFamily: 'IBM Plex Mono',
-        fontSize: 14,
-        color: FundLensTokens.inkSoft,
-      ),
+      style: FundLensTextStyles.of(
+        context,
+      ).financialNumber.copyWith(color: FundLensTokens.inkSoft),
     );
   }
 }
@@ -306,23 +270,9 @@ class _ActivityRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: FundLensTokens.space1),
       child: Row(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 14,
-              color: FundLensTokens.ink,
-            ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 12,
-              color: FundLensTokens.muted,
-            ),
-          ),
+          Text(value, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -383,10 +333,7 @@ class _RefreshFailed extends ConsumerWidget {
     );
   }
 
-  static Future<void> _retryRefresh(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  static Future<void> _retryRefresh(BuildContext context, WidgetRef ref) async {
     final holdings = ref.read(holdingsProvider).value ?? [];
     await HoldingActions.refreshQuotes(ref.container, holdings);
   }
@@ -416,8 +363,7 @@ class _Actions extends ConsumerWidget {
             Expanded(
               child: OutlinedButton(
                 key: const ValueKey('data-health-missing'),
-                onPressed: () =>
-                    _navigateHoldingsWithMissing(ref, onNavigate),
+                onPressed: () => _navigateHoldingsWithMissing(ref, onNavigate),
                 child: const Text('查看缺失数据'),
               ),
             ),
@@ -425,8 +371,7 @@ class _Actions extends ConsumerWidget {
             Expanded(
               child: OutlinedButton(
                 key: const ValueKey('data-health-classify'),
-                onPressed: () =>
-                    _navigateHoldingsToClassify(ref, onNavigate),
+                onPressed: () => _navigateHoldingsToClassify(ref, onNavigate),
                 child: const Text('补充资产分类'),
               ),
             ),
@@ -467,8 +412,9 @@ class _Actions extends ConsumerWidget {
     WidgetRef ref,
     void Function(AppDestination) onNavigate,
   ) {
-    ref.read(pendingHoldingFilterProvider.notifier).state =
-        HoldingFilterState(assetClasses: {AssetClass.other});
+    ref.read(pendingHoldingFilterProvider.notifier).state = HoldingFilterState(
+      assetClasses: {AssetClass.other},
+    );
     onNavigate(AppDestination.holdings);
   }
 }

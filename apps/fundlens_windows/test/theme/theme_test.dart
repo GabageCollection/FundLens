@@ -102,6 +102,46 @@ void main() {
     expect(styles.kpiNumber.fontFeatures, isNotEmpty);
   });
 
+  test('extended text styles follow the unified scale and weight rules', () {
+    final theme = FundLensTheme.light;
+    final styles = theme.extension<FundLensTextStyles>()!;
+
+    // 标题一律 w600:宋体 18/16,黑体面板标题 16。
+    expect(styles.subsectionTitle.fontFamily, FundLensFonts.serif);
+    expect(styles.subsectionTitle.fontSize, 16);
+    expect(styles.subsectionTitle.fontWeight, FontWeight.w600);
+    expect(styles.panelTitle.fontFamily, FundLensFonts.sans);
+    expect(styles.panelTitle.fontSize, 16);
+    expect(styles.panelTitle.fontWeight, FontWeight.w600);
+
+    // 强调正文 w600、控件标签 w500,字号不出 14/12 两档。
+    expect(styles.bodyStrong.fontSize, 14);
+    expect(styles.bodyStrong.fontWeight, FontWeight.w600);
+    expect(styles.auxStrong.fontSize, 12);
+    expect(styles.auxStrong.fontWeight, FontWeight.w600);
+    expect(styles.chipLabel.fontSize, 12);
+    expect(styles.chipLabel.fontWeight, FontWeight.w500);
+
+    // 数字一律等宽 + tabular-nums,说明级不小于 12px。
+    for (final style in [
+      styles.financialNumberStrong,
+      styles.financialEmphasis,
+      styles.financialEmphasisSmall,
+      styles.financialCaption,
+    ]) {
+      expect(style.fontFamily, FundLensFonts.mono);
+      expect(style.fontFeatures, isNotEmpty);
+      expect(style.fontSize, greaterThanOrEqualTo(12));
+    }
+    expect(styles.financialNumberStrong.fontWeight, FontWeight.w600);
+    expect(styles.financialEmphasis.fontSize, 18);
+    expect(styles.financialEmphasisSmall.fontSize, 16);
+
+    // 全局默认字体回退为黑体:未显式指定的 TextTheme 槽位
+    // (如 bodyLarge)经 ThemeData(fontFamily:) 统一为黑体。
+    expect(theme.textTheme.bodyLarge?.fontFamily, FundLensFonts.sans);
+  });
+
   test('error color is defined separately from profit semantics', () {
     final theme = FundLensTheme.light;
     expect(theme.colorScheme.error, FundLensTokens.profit);
@@ -168,6 +208,7 @@ void main() {
             ? v / 12.92
             : pow((v + 0.055) / 1.055, 2.4).toDouble();
       }
+
       return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
     }
 
@@ -180,14 +221,49 @@ void main() {
     }
 
     final cases = <(String, Color, Color, double)>[
-      ('warnText/warnSoft', FundLensTokens.warnText, FundLensTokens.warnSoft, 4.5),
-      ('warnText/surface', FundLensTokens.warnText, FundLensTokens.surface, 4.5),
+      (
+        'warnText/warnSoft',
+        FundLensTokens.warnText,
+        FundLensTokens.warnSoft,
+        4.5,
+      ),
+      (
+        'warnText/surface',
+        FundLensTokens.warnText,
+        FundLensTokens.surface,
+        4.5,
+      ),
       ('warnText/canvas', FundLensTokens.warnText, FundLensTokens.canvas, 4.5),
-      ('profitText/profitSoft', FundLensTokens.profitText, FundLensTokens.profitSoft, 4.5),
-      ('accentText/accentSoft', FundLensTokens.accentText, FundLensTokens.accentSoft, 4.5),
-      ('accentText/canvas', FundLensTokens.accentText, FundLensTokens.canvas, 4.5),
-      ('sidebarMuted/sidebar', FundLensTokens.sidebarMuted, FundLensTokens.sidebar, 4.5),
-      ('borderStrong/surface(UI 3:1)', FundLensTokens.borderStrong, FundLensTokens.surface, 3.0),
+      (
+        'profitText/profitSoft',
+        FundLensTokens.profitText,
+        FundLensTokens.profitSoft,
+        4.5,
+      ),
+      (
+        'accentText/accentSoft',
+        FundLensTokens.accentText,
+        FundLensTokens.accentSoft,
+        4.5,
+      ),
+      (
+        'accentText/canvas',
+        FundLensTokens.accentText,
+        FundLensTokens.canvas,
+        4.5,
+      ),
+      (
+        'sidebarMuted/sidebar',
+        FundLensTokens.sidebarMuted,
+        FundLensTokens.sidebar,
+        4.5,
+      ),
+      (
+        'borderStrong/surface(UI 3:1)',
+        FundLensTokens.borderStrong,
+        FundLensTokens.surface,
+        3.0,
+      ),
     ];
     for (final (name, fg, bg, need) in cases) {
       final ratio = contrast(fg, bg);

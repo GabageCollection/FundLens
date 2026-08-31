@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/data_health/data_health_button.dart';
 import '../features/settings/persisted_settings.dart';
+import '../theme/fundlens_theme.dart';
 import '../theme/fundlens_tokens.dart';
 
 /// The six fixed destinations of the FundLens desktop shell.
@@ -215,8 +216,8 @@ class _AppShellState extends ConsumerState<AppShell>
                                 curve: Curves.easeOut,
                               ),
                               child: IndexedStack(
-                              index: _selected.index,
-                              children: widget.pages,
+                                index: _selected.index,
+                                children: widget.pages,
                               ),
                             ),
                           ),
@@ -316,9 +317,7 @@ class _NavigationRegion extends StatelessWidget {
                     ),
                     child: Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans SC',
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         letterSpacing: 1.1,
                         color: FundLensTokens.sidebarMuted,
                       ),
@@ -366,42 +365,17 @@ class _CollapseToggle extends StatelessWidget {
   }
 }
 
-/// Brand mark: terracotta「镜」badge + serif wordmark + latin subtitle.
+/// Brand mark: serif wordmark + latin subtitle.
 class _BrandBlock extends StatelessWidget {
   const _BrandBlock({this.collapsed = false});
 
-  /// 折叠态只渲染居中的「镜」badge,隐藏文字标。
+  /// 折叠态隐藏文字标,不渲染任何内容。
   final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
-    final onPrimary = Theme.of(context).colorScheme.onPrimary;
-    final badge = Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: FundLensTokens.accentStrong,
-        borderRadius: BorderRadius.circular(FundLensTokens.radiusControl),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '镜',
-        style: TextStyle(
-          fontFamily: 'Noto Serif SC',
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: onPrimary,
-        ),
-      ),
-    );
     if (collapsed) {
-      return Padding(
-        padding: const EdgeInsets.only(
-          top: FundLensTokens.space6,
-          bottom: FundLensTokens.space3,
-        ),
-        child: Center(child: badge),
-      );
+      return const SizedBox(height: FundLensTokens.space3);
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -410,35 +384,22 @@ class _BrandBlock extends StatelessWidget {
         FundLensTokens.space6,
         FundLensTokens.space3,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          badge,
-          const SizedBox(width: FundLensTokens.space3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FundLens',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Noto Serif SC',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                    color: FundLensTokens.sidebarTitle,
-                  ),
-                ),
-                Text(
-                  'PORTFOLIO LENS',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans SC',
-                    fontSize: 12,
-                    letterSpacing: 1,
-                    color: FundLensTokens.sidebarMuted,
-                  ),
-                ),
-              ],
+          Text(
+            'FundLens',
+            overflow: TextOverflow.ellipsis,
+            style: FundLensTextStyles.of(
+              context,
+            ).sectionTitle.copyWith(color: FundLensTokens.sidebarTitle),
+          ),
+          Text(
+            'PORTFOLIO LENS',
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              letterSpacing: 1,
+              color: FundLensTokens.sidebarMuted,
             ),
           ),
         ],
@@ -477,9 +438,7 @@ class _SidebarFooter extends StatelessWidget {
               SizedBox(width: FundLensTokens.space2),
               Text(
                 '行情引擎按需启动',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans SC',
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: FundLensTokens.sidebarInk,
                 ),
               ),
@@ -488,11 +447,9 @@ class _SidebarFooter extends StatelessWidget {
           SizedBox(height: FundLensTokens.space1),
           Text(
             'FundLens · 数据仅保存在本机',
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 12,
-              color: FundLensTokens.sidebarMuted,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: FundLensTokens.sidebarMuted),
           ),
         ],
       ),
@@ -583,14 +540,15 @@ class _NavItem extends StatelessWidget {
                               child: Text(
                                 label,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'Noto Sans SC',
-                                  fontSize: 14,
-                                  fontWeight: selected
-                                      ? FontWeight.w500
-                                      : FontWeight.w400,
-                                  color: foreground,
-                                ),
+                                style:
+                                    (selected
+                                            ? Theme.of(
+                                                context,
+                                              ).textTheme.labelLarge
+                                            : Theme.of(
+                                                context,
+                                              ).textTheme.bodyMedium)
+                                        ?.copyWith(color: foreground),
                               ),
                             ),
                           ],
@@ -640,12 +598,9 @@ class _TopBar extends StatelessWidget {
             backgroundColor: FundLensTokens.ink,
             child: Text(
               '木',
-              style: TextStyle(
-                fontFamily: 'Noto Sans SC',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: FundLensTokens.canvas,
-              ),
+              style: FundLensTextStyles.of(
+                context,
+              ).auxStrong.copyWith(color: FundLensTokens.canvas),
             ),
           ),
         ],

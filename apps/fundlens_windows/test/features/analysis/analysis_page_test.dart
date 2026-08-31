@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 import 'package:fundlens_windows/application/app_dependencies.dart';
 import 'package:fundlens_windows/features/analysis/analysis_page.dart';
+import 'package:fundlens_windows/features/analysis/analysis_summary_strip.dart';
 import 'package:fundlens_windows/features/analysis/structure_thresholds.dart';
 import 'package:fundlens_windows/storage/holding_repository.dart';
 import 'package:fundlens_windows/theme/fundlens_theme.dart';
@@ -238,8 +239,16 @@ void main() {
     await tester.pumpWidget(analysisHarness());
     await tester.pumpAndSettle();
     // 夹具:权益 1000(无成本)+ 存款 3000(有成本),总资产 4000。
-    expect(find.text('总资产'), findsOneWidget);
-    expect(find.text('¥4,000.00'), findsOneWidget);
+    // 环形图环心也会展示总资产合计,这里限定在 KPI 汇总条内断言。
+    final strip = find.byType(AnalysisSummaryStrip);
+    expect(
+      find.descendant(of: strip, matching: find.text('总资产')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: strip, matching: find.text('¥4,000.00')),
+      findsOneWidget,
+    );
     expect(find.text('持仓项数'), findsOneWidget);
     expect(find.text('2 项'), findsOneWidget);
     expect(find.text('2 类'), findsOneWidget);

@@ -127,7 +127,7 @@ class _AnalysisBody extends ConsumerWidget {
   }
 }
 
-/// 左卡:标题 + 可访问 Tabs + 固定高度图表区(切换仅换内容,布局稳定)。
+/// 左卡:标题 + 可访问 Tabs + 固定高度图表区(环形图,切换仅换内容,布局稳定)。
 class _CompositionChartCard extends ConsumerWidget {
   const _CompositionChartCard({required this.tabController});
 
@@ -172,16 +172,9 @@ class _CompositionChartCard extends ConsumerWidget {
               dividerColor: FundLensTokens.border,
               labelColor: FundLensTokens.ink,
               unselectedLabelColor: FundLensTokens.muted,
-              labelStyle: const TextStyle(
-                fontFamily: 'Noto Sans SC',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontFamily: 'Noto Sans SC',
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
+              // 控件标签语义:选中 w500 / 未选中正文,取自主题。
+              labelStyle: theme.textTheme.labelLarge,
+              unselectedLabelStyle: theme.textTheme.bodyMedium,
               tabs: [
                 for (final d in AnalysisDimension.values)
                   Tab(text: dimensionLabels[d]),
@@ -194,16 +187,10 @@ class _CompositionChartCard extends ConsumerWidget {
               child: AnimatedSwitcher(
                 // 微交互动画 150ms;系统减少动画时完全关闭。
                 duration: fundlensAnimationDuration(context),
-                child: switch (dimension) {
-                  AnalysisDimension.source => PlatformProportionBar(
-                    key: const ValueKey('platform-proportion-bar'),
-                    rows: rows,
-                  ),
-                  _ => HorizontalBarChart(
-                    key: const ValueKey('horizontal-bar-chart'),
-                    rows: rows,
-                  ),
-                },
+                child: CompositionDonutChart(
+                  key: ValueKey('composition-donut-$dimension'),
+                  rows: rows,
+                ),
               ),
             ),
           ],

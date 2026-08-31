@@ -17,10 +17,17 @@
 # -FlutterRoot: Flutter SDK 根目录。默认取环境变量 FUNDLENS_FLUTTER_ROOT,
 # 再回退 D:\flutter。换机器时无需改脚本,设环境变量或传参即可。
 
+# -SkipEngine: 跳过引擎打包,直接复用 dist/engine/fundlens_engine 现有产物
+#   (只改了 Flutter/Dart 代码时用;产物不存在时会在 Stage 步骤报错)。
+# -FastCompress: Inno Setup 用 lzma2/fast 代替 lzma2(max),迭代验证时显著
+#   缩短安装包压缩时间;正式发版不要加。
+
 param(
   [string]$UpdateManifestUrl = '',
   [string]$InstallerDownloadUrl = '',
-  [string]$FlutterRoot = ''
+  [string]$FlutterRoot = '',
+  [switch]$SkipEngine,
+  [switch]$FastCompress
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,8 +67,12 @@ function Invoke-Step([string]$Name, [scriptblock]$Body) {
 Invoke-Step 'Verify Windows toolchain' {
   powershell -NoProfile -File (Join-Path $repoRoot 'tools\verify_windows_toolchain.ps1') -FlutterRoot $FlutterRoot
 }
-Invoke-Step 'Build data engine bundle' {
-  powershell -NoProfile -File (Join-Path $repoRoot 'tools\build_engine.ps1')
+if ($SkipEngine) {
+  Write-Host '==> Skipping engine build (-SkipEngine); reusing dist/engine/fundlens_engine'
+} else {
+  Invoke-Step 'Build data engine bundle' {
+    powershell -NoProfile -File (Join-Path $repoRoot 'tools\build_engine.ps1')
+  }
 }
 Invoke-Step 'dart test packages/fundlens_core' {
   # dart test resolves the package from the working directory, so run it
@@ -127,7 +138,10 @@ $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $installerPath = Join-Path $repoRoot 'dist\installer\FundLens-Setup.exe'
 if ($iscc) {
   Invoke-Step 'Compile installer (Inno Setup)' {
-    & $iscc (Join-Path $repoRoot 'installer\FundLens.iss')
+    $isccArgs = @()
+    if ($FastCompress) { $isccArgs += '/DFastCompress' }
+    $isccArgs += Join-Path $repoRoot 'installer\FundLens.iss'
+    & $iscc @isccArgs
   }
   Write-Host '==> Release complete: dist\installer\FundLens-Setup.exe'
 } else {

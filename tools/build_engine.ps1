@@ -8,10 +8,23 @@
 # (schema_version 1) and smoke-test real OCR on a synthetic fixture.
 #
 # Run from anywhere: powershell -File tools/build_engine.ps1
-# Optional: -SkipTests to reuse an existing venv without rerunning pytest.
+# Optional switches (all off = full release-grade build):
+#   -SkipVenv   reuse the existing .venv-build instead of recreating it
+#               (NOTE: -SkipTests no longer implies venv reuse; pass both)
+#   -SkipTests  skip the pytest suite
+#   -SkipSmoke  skip the bundled-OCR smoke test (saves the ~30-60s it takes
+#               to load paddle inside the bundle)
+#   -Clean      pass --clean to PyInstaller, wiping its analysis cache.
+#               By default the cache is kept, so iterative rebuilds skip the
+#               full paddle/paddleocr/paddlex module-graph re-analysis; use
+#               -Clean after dependency upgrades or when a stale cache is
+#               suspected.
 
 param(
-  [switch]$SkipTests
+  [switch]$SkipVenv,
+  [switch]$SkipTests,
+  [switch]$SkipSmoke,
+  [switch]$Clean
 )
 
 $ErrorActionPreference = 'Stop'
@@ -65,8 +78,8 @@ function Find-Python311 {
   throw 'Python 3.11 or 3.12 not found (requires-python >=3.11,<3.13).'
 }
 
-if ($SkipTests -and (Test-Path $venvPython)) {
-  Write-Host '==> Reusing existing build venv (-SkipTests)'
+if ($SkipVenv -and (Test-Path $venvPython)) {
+  Write-Host '==> Reusing existing build venv (-SkipVenv)'
 } else {
   Write-Host '==> Recreating isolated build venv from requirements.lock'
   if (Test-Path $venvDir) { Remove-Item $venvDir -Recurse -Force }
@@ -113,14 +126,20 @@ $cacheDirs = Get-ChildItem $modelsStaging -Recurse -Directory -Filter '.cache' -
 foreach ($dir in $cacheDirs) { Remove-Item $dir.FullName -Recurse -Force }
 if ($cacheDirs) { Write-Host "==> Pruned $($cacheDirs.Count) HuggingFace .cache dirs from staged models" }
 
-Write-Host '==> Running PyInstaller (--clean --noconfirm)'
+$pyinstallerArgs = @('-m', 'PyInstaller', '--noconfirm')
+if ($Clean) { $pyinstallerArgs += '--clean' }
+$pyinstallerArgs += @(
+  '--distpath', $distDir, '--workpath', $workDir,
+  (Join-Path $engineDir 'fundlens_engine.spec')
+)
+if ($Clean) {
+  Write-Host '==> Running PyInstaller (--clean --noconfirm)'
+} else {
+  Write-Host '==> Running PyInstaller (cached analysis, --noconfirm; use -Clean to force)'
+}
 Push-Location $repoRoot
 try {
-  Invoke-Native $venvPython @(
-    '-m', 'PyInstaller', '--clean', '--noconfirm',
-    '--distpath', $distDir, '--workpath', $workDir,
-    (Join-Path $engineDir 'fundlens_engine.spec')
-  )
+  Invoke-Native $venvPython $pyinstallerArgs
 } finally {
   Pop-Location
 }
@@ -181,22 +200,28 @@ Write-Host "==> Engine build OK: $exePath (schema_version $($response.schema_ver
 # Exercise the real OCR path inside the bundle. The plain health check does
 # not import paddle, so a missing runtime dependency (e.g. setuptools) would
 # otherwise only surface for users importing screenshots.
-Write-Host '==> Smoke-testing bundled OCR (alipay synthetic fixture)'
-$ocrFixture = Join-Path $engineDir 'tests\fixtures\ocr\alipay_synthetic.png'
-$ocrParams = @{ paths = @($ocrFixture); template = 'alipay' } | ConvertTo-Json -Compress
-$ocrRequest = '{"jsonrpc":"2.0","id":"ocr-smoke-1","method":"ocr.parse_screenshots","params":' + $ocrParams + ',"schema_version":1}'
-$previous = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-try {
-  $ocrLine = $ocrRequest | & $exePath 2>$null | Select-Object -First 1
-} finally {
-  $ErrorActionPreference = $previous
+if (-not $SkipSmoke) {
+  Write-Host '==> Smoke-testing bundled OCR (alipay synthetic fixture)'
+  $ocrFixture = Join-Path $engineDir 'tests\fixtures\ocr\alipay_synthetic.png'
+  $ocrParams = @{ paths = @($ocrFixture); template = 'alipay' } | ConvertTo-Json -Compress
+  $ocrRequest = '{"jsonrpc":"2.0","id":"ocr-smoke-1","method":"ocr.parse_screenshots","params":' + $ocrParams + ',"schema_version":1}'
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $ocrLine = $ocrRequest | & $exePath 2>$null | Select-Object -First 1
+  } finally {
+    $ErrorActionPreference = $previous
+  }
+  if (-not $ocrLine) { throw 'Engine OCR smoke test produced no response.' }
+  $ocrResponse = $ocrLine | ConvertFrom-Json
+  if ($ocrResponse.error -or $null -eq $ocrResponse.result.rows) {
+    throw "Engine OCR smoke test failed: $ocrLine"
+  }
+  [Console]::OutputEncoding = $previousOutputEncoding
+  $OutputEncoding = $previousOutputEncodingVar
+  Write-Host "==> Engine OCR smoke OK ($($ocrResponse.result.rows.Count) rows recognized)"
+} else {
+  [Console]::OutputEncoding = $previousOutputEncoding
+  $OutputEncoding = $previousOutputEncodingVar
+  Write-Host '==> Skipping OCR smoke test (-SkipSmoke); health check already passed'
 }
-if (-not $ocrLine) { throw 'Engine OCR smoke test produced no response.' }
-$ocrResponse = $ocrLine | ConvertFrom-Json
-if ($ocrResponse.error -or $null -eq $ocrResponse.result.rows) {
-  throw "Engine OCR smoke test failed: $ocrLine"
-}
-[Console]::OutputEncoding = $previousOutputEncoding
-$OutputEncoding = $previousOutputEncodingVar
-Write-Host "==> Engine OCR smoke OK ($($ocrResponse.result.rows.Count) rows recognized)"

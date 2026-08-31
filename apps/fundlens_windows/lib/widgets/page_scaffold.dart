@@ -11,7 +11,7 @@ enum PageWidthTier {
   /// 数据密集页面:全部持仓、历史快照。
   dense(FundLensTokens.contentMaxDense),
 
-  /// 表单页面:设置与备份、导入与识别。
+  /// 表单页面:设置与备份。
   form(FundLensTokens.contentMaxForm);
 
   const PageWidthTier(this.maxWidth);

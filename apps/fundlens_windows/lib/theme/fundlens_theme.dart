@@ -5,36 +5,120 @@ import 'fundlens_tokens.dart';
 /// 微交互动画时长:150ms(设计系统动效规范);系统开启"减少动画"时完全关闭。
 Duration fundlensAnimationDuration(BuildContext context) =>
     MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 150);
+    ? Duration.zero
+    : const Duration(milliseconds: 150);
 
-/// [TextTheme] 之外的设计系统文字样式。
+/// 设计系统唯一允许的字体族。组件一律使用这里的常量,
+/// 不得散落 `'Noto Sans SC'` 之类的字符串字面量。
+abstract final class FundLensFonts {
+  /// 标题宋体(页面标题、区块标题)。
+  static const String serif = 'Noto Serif SC';
+
+  /// 正文黑体(正文、辅助、控件标签;全局默认字体)。
+  static const String sans = 'Noto Sans SC';
+
+  /// 数字等宽体(金额、比例、图表刻度;配 tabular-nums)。
+  static const String mono = 'IBM Plex Mono';
+}
+
+/// [TextTheme] 之外的设计系统文字样式。全部字体的唯一来源:
+/// 组件从这里(或 [TextTheme])取样式,只允许 copyWith 颜色等
+/// 非排版属性,不得自行指定字体族、字号或字重。
 @immutable
 class FundLensTextStyles extends ThemeExtension<FundLensTextStyles> {
   const FundLensTextStyles({
-    required this.financialNumber,
     required this.sectionTitle,
+    required this.subsectionTitle,
+    required this.panelTitle,
+    required this.sansEmphasis,
+    required this.bodyStrong,
+    required this.auxStrong,
+    required this.chipLabel,
+    required this.financialNumber,
+    required this.financialNumberStrong,
+    required this.financialEmphasis,
+    required this.financialEmphasisSmall,
+    required this.financialCaption,
     required this.kpiNumber,
   });
 
-  /// 表格金额等金融数字:14px、等宽、tabular-nums。
-  final TextStyle financialNumber;
+  /// 从上下文读取设计系统文字样式。
+  static FundLensTextStyles of(BuildContext context) =>
+      Theme.of(context).extension<FundLensTextStyles>()!;
 
-  /// 区块标题:宋体 18px / 行高 26 / w600。
+  // ---- 标题(标题一律 w600) ----
+  /// 区块标题:宋体 18px / 行高 26。
   final TextStyle sectionTitle;
 
-  /// KPI 大数字:等宽 22px(KPI 允许 20–24px 区间)。
+  /// 子区块/卡片标题:宋体 16px / 行高 24。
+  final TextStyle subsectionTitle;
+
+  /// 弹层面板标题:黑体 16px / 行高 24。
+  final TextStyle panelTitle;
+
+  /// 黑体大强调 18px / 行高 24:[financialEmphasis] 的非数字回退。
+  final TextStyle sansEmphasis;
+
+  // ---- 正文与辅助(正文 regular,强调正文 w600,控件标签 w500) ----
+  /// 强调正文:黑体 14px / 行高 22 / w600。
+  final TextStyle bodyStrong;
+
+  /// 强调辅助:黑体 12px / 行高 18 / w600(表头、步序号等)。
+  final TextStyle auxStrong;
+
+  /// 状态 chip 标签:黑体 12px / w500。
+  final TextStyle chipLabel;
+
+  // ---- 数字(等宽 + tabular-nums) ----
+  /// 表格金额等金融数字:14px。
+  final TextStyle financialNumber;
+
+  /// 强调金融数字:14px / w600。
+  final TextStyle financialNumberStrong;
+
+  /// 汇总卡片大数值:18px / w600。
+  final TextStyle financialEmphasis;
+
+  /// 次大数值(图表环心等):16px / w600。
+  final TextStyle financialEmphasisSmall;
+
+  /// 图表刻度、图例与悬浮卡数值:12px(说明文字不得小于 12px)。
+  final TextStyle financialCaption;
+
+  /// KPI 大数字:22px / w600(KPI 允许 20–24px 区间)。
   final TextStyle kpiNumber;
 
   @override
   FundLensTextStyles copyWith({
-    TextStyle? financialNumber,
     TextStyle? sectionTitle,
+    TextStyle? subsectionTitle,
+    TextStyle? panelTitle,
+    TextStyle? sansEmphasis,
+    TextStyle? bodyStrong,
+    TextStyle? auxStrong,
+    TextStyle? chipLabel,
+    TextStyle? financialNumber,
+    TextStyle? financialNumberStrong,
+    TextStyle? financialEmphasis,
+    TextStyle? financialEmphasisSmall,
+    TextStyle? financialCaption,
     TextStyle? kpiNumber,
   }) {
     return FundLensTextStyles(
-      financialNumber: financialNumber ?? this.financialNumber,
       sectionTitle: sectionTitle ?? this.sectionTitle,
+      subsectionTitle: subsectionTitle ?? this.subsectionTitle,
+      panelTitle: panelTitle ?? this.panelTitle,
+      sansEmphasis: sansEmphasis ?? this.sansEmphasis,
+      bodyStrong: bodyStrong ?? this.bodyStrong,
+      auxStrong: auxStrong ?? this.auxStrong,
+      chipLabel: chipLabel ?? this.chipLabel,
+      financialNumber: financialNumber ?? this.financialNumber,
+      financialNumberStrong:
+          financialNumberStrong ?? this.financialNumberStrong,
+      financialEmphasis: financialEmphasis ?? this.financialEmphasis,
+      financialEmphasisSmall:
+          financialEmphasisSmall ?? this.financialEmphasisSmall,
+      financialCaption: financialCaption ?? this.financialCaption,
       kpiNumber: kpiNumber ?? this.kpiNumber,
     );
   }
@@ -42,14 +126,27 @@ class FundLensTextStyles extends ThemeExtension<FundLensTextStyles> {
   @override
   FundLensTextStyles lerp(FundLensTextStyles? other, double t) {
     if (other == null) return this;
+    TextStyle l(TextStyle a, TextStyle b) => TextStyle.lerp(a, b, t)!;
     return FundLensTextStyles(
-      financialNumber: TextStyle.lerp(
-        financialNumber,
-        other.financialNumber,
-        t,
-      )!,
-      sectionTitle: TextStyle.lerp(sectionTitle, other.sectionTitle, t)!,
-      kpiNumber: TextStyle.lerp(kpiNumber, other.kpiNumber, t)!,
+      sectionTitle: l(sectionTitle, other.sectionTitle),
+      subsectionTitle: l(subsectionTitle, other.subsectionTitle),
+      panelTitle: l(panelTitle, other.panelTitle),
+      sansEmphasis: l(sansEmphasis, other.sansEmphasis),
+      bodyStrong: l(bodyStrong, other.bodyStrong),
+      auxStrong: l(auxStrong, other.auxStrong),
+      chipLabel: l(chipLabel, other.chipLabel),
+      financialNumber: l(financialNumber, other.financialNumber),
+      financialNumberStrong: l(
+        financialNumberStrong,
+        other.financialNumberStrong,
+      ),
+      financialEmphasis: l(financialEmphasis, other.financialEmphasis),
+      financialEmphasisSmall: l(
+        financialEmphasisSmall,
+        other.financialEmphasisSmall,
+      ),
+      financialCaption: l(financialCaption, other.financialCaption),
+      kpiNumber: l(kpiNumber, other.kpiNumber),
     );
   }
 }
@@ -71,7 +168,7 @@ abstract final class FundLensTheme {
     final textTheme = TextTheme(
       // 页面标题:24px / 行高 32 / w600,中文保留克制的宋体气质。
       titleLarge: TextStyle(
-        fontFamily: 'Noto Serif SC',
+        fontFamily: FundLensFonts.serif,
         fontWeight: FontWeight.w600,
         fontSize: 24,
         height: 32 / 24,
@@ -79,21 +176,21 @@ abstract final class FundLensTheme {
       ),
       // 正文:14px / 行高 22,清晰的无衬线。
       bodyMedium: TextStyle(
-        fontFamily: 'Noto Sans SC',
+        fontFamily: FundLensFonts.sans,
         fontSize: 14,
         height: 22 / 14,
         color: FundLensTokens.ink,
       ),
       // 辅助文字:12px / 行高 18,说明文字不得小于 12px。
       bodySmall: TextStyle(
-        fontFamily: 'Noto Sans SC',
+        fontFamily: FundLensFonts.sans,
         fontSize: 12,
         height: 18 / 12,
         color: FundLensTokens.muted,
       ),
       // 控件标签(按钮等):14px。
       labelLarge: TextStyle(
-        fontFamily: 'Noto Sans SC',
+        fontFamily: FundLensFonts.sans,
         fontWeight: FontWeight.w500,
         fontSize: 14,
         color: FundLensTokens.ink,
@@ -130,6 +227,9 @@ abstract final class FundLensTheme {
 
     return ThemeData(
       useMaterial3: true,
+      // 全局默认字体:未显式指定样式的文字(含 TextTheme 其余槽位)
+      // 一律回退到黑体,与正文保持一致。
+      fontFamily: FundLensFonts.sans,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: FundLensTokens.canvas,
       textTheme: textTheme,
@@ -162,7 +262,7 @@ abstract final class FundLensTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: FundLensTokens.ink,
         contentTextStyle: const TextStyle(
-          fontFamily: 'Noto Sans SC',
+          fontFamily: FundLensFonts.sans,
           fontSize: 14,
           color: Color(0xFFFFFFFF),
         ),
@@ -266,7 +366,11 @@ abstract final class FundLensTheme {
       ),
       chipTheme: const ChipThemeData(
         side: BorderSide.none,
-        labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        labelStyle: TextStyle(
+          fontFamily: FundLensFonts.sans,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
       // 输入框:高 40,常态 1px 边框,Focus 2px 主色轮廓。
       inputDecorationTheme: InputDecorationTheme(
@@ -311,28 +415,96 @@ abstract final class FundLensTheme {
           ),
         ),
         errorStyle: TextStyle(
-          fontFamily: 'Noto Sans SC',
+          fontFamily: FundLensFonts.sans,
           fontSize: 12,
           color: FundLensTokens.profit,
         ),
       ),
       extensions: [
         FundLensTextStyles(
-          financialNumber: TextStyle(
-            fontFamily: 'IBM Plex Mono',
-            fontSize: 14,
-            color: FundLensTokens.ink,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
           sectionTitle: TextStyle(
-            fontFamily: 'Noto Serif SC',
+            fontFamily: FundLensFonts.serif,
             fontWeight: FontWeight.w600,
             fontSize: 18,
             height: 26 / 18,
             color: FundLensTokens.ink,
           ),
+          subsectionTitle: TextStyle(
+            fontFamily: FundLensFonts.serif,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            height: 24 / 16,
+            color: FundLensTokens.ink,
+          ),
+          panelTitle: TextStyle(
+            fontFamily: FundLensFonts.sans,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            height: 24 / 16,
+            color: FundLensTokens.ink,
+          ),
+          sansEmphasis: TextStyle(
+            fontFamily: FundLensFonts.sans,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            height: 24 / 18,
+            color: FundLensTokens.ink,
+          ),
+          bodyStrong: TextStyle(
+            fontFamily: FundLensFonts.sans,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            height: 22 / 14,
+            color: FundLensTokens.ink,
+          ),
+          auxStrong: TextStyle(
+            fontFamily: FundLensFonts.sans,
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            height: 18 / 12,
+            color: FundLensTokens.ink,
+          ),
+          chipLabel: TextStyle(
+            fontFamily: FundLensFonts.sans,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+            color: FundLensTokens.ink,
+          ),
+          financialNumber: TextStyle(
+            fontFamily: FundLensFonts.mono,
+            fontSize: 14,
+            color: FundLensTokens.ink,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          financialNumberStrong: TextStyle(
+            fontFamily: FundLensFonts.mono,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: FundLensTokens.ink,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          financialEmphasis: TextStyle(
+            fontFamily: FundLensFonts.mono,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            color: FundLensTokens.ink,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          financialEmphasisSmall: TextStyle(
+            fontFamily: FundLensFonts.mono,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: FundLensTokens.ink,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          financialCaption: TextStyle(
+            fontFamily: FundLensFonts.mono,
+            fontSize: 12,
+            color: FundLensTokens.ink,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
           kpiNumber: TextStyle(
-            fontFamily: 'IBM Plex Mono',
+            fontFamily: FundLensFonts.mono,
             fontWeight: FontWeight.w600,
             fontSize: 22,
             color: FundLensTokens.ink,

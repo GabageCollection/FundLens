@@ -65,8 +65,7 @@ final class SpectrumSegment {
 /// 保持结构带可读;不超过 6 项时原样返回。
 List<SpectrumSegment> mergeSpectrumSegments(List<SpectrumSegment> segments) {
   if (segments.length <= 6) return segments;
-  final sorted = [...segments]
-    ..sort((a, b) => b.share.compareTo(a.share));
+  final sorted = [...segments]..sort((a, b) => b.share.compareTo(a.share));
   final kept = sorted.take(5).toList();
   final merged = sorted.skip(5).toList();
   final mergedAmount = merged.fold<DecimalValue>(
@@ -286,8 +285,7 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
                                     label: segments[i].semanticsLabel,
                                     button: true,
                                     child: FocusableActionDetector(
-                                      focusNode:
-                                          _nodes[segments[i].assetClass],
+                                      focusNode: _nodes[segments[i].assetClass],
                                       mouseCursor: SystemMouseCursors.click,
                                       onShowFocusHighlight: (highlighted) {
                                         setState(() {
@@ -306,9 +304,7 @@ class _AssetSpectrumState extends ConsumerState<AssetSpectrum> {
                                         ActivateIntent:
                                             CallbackAction<ActivateIntent>(
                                               onInvoke: (_) {
-                                                _toggle(
-                                                  segments[i].assetClass,
-                                                );
+                                                _toggle(segments[i].assetClass);
                                                 return null;
                                               },
                                             ),
@@ -360,10 +356,9 @@ class _SegmentLegendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final number = theme.textTheme.bodySmall?.copyWith(
-      fontFamily: 'IBM Plex Mono',
-      color: FundLensTokens.inkSoft,
-    );
+    final number = FundLensTextStyles.of(
+      context,
+    ).financialCaption.copyWith(color: FundLensTokens.inkSoft);
     return SizedBox(
       height: 28,
       child: Row(
@@ -383,10 +378,7 @@ class _SegmentLegendRow extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
           ),
-          Text(
-            formatCurrency(segment.amount),
-            style: number,
-          ),
+          Text(formatCurrency(segment.amount), style: number),
           const SizedBox(width: FundLensTokens.space4),
           SizedBox(
             width: 52,

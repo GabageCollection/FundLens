@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fundlens_core/fundlens_core.dart';
@@ -153,7 +154,7 @@ void main() {
     expect(rows[1].color, FundLensTokens.categoryColors[AssetClass.cash]);
   });
 
-  test('产品类型与来源平台维度不着色(回退主色)', () {
+  test('产品类型与来源平台维度不着色(回退段序暖墨档位)', () {
     final summary = fakeSummary(
       byInstrumentType: {InstrumentType.etf: DecimalValue.parse('3000')},
       bySource: {SourcePlatform.alipay: DecimalValue.parse('3000')},
@@ -169,10 +170,29 @@ void main() {
     );
   });
 
-  testWidgets('条形图按行着色渲染类别段色', (tester) async {
+  testWidgets('环形图图例行显示名称、金额与占比', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(CompositionDonutChart(rows: testRows)),
+    );
+    expect(find.text('权益'), findsOneWidget);
+    expect(find.text('¥30,000.00'), findsOneWidget);
+    expect(find.text('38.0%'), findsOneWidget);
+    expect(find.text('现金'), findsOneWidget);
+    expect(find.text('¥12,000.00'), findsOneWidget);
+  });
+
+  testWidgets('环心默认显示总资产合计', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(CompositionDonutChart(rows: testRows)),
+    );
+    expect(find.text('总资产'), findsOneWidget);
+    expect(find.text('¥50,000.00'), findsOneWidget); // 30000+12000+8000
+  });
+
+  testWidgets('类别段色用于图例色点', (tester) async {
     await tester.pumpWidget(
       chartHarness(
-        HorizontalBarChart(
+        CompositionDonutChart(
           rows: [
             ChartBarRow(
               label: '权益',
@@ -191,7 +211,7 @@ void main() {
       ),
     );
     final colored = find.descendant(
-      of: find.byType(HorizontalBarChart),
+      of: find.byType(CompositionDonutChart),
       matching: find.byWidgetPredicate(
         (w) =>
             w is Container &&
@@ -203,33 +223,26 @@ void main() {
     expect(colored, findsOneWidget);
   });
 
-  testWidgets('条形图同时显示名称、金额与占比', (tester) async {
-    await tester.pumpWidget(chartHarness(HorizontalBarChart(rows: testRows)));
-    expect(find.text('权益'), findsOneWidget);
-    expect(find.text('¥30,000.00'), findsOneWidget);
-    expect(find.text('38.0%'), findsOneWidget);
-    expect(find.text('现金'), findsOneWidget);
-    expect(find.text('¥12,000.00'), findsOneWidget);
-  });
-
-  testWidgets('条形图聚合行使用暖灰色而非主色', (tester) async {
-    await tester.pumpWidget(chartHarness(HorizontalBarChart(rows: testRows)));
-    final aggregateBar = tester.widget<Container>(
-      find.descendant(
-        of: find.byType(HorizontalBarChart),
-        matching: find.byWidgetPredicate(
-          (w) =>
-              w is Container &&
-              w.decoration is BoxDecoration &&
-              (w.decoration! as BoxDecoration).color == FundLensTokens.muted,
-        ),
+  testWidgets('聚合行图例色点使用暖灰色', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(CompositionDonutChart(rows: testRows)),
+    );
+    final aggregateDot = find.descendant(
+      of: find.byType(CompositionDonutChart),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration! as BoxDecoration).color == FundLensTokens.muted,
       ),
     );
-    expect(aggregateBar, isNotNull);
+    expect(aggregateDot, findsOneWidget);
   });
 
-  testWidgets('条形图每行提供 Tooltip 语义(金额与占比)', (tester) async {
-    await tester.pumpWidget(chartHarness(HorizontalBarChart(rows: testRows)));
+  testWidgets('图例行提供 Tooltip 语义(金额与占比)', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(CompositionDonutChart(rows: testRows)),
+    );
     final tooltip = tester.widget<Tooltip>(
       find.byWidgetPredicate(
         (w) => w is Tooltip && (w.message ?? '').contains('权益'),
@@ -239,46 +252,36 @@ void main() {
     expect(tooltip.message, contains('38.0%'));
   });
 
-  testWidgets('条形图空状态显示原因', (tester) async {
-    await tester.pumpWidget(chartHarness(const HorizontalBarChart(rows: [])));
+  testWidgets('空状态显示原因', (tester) async {
+    await tester.pumpWidget(
+      chartHarness(const CompositionDonutChart(rows: [])),
+    );
     expect(find.textContaining('暂无有效资产数据'), findsOneWidget);
   });
 
-  testWidgets('来源平台比例条显示图例(名称/金额/占比)', (tester) async {
+  testWidgets('悬停图例行时环心切换为该分项', (tester) async {
     await tester.pumpWidget(
-      chartHarness(
-        PlatformProportionBar(
-          rows: [
-            ChartBarRow(
-              label: '支付宝',
-              amount: DecimalValue.parse('5000'),
-              share: DecimalValue.parse('0.5'),
-            ),
-            ChartBarRow(
-              label: '同花顺',
-              amount: DecimalValue.parse('3000'),
-              share: DecimalValue.parse('0.3'),
-            ),
-            ChartBarRow(
-              label: '手工录入',
-              amount: DecimalValue.parse('2000'),
-              share: DecimalValue.parse('0.2'),
-            ),
-          ],
-        ),
-      ),
+      chartHarness(CompositionDonutChart(rows: testRows)),
     );
-    expect(find.text('支付宝'), findsOneWidget);
-    expect(find.text('¥5,000.00'), findsOneWidget);
-    expect(find.text('50.0%'), findsOneWidget);
-    expect(find.text('同花顺'), findsOneWidget);
+    final gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer();
+    await gesture.moveTo(tester.getCenter(find.text('权益')));
+    await tester.pump();
+    // 图例行 + 环心各出现一次该分项占比。
+    expect(find.text('38.0%'), findsNWidgets(2));
+    expect(find.text('权益'), findsNWidgets(2));
   });
 
   testWidgets('窄屏(400px)下图表不溢出', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(chartHarness(HorizontalBarChart(rows: testRows)));
+    await tester.pumpWidget(
+      chartHarness(CompositionDonutChart(rows: testRows)),
+    );
     expect(tester.takeException(), isNull);
   });
 }

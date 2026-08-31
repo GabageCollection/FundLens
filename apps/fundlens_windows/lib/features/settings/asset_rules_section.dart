@@ -137,8 +137,8 @@ class AssetRulesSection extends ConsumerWidget {
             collapsedShape: const Border(),
             title: Text(
               '高级设置',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              // 分组标题用控件标签语义(14 / w500)。
+              style: theme.textTheme.labelLarge,
             ),
             children: [
               for (final field in _fields)
@@ -157,7 +157,15 @@ class AssetRulesSection extends ConsumerWidget {
 
   void _onChanged(
     WidgetRef ref,
-    ({String key, String label, String description, String impact, DecimalValue? Function(StructureThresholds) read, StructureThresholds Function(StructureThresholds, DecimalValue?) write}) field,
+    ({
+      String key,
+      String label,
+      String description,
+      String impact,
+      DecimalValue? Function(StructureThresholds) read,
+      StructureThresholds Function(StructureThresholds, DecimalValue?) write,
+    })
+    field,
     String text,
   ) {
     final trimmed = text.trim();
@@ -180,7 +188,11 @@ class AssetRulesSection extends ConsumerWidget {
     unawaited(_persistThreshold(ref, field.key, share));
   }
 
-  Future<void> _persistThreshold(WidgetRef ref, String fieldKey, DecimalValue? share) async {
+  Future<void> _persistThreshold(
+    WidgetRef ref,
+    String fieldKey,
+    DecimalValue? share,
+  ) async {
     final settingKey = _settingKeyFor(fieldKey);
     if (share == null) {
       try {
@@ -219,7 +231,8 @@ class _ParameterRow extends StatelessWidget {
     String impact,
     DecimalValue? Function(StructureThresholds) read,
     StructureThresholds Function(StructureThresholds, DecimalValue?) write,
-  }) field;
+  })
+  field;
   final DecimalValue? value;
   final ValueChanged<String> onChanged;
   final VoidCallback onReset;
@@ -242,9 +255,7 @@ class _ParameterRow extends StatelessWidget {
                     Text(field.label, style: theme.textTheme.bodyMedium),
                     Text(field.description, style: theme.textTheme.bodySmall),
                     Text(
-                      value == null
-                          ? '默认：未设置（不提示）'
-                          : '已设置；恢复默认后回到未设置',
+                      value == null ? '默认：未设置（不提示）' : '已设置；恢复默认后回到未设置',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
@@ -270,8 +281,9 @@ class _ParameterRow extends StatelessWidget {
                   field.impact,
                   // outline 令牌是边框色(#E4DED1),用作正文会近乎隐形(≈1.3:1);
                   // 影响说明文字用 muted。
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: FundLensTokens.muted),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: FundLensTokens.muted,
+                  ),
                 ),
               ),
               TextButton(

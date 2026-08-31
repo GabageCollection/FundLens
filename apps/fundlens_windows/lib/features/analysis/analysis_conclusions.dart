@@ -286,8 +286,7 @@ class AnalysisConclusionsCard extends StatelessWidget {
             const SizedBox(height: FundLensTokens.space2),
             for (final (index, item) in items.indexed) ...[
               // 行间细分隔线替代纯空白分组,结论逐行扫读更清晰。
-              if (index > 0)
-                Divider(height: 1, color: FundLensTokens.border),
+              if (index > 0) Divider(height: 1, color: FundLensTokens.border),
               _ConclusionRow(
                 item: item,
                 onAction: item.action == null
@@ -406,12 +405,9 @@ class _StatusChip extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         _label,
-        style: TextStyle(
-          fontFamily: 'Noto Sans SC',
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: foreground,
-        ),
+        style: FundLensTextStyles.of(
+          context,
+        ).chipLabel.copyWith(color: foreground),
       ),
     );
   }

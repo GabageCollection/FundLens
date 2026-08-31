@@ -179,10 +179,7 @@ class _PortfolioTrendChartState extends ConsumerState<PortfolioTrendChart> {
               const SizedBox(height: FundLensTokens.space2),
               // 可见摘要(读屏只朗读一次,经上方 Semantics 提供)。
               ExcludeSemantics(
-                child: Text(
-                  trendSummary,
-                  style: theme.textTheme.bodySmall,
-                ),
+                child: Text(trendSummary, style: theme.textTheme.bodySmall),
               ),
             ],
           ],
@@ -256,7 +253,12 @@ class _TrendPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final values = points
-        .expand((p) => [p.totalValue.value.toDouble(), p.coveredCost.value.toDouble()])
+        .expand(
+          (p) => [
+            p.totalValue.value.toDouble(),
+            p.coveredCost.value.toDouble(),
+          ],
+        )
         .toList();
     var min = values.reduce((a, b) => a < b ? a : b);
     var max = values.reduce((a, b) => a > b ? a : b);
@@ -285,8 +287,8 @@ class _TrendPainter extends CustomPainter {
       ..color = FundLensTokens.border
       ..strokeWidth = 1;
     final labelStyle = TextStyle(
-      fontFamily: 'IBM Plex Mono',
-      fontSize: 11,
+      fontFamily: FundLensFonts.mono,
+      fontSize: 12,
       color: FundLensTokens.muted,
     );
     for (final fraction in [0.0, 0.5, 1.0]) {
@@ -347,16 +349,17 @@ class _TrendPainter extends CustomPainter {
       canvas.drawPath(path, paint);
       // 末点标记。
       canvas.drawCircle(
-        Offset(
-          xFor(points.length - 1),
-          yFor(valueOf(points.last)),
-        ),
+        Offset(xFor(points.length - 1), yFor(valueOf(points.last))),
         3,
         Paint()..color = color,
       );
     }
 
-    drawSeries((p) => p.coveredCost.value.toDouble(), FundLensTokens.muted, 1.5);
+    drawSeries(
+      (p) => p.coveredCost.value.toDouble(),
+      FundLensTokens.muted,
+      1.5,
+    );
     drawSeries((p) => p.totalValue.value.toDouble(), FundLensTokens.accent, 2);
 
     final hovered = hoveredIndex;
@@ -372,8 +375,14 @@ class _TrendPainter extends CustomPainter {
       );
       final point = points[hovered];
       for (final (valueOf, color) in [
-        ((TrendPoint p) => p.coveredCost.value.toDouble(), FundLensTokens.muted),
-        ((TrendPoint p) => p.totalValue.value.toDouble(), FundLensTokens.accent),
+        (
+          (TrendPoint p) => p.coveredCost.value.toDouble(),
+          FundLensTokens.muted,
+        ),
+        (
+          (TrendPoint p) => p.totalValue.value.toDouble(),
+          FundLensTokens.accent,
+        ),
       ]) {
         final center = Offset(x, yFor(valueOf(point)));
         canvas.drawCircle(center, 4.5, Paint()..color = FundLensTokens.surface);
@@ -384,17 +393,16 @@ class _TrendPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TrendPainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.hoveredIndex != hoveredIndex;
+      oldDelegate.points != points || oldDelegate.hoveredIndex != hoveredIndex;
 }
 
 /// The painter's chart rect for a given canvas size.
 Rect trendChartRect(Size size) => Rect.fromLTRB(
-      _TrendPainter._leftPad,
-      _TrendPainter._topPad,
-      size.width - _TrendPainter._rightPad,
-      size.height - _TrendPainter._bottomPad,
-    );
+  _TrendPainter._leftPad,
+  _TrendPainter._topPad,
+  size.width - _TrendPainter._rightPad,
+  size.height - _TrendPainter._bottomPad,
+);
 
 /// X position of points[index] inside [chartRect] (time-proportional).
 double xForIndex(List<TrendPoint> points, Rect chartRect, int index) {
@@ -438,7 +446,8 @@ class _HoverableTrendChartState extends State<_HoverableTrendChart> {
     var best = 0;
     var bestDistance = double.infinity;
     for (var i = 0; i < widget.points.length; i++) {
-      final distance = (xForIndex(widget.points, rect, i) - event.localPosition.dx).abs();
+      final distance =
+          (xForIndex(widget.points, rect, i) - event.localPosition.dx).abs();
       if (distance < bestDistance) {
         bestDistance = distance;
         best = i;
@@ -504,12 +513,12 @@ class _TrendTooltip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final at = point.at;
-    final date = '${at.year}-${at.month.toString().padLeft(2, '0')}-'
+    final date =
+        '${at.year}-${at.month.toString().padLeft(2, '0')}-'
         '${at.day.toString().padLeft(2, '0')}';
-    TextStyle? valueStyle(TextStyle? base) => base?.copyWith(
-          fontFamily: 'IBM Plex Mono',
-          fontSize: 12,
-        );
+    final valueStyle = FundLensTextStyles.of(
+      context,
+    ).financialCaption.copyWith(color: theme.textTheme.bodySmall?.color);
     return IgnorePointer(
       child: Container(
         width: 190,
@@ -524,13 +533,10 @@ class _TrendTooltip extends StatelessWidget {
           children: [
             Text(date, style: theme.textTheme.bodySmall),
             const SizedBox(height: FundLensTokens.space1),
-            Text(
-              '总资产 ${formatCurrency(point.totalValue)}',
-              style: valueStyle(theme.textTheme.bodySmall),
-            ),
+            Text('总资产 ${formatCurrency(point.totalValue)}', style: valueStyle),
             Text(
               '覆盖成本 ${formatCurrency(point.coveredCost)}',
-              style: valueStyle(theme.textTheme.bodySmall),
+              style: valueStyle,
             ),
           ],
         ),
