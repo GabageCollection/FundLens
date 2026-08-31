@@ -2,9 +2,81 @@
 
 import logging
 import os
+from collections.abc import Callable
 from typing import Any
 
 from .backend import OcrToken
+from .layout import is_money, is_ratio, normalize_text
+
+# 贴图像左右边缘的数字 token 可能因检测框左右平移错位,在透视矫正时
+# 被裁掉首尾字符(实测:1.879 → 1.87,置信度仍 1.0)。对这类 token
+# 用扩大裁剪框二次识别补救。
+EDGE_TOUCH_PX = 2
+RESCUE_PAD_X = 60
+RESCUE_PAD_Y = 10
+RESCUE_MIN_SCORE = 0.85
+
+
+def should_adopt_rescue(old_text: str, new_text: str, new_score: float) -> bool:
+    """仅在「补回被裁字符」语义下采纳二次识别:旧文本须为新文本的严格子串。
+
+    加宽框的重识别可能读出完全不同的内容或低质量结果,二者都拒绝。
+    旧文本是数字/百分比时,新文本必须仍是同一形态,防止 1.87 → 1.87万。
+    """
+    if new_score < RESCUE_MIN_SCORE:
+        return False
+    old = normalize_text(old_text)
+    new = normalize_text(new_text)
+    if not old or not new or old == new or old not in new:
+        return False
+    if is_money(old) and not is_money(new):
+        return False
+    return not (is_ratio(old) and not is_ratio(new))
+
+
+def rescue_edge_tokens(
+    tokens: list[OcrToken],
+    image_size: tuple[int, int],
+    rec_fn: Callable[[tuple[int, int, int, int]], tuple[str, float] | None],
+) -> list[OcrToken]:
+    """对贴左右边缘的数字/百分比 token 做加宽框二次识别并按需替换。
+
+    rec_fn 接收原图坐标系的 (x1, y1, x2, y2) 裁剪框,返回 (文本, 置信度),
+    识别失败返回 None。其余 token 原样保留。
+    """
+    width, height = image_size
+    rescued: list[OcrToken] = []
+    for token in tokens:
+        x, y, w, h = token.box
+        touches_edge = x <= EDGE_TOUCH_PX or x + w >= width - EDGE_TOUCH_PX
+        if not touches_edge or not (is_money(token.text) or is_ratio(token.text)):
+            rescued.append(token)
+            continue
+        box = (
+            max(0, x - max(RESCUE_PAD_X, w // 2)),
+            max(0, y - RESCUE_PAD_Y),
+            min(width, x + w + max(RESCUE_PAD_X, w // 2)),
+            min(height, y + h + RESCUE_PAD_Y),
+        )
+        candidate = rec_fn(box)
+        if candidate is None:
+            rescued.append(token)
+            continue
+        new_text, new_score = candidate
+        if should_adopt_rescue(token.text, new_text, new_score):
+            logger.info(
+                "edge rescue: %r -> %r (score %.3f)", token.text, new_text, new_score
+            )
+            rescued.append(
+                OcrToken(
+                    text=normalize_text(new_text),
+                    confidence=new_score,
+                    box=token.box,
+                )
+            )
+        else:
+            rescued.append(token)
+    return rescued
 
 logger = logging.getLogger("fundlens_engine")
 
@@ -20,6 +92,7 @@ MAX_INPUT_LONG_SIDE = 2200
 class PaddleBackend:
     def __init__(self) -> None:
         self._ocr: Any = None
+        self._rec: Any = None
 
     def _instance(self) -> Any:
         if self._ocr is None:
@@ -63,7 +136,47 @@ class PaddleBackend:
                         box=(x1, y1, max(0, x2 - x1), max(0, y2 - y1)),
                     )
                 )
-        return tokens
+        return self._rescue(tokens, image_path)
+
+    def _rescue(self, tokens: list[OcrToken], image_path: str) -> list[OcrToken]:
+        """贴边缘数字 token 的加宽框二次识别;无候选 token 时不解码图像。"""
+        from PIL import Image
+
+        with Image.open(image_path) as probe:
+            size = probe.size
+        width, _height = size
+        has_candidate = any(
+            (
+                t.box[0] <= EDGE_TOUCH_PX
+                or t.box[0] + t.box[2] >= width - EDGE_TOUCH_PX
+            )
+            and (is_money(t.text) or is_ratio(t.text))
+            for t in tokens
+        )
+        if not has_candidate:
+            return tokens
+
+        import numpy as np
+
+        with Image.open(image_path) as image:
+            pixels = image.convert("RGB")
+
+        def rec_fn(box: tuple[int, int, int, int]) -> tuple[str, float] | None:
+            result = self._rec_instance().predict(input=np.array(pixels.crop(box)))
+            for item in result:
+                return (str(item["rec_text"]), float(item["rec_score"]))
+            return None
+
+        return rescue_edge_tokens(tokens, size, rec_fn)
+
+    def _rec_instance(self) -> Any:
+        if self._rec is None:
+            from paddleocr import TextRecognition  # type: ignore[import-untyped]
+
+            self._rec = TextRecognition(
+                model_name="PP-OCRv5_mobile_rec",
+            )
+        return self._rec
 
 
 def _load_for_inference(image_path: str) -> tuple[Any, float]:

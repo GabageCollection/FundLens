@@ -131,3 +131,10 @@ def test_is_money_tolerates_trailing_dot_from_dashed_gridlines() -> None:
 def test_is_noise_drops_empty_tokens() -> None:
     assert is_noise(tok("", 0.0, 0, 2086, 213, 73))
     assert is_noise(tok("  ", 0.1, 0, 500, 100, 30))
+
+
+def test_is_noise_filters_arrow_suffixed_nav_and_cleared_positions_entry() -> None:
+    """真实截图：导航/入口文案带「>」尾巴（行情 >、查看已清仓股票 >）。"""
+    assert is_noise(tok("行情>", 0.9, 500, 500, 70, 24))
+    assert is_noise(tok("行情 >", 0.9, 500, 500, 80, 24))
+    assert is_noise(tok("查看已清仓股票 >", 0.9, 500, 900, 260, 30))

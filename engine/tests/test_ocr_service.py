@@ -221,3 +221,91 @@ def test_rpc_handler_rejects_bad_path_as_structured_error() -> None:
     assert response["error"]["code"] == "protocol.invalid_request"
     assert response["error"]["retryable"] is False
     assert response["id"] == "ocr-2"
+
+
+class SequentialBackend(OcrBackend):
+    """每次 recognize 返回下一张页面的 token，模拟滚动截屏多页。"""
+
+    def __init__(self, pages: list[list[OcrToken]]) -> None:
+        self._pages = pages
+        self.calls: list[str] = []
+
+    def recognize(self, image_path: str) -> list[OcrToken]:
+        self.calls.append(image_path)
+        return self._pages[len(self.calls) - 1]
+
+
+def _svc_header() -> list[OcrToken]:
+    return [
+        tok("市值", 0.97, 40, 230, 70, 26),
+        tok("盈亏", 0.97, 310, 230, 110, 26),
+        tok("持仓/可用", 0.97, 540, 230, 110, 26),
+        tok("成本/现价", 0.97, 730, 230, 110, 26),
+    ]
+
+
+def _svc_holding(
+    name: str,
+    profit: str,
+    qty: str,
+    cost: str,
+    value: str,
+    ratio: str,
+    last: str,
+    y: int,
+) -> list[OcrToken]:
+    """两行齐全的数字自洽持仓（derived_cost ≈ cost × qty）。"""
+    return [
+        tok(name, 0.96, 40, y, 160, 30),
+        tok(profit, 0.95, 310, y, 110, 28),
+        tok(qty, 0.95, 540, y, 90, 28),
+        tok(cost, 0.95, 730, y, 90, 28),
+        tok(value, 0.96, 40, y + 40, 140, 30),
+        tok(ratio, 0.93, 310, y + 40, 100, 26),
+        tok(qty, 0.95, 540, y + 40, 90, 26),
+        tok(last, 0.95, 730, y + 40, 90, 26),
+    ]
+
+
+def test_parse_screenshots_ths_continuation_pages_merge_duplicates() -> None:
+    """真实场景：两页滚动截屏，第 2 页无表头且与第 1 页重叠一个持仓。
+
+    - 第 2 页沿用第 1 页列布局（不产生 layout_unknown 阻断）；
+    - 跨页重复持仓按五要素一致合并去重，保留行附 duplicate_merged 提示。
+    """
+    page1 = (
+        _svc_header()
+        + _svc_holding("纳指", "511.40", "6700", "2.285", "15,818.70", "3.341%", "2.361", 290)
+        + _svc_holding("标普ETF", "598.70", "3600", "1.879", "7,362.00", "8.852%", "2.045", 620)
+        + [tok("最新:2.045 0.343% 额:2.24亿 换:2.51%", 0.90, 40, 750, 420, 22)]
+    )
+    page2 = (
+        [
+            # 第 1 页末尾持仓的分时图尾部，无表头。
+            tok("2.187", 0.90, 40, 60, 70, 22),
+            tok("7.29%", 0.90, 790, 60, 70, 22),
+            tok("09:30", 0.90, 40, 140, 60, 20),
+        ]
+        # 与第 1 页完全相同的重叠持仓。
+        + _svc_holding("标普ETF", "598.70", "3600", "1.879", "7,362.00", "8.852%", "2.045", 200)
+        + _svc_holding("A500基金", "-170.80", "3600", "1.318", "4,575.60", "-3.599%", "1.271", 460)
+        + [tok("查看已清仓股票 >", 0.92, 500, 700, 260, 30)]
+    )
+    backend = SequentialBackend([page1, page2])
+    params = {
+        "template": "ths",
+        "paths": [str(FIXTURE_DIR / "ths_synthetic.png"), str(FIXTURE_DIR / "alipay_synthetic.png")],
+    }
+    result = parse_screenshots(params, backend)
+    names = [r["fields"]["product_name"]["raw_text"] for r in result["rows"]]
+    assert names == ["纳指", "标普ETF", "A500基金"]
+    sp = result["rows"][1]
+    assert sp["page_index"] == 0
+    assert any(i["code"] == "ocr.duplicate_merged" for i in sp["issues"])
+    a500 = result["rows"][2]
+    assert a500["page_index"] == 1
+    assert a500["fields"]["cost_price"]["raw_text"] == "1.318"
+    assert any(i["code"] == "ocr.layout_inherited" for i in a500["issues"])
+    # 数字自洽，且续页/去重只产生 info：无 blocking。
+    assert result["issues"] == []
+

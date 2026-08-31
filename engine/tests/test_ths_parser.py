@@ -236,3 +236,192 @@ def test_ths_missing_quantity_is_blocking() -> None:
         i.code == "ocr.field_missing" and i.field == "quantity" and i.severity == "blocking"
         for i in rows[0].issues
     )
+
+
+def _ths_header() -> list:
+    """标准四列表头：列中心 75 / 365 / 595 / 785。"""
+    return [
+        tok("市值", 0.97, 40, 230, 70, 26),
+        tok("盈亏", 0.97, 310, 230, 110, 26),
+        tok("持仓/可用", 0.97, 540, 230, 110, 26),
+        tok("成本/现价", 0.97, 730, 230, 110, 26),
+    ]
+
+
+def _holding_tokens(
+    name: str,
+    profit: str,
+    qty: str,
+    cost: str,
+    value: str,
+    ratio: str,
+    avail: str,
+    last: str,
+    y: int,
+) -> list:
+    return [
+        tok(name, 0.96, 40, y, 160, 30),
+        tok(profit, 0.95, 310, y, 110, 28),
+        tok(qty, 0.95, 540, y, 90, 28),
+        tok(cost, 0.95, 730, y, 90, 28),
+        tok(value, 0.96, 40, y + 40, 140, 30),
+        tok(ratio, 0.93, 310, y + 40, 100, 26),
+        tok(avail, 0.95, 540, y + 40, 90, 26),
+        tok(last, 0.95, 730, y + 40, 90, 26),
+    ]
+
+
+def test_ths_header_with_sort_arrows_and_fullwidth_slash_still_anchors() -> None:
+    """真实截图：「市值」列带排序箭头、「持仓／可用」可能出全角斜杠，锚点必须仍命中。"""
+    tokens = [
+        tok("市值⇅", 0.95, 40, 230, 90, 26),
+        tok("盈亏", 0.97, 310, 230, 110, 26),
+        tok("持仓／可用", 0.95, 540, 230, 130, 26),
+        tok("成本/现价▲", 0.95, 730, 230, 130, 26),
+    ] + _holding_tokens(
+        "标普ETF", "598.70", "3600", "1.879", "7,362.00", "8.852%", "3600", "2.045", 290
+    )
+    rows = parse_ths(tokens)
+    assert len(rows) == 1
+    fields = rows[0].fields
+    assert fields["product_name"].raw_text == "标普ETF"
+    assert fields["quantity"].raw_text == "3600"
+    assert fields["cost_price"].raw_text == "1.879"
+    assert fields["current_value"].raw_text == "7,362.00"
+    assert fields["latest_price"].raw_text == "2.045"
+    assert not [i for i in rows[0].issues if i.code == "ocr.layout_unknown"]
+
+
+def test_ths_continuation_page_reuses_previous_page_layout() -> None:
+    """滚动截屏第 2 页没有表头：沿用上一页列布局识别，行内附 layout_inherited 提示。"""
+    from fundlens_engine.ocr.ths_parser import ths_column_layout
+
+    layout = ths_column_layout(_ths_header())
+    assert layout is not None
+    continuation = [
+        # 上一页持仓的分时图尾部（轴标签 + 时间轴），不得生成幻影持仓。
+        tok("2.187", 0.90, 40, 60, 70, 22),
+        tok("7.29%", 0.90, 790, 60, 70, 22),
+        tok("0.00%", 0.90, 790, 110, 70, 22),
+        tok("09:30", 0.90, 40, 140, 60, 20),
+        tok("11:30", 0.90, 380, 140, 60, 20),
+        tok("15:00", 0.90, 750, 140, 60, 20),
+    ] + _holding_tokens(
+        "A500基金", "-170.80", "3600", "1.318", "4,575.60", "-3.599%", "3600", "1.271", 200
+    )
+    rows = parse_ths(continuation, page_index=1, fallback_layout=layout)
+    assert [r.fields["product_name"].raw_text for r in rows] == ["A500基金"]
+    row = rows[0]
+    assert row.fields["current_value"].raw_text == "4,575.60"
+    assert row.fields["cost_price"].raw_text == "1.318"
+    assert all(f.page_index == 1 for f in row.fields.values())
+    inherited = [i for i in row.issues if i.code == "ocr.layout_inherited"]
+    assert inherited and all(i.severity == "info" for i in inherited)
+
+
+def test_ths_continuation_page_without_fallback_still_layout_unknown() -> None:
+    """首页就没有表头（或没带 fallback）时维持旧行为：页级 blocking。"""
+    chart_tail = [
+        tok("2.187", 0.90, 40, 60, 70, 22),
+        tok("7.29%", 0.90, 790, 60, 70, 22),
+        tok("09:30", 0.90, 40, 140, 60, 20),
+    ]
+    rows = parse_ths(chart_tail, page_index=0)
+    assert len(rows) == 1
+    assert any(i.code == "ocr.layout_unknown" and i.severity == "blocking" for i in rows[0].issues)
+
+
+def test_ths_quote_line_fragments_dropped_with_adaptive_tolerance() -> None:
+    """大图下同一条「最新」行情行碎片的中心偏移可超 18px 固定容差。
+
+    泄漏的金额碎片若落入下一持仓的 quantity 列且与其第一行分组到一起，
+    会抢先占槽，把真实持仓数量顶掉。
+    """
+    tokens = (
+        _ths_header()
+        # 持仓 A：两行齐全。
+        + _holding_tokens(
+            "纳指", "511.40", "6700", "2.285", "15,818.70", "3.341%", "6700", "2.361", 290
+        )
+        + [
+            # A 的「最新」行情行：锚点小、碎片高，中心偏移 19px（> 旧固定 18）。
+            tok("最新:2.361", 0.90, 40, 390, 200, 24),  # center 402，锚点
+            tok("9,999.00", 0.88, 540, 399, 140, 44),  # center 421，quantity 列碎片
+        ]
+        # 持仓 B：第一行中心 435，与碎片中心差 14（会被分进同一行）。
+        + _holding_tokens(
+            "标普ETF", "598.70", "3600", "1.879", "7,362.00", "8.852%", "3600", "2.045", 420
+        )
+    )
+    rows = parse_ths(tokens)
+    assert len(rows) == 2
+    assert rows[1].fields["product_name"].raw_text == "标普ETF"
+    assert rows[1].fields["quantity"].raw_text == "3600"
+    all_text = " ".join(f.raw_text for r in rows for f in r.fields.values())
+    assert "9,999.00" not in all_text
+
+
+def test_ths_cleared_positions_entry_never_leaks() -> None:
+    """列表尾部「查看已清仓股票 >」与「行情 >」入口不得进入任何字段或生成幻影行。"""
+    tokens = (
+        _ths_header()
+        + _holding_tokens(
+            "纳指", "511.40", "6700", "2.285", "15,818.70", "3.341%", "6700", "2.361", 290
+        )
+        + [
+            tok("查看已清仓股票 >", 0.92, 500, 900, 260, 30),
+            tok("行情>", 0.90, 500, 470, 70, 24),
+        ]
+    )
+    rows = parse_ths(tokens)
+    assert [r.fields["product_name"].raw_text for r in rows] == ["纳指"]
+    all_text = " ".join(f.raw_text for r in rows for f in r.fields.values())
+    assert "已清仓" not in all_text
+    assert "行情" not in all_text
+
+
+def test_ths_damaged_name_line_is_salvaged_with_blocking_issues() -> None:
+    """名称区 OCR 损坏（识别为空/乱码）但 盈亏/持仓/成本 三列数字齐全的持仓行，
+    不得静默丢弃：数字按列归位，名称缺失以 blocking 提示人工补填。"""
+    tokens = _ths_header() + [
+        # 名称 token 识别为空串（被 is_noise 丢弃），盈亏列乱码低置信。
+        tok("", 0.0, 0, 294, 208, 60),
+        tok("02869", 0.49, 310, 290, 160, 62),
+        tok("3600", 1.00, 540, 290, 123, 60),
+        tok("1.879", 1.00, 730, 290, 113, 56),
+        # 第二行完整。
+        tok("7,362.00", 0.99, 40, 330, 190, 71),
+        tok("8.852%", 1.00, 310, 330, 173, 65),
+        tok("3600", 1.00, 540, 330, 125, 64),
+        tok("2.045", 1.00, 730, 330, 115, 56),
+    ]
+    rows = parse_ths(tokens)
+    assert len(rows) == 1
+    row = rows[0]
+    assert "product_name" not in row.fields
+    assert row.fields["quantity"].raw_text == "3600"
+    assert row.fields["cost_price"].raw_text == "1.879"
+    assert row.fields["current_value"].raw_text == "7,362.00"
+    assert any(
+        i.code == "ocr.field_missing" and i.field == "product_name" and i.severity == "blocking"
+        for i in row.issues
+    )
+    # 低置信盈亏同样按既有规则阻断
+    assert any(
+        i.code == "ocr.low_confidence" and i.field == "holding_profit" and i.severity == "blocking"
+        for i in row.issues
+    )
+
+
+def test_ths_orphan_second_line_does_not_trigger_salvage() -> None:
+    """孤立的第二行（value/profit%/可用/现价）不得被当成损坏的第一行捞回。"""
+    tokens = _ths_header() + [
+        tok("7,362.00", 0.99, 40, 330, 190, 71),
+        tok("8.852%", 1.00, 310, 330, 173, 65),
+        tok("3600", 1.00, 540, 330, 125, 64),
+        tok("2.045", 1.00, 730, 330, 115, 56),
+    ]
+    rows = parse_ths(tokens)
+    assert rows == []
+
+

@@ -39,7 +39,17 @@ def test_alipay_ignores_ratio_line_status_bar_controls_and_navigation(
 ) -> None:
     rows = parse_alipay(fake_ocr_tokens.alipay_page())
     all_text = " ".join(f.raw_text for r in rows for f in r.fields.values())
-    ignored = ("08:04", "100%", "首页", "我的", "占比", "+0.67%", "金额/占比排序", "全部持有", "全部")
+    ignored = (
+        "08:04",
+        "100%",
+        "首页",
+        "我的",
+        "占比",
+        "+0.67%",
+        "金额/占比排序",
+        "全部持有",
+        "全部",
+    )
     for text in ignored:
         assert text not in all_text, text
     # 日收益列不建模：任何字段都不得叫 daily_profit
@@ -62,9 +72,42 @@ def test_alipay_missing_header_yields_layout_unknown_blocking() -> None:
     rows = parse_alipay(tokens)
     assert len(rows) == 1
     assert rows[0].fields == {}
-    assert any(
-        i.code == "ocr.layout_unknown" and i.severity == "blocking" for i in rows[0].issues
-    )
+    assert any(i.code == "ocr.layout_unknown" and i.severity == "blocking" for i in rows[0].issues)
+
+
+_HEADER_TOKENS = ("名称/金额", "日收益", "持有收益", "累计收益")
+
+
+def test_alipay_headerless_page_infers_fixed_column_order(
+    fake_ocr_tokens: FakeOcrTokens,
+) -> None:
+    """只截了列表中段(无表头)时按固定列序推断,字段归属与有表头一致。"""
+    tokens = [t for t in fake_ocr_tokens.alipay_page() if t.text not in _HEADER_TOKENS]
+    rows = parse_alipay(tokens)
+    assert len(rows) == 2
+    first = rows[0].fields
+    assert first["product_name"].raw_text == "脱敏安心债券A"
+    assert first["current_value"].raw_text == "78,347.87"
+    assert first["holding_profit"].raw_text == "+428.96"
+    assert first["cumulative_profit"].raw_text == "+888.88"
+    second = rows[1].fields
+    assert second["product_name"].raw_text == "脱敏远山混合C"
+    assert second["holding_profit"].raw_text == "-156.20"
+    # 推断布局给出一次性 warning,提醒人工核对列归属。
+    assert any(i.code == "ocr.layout_inferred" and i.severity == "warning" for i in rows[0].issues)
+
+
+def test_alipay_headerless_unrecognizable_layout_still_blocks() -> None:
+    """无表头且数值列无法聚成 4 列时,仍回落为版式阻断。"""
+    tokens = [
+        tok("脱敏安心债券A", 0.97, 40, 220, 200, 32),
+        tok("78,347.87", 0.96, 40, 320, 180, 34),
+        tok("0.00", 0.95, 300, 320, 80, 30),
+    ]
+    rows = parse_alipay(tokens)
+    assert len(rows) == 1
+    assert rows[0].fields == {}
+    assert any(i.code == "ocr.layout_unknown" and i.severity == "blocking" for i in rows[0].issues)
 
 
 def test_alipay_extra_money_token_in_column_is_warning_not_misfiled(
@@ -74,9 +117,7 @@ def test_alipay_extra_money_token_in_column_is_warning_not_misfiled(
     tokens.append(tok("+999.99", 0.95, 470, 320, 110, 30))  # 持有收益列多余碎块
     rows = parse_alipay(tokens)
     assert rows[0].fields["holding_profit"].raw_text == "+428.96"
-    assert any(
-        i.code == "ocr.extra_token" and i.severity == "warning" for i in rows[0].issues
-    )
+    assert any(i.code == "ocr.extra_token" and i.severity == "warning" for i in rows[0].issues)
 
 
 def test_alipay_low_confidence_name_is_blocking(fake_ocr_tokens: FakeOcrTokens) -> None:
@@ -111,9 +152,7 @@ def test_alipay_missing_profit_sign_is_blocking(fake_ocr_tokens: FakeOcrTokens) 
     tokens = fake_ocr_tokens.alipay_page()
     tokens[15] = tok("428.96", 0.95, 460, 320, 110, 30)
     rows = parse_alipay(tokens)
-    assert any(
-        i.code == "ocr.sign_missing" and i.severity == "blocking" for i in rows[0].issues
-    )
+    assert any(i.code == "ocr.sign_missing" and i.severity == "blocking" for i in rows[0].issues)
 
 
 def test_alipay_missing_current_value_is_blocking() -> None:

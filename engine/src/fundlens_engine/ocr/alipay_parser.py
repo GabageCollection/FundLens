@@ -2,9 +2,11 @@
 
 每个持仓固定四行结构：名称 → 标签（可缺）→ 数值（按列拆分）→ 占比（忽略）。
 字段归属只看列区间，与行内 token 顺序无关。符号只来自显式 +/− 字符。
+截图未含表头时按支付宝固定列序（金额/日收益/持有收益/累计收益）聚类推断
+列区间，并附 warning 提醒人工核对。
 """
 
-from .backend import DraftRow, OcrIssue, OcrToken
+from .backend import DraftRow, OcrIssue, OcrToken, field_label
 from .layout import (
     ColumnLayout,
     anchor_columns,
@@ -35,6 +37,43 @@ _NUMBER_SLOTS = {
     "cumulative": "cumulative_profit",
 }
 
+# 支付宝列序固定:金额 → 日收益 → 持有收益 → 累计收益。
+_INFERRED_COLUMNS = ("value", "daily", "holding", "cumulative")
+
+# 同列数值 token 的 x 中心抖动(数字右对齐、位数不同)远小于列间距;
+# 相邻 x 中心差超过该像素即视为跨列。
+_INFER_COLUMN_GAP = 80
+
+
+def _infer_layout(lines: list[list[OcrToken]]) -> ColumnLayout | None:
+    """表头缺失时按支付宝固定列序推断列区间。
+
+    聚类所有数值 token 的 x 中心：同列接近、列间间隔大。恰好聚出 4 列时
+    从左到右固定映射为 金额/日收益/持有收益/累计收益；聚不出 4 列说明
+    版式无法辨认，交给上层 layout_unknown 阻断。
+    """
+    xs = sorted(
+        token.box[0] + token.box[2] // 2 for line in lines for token in line if is_money(token.text)
+    )
+    if len(xs) < len(_INFERRED_COLUMNS):
+        return None
+    clusters: list[list[int]] = [[xs[0]]]
+    for x in xs[1:]:
+        center = sum(clusters[-1]) // len(clusters[-1])
+        if x - center <= _INFER_COLUMN_GAP:
+            clusters[-1].append(x)
+        else:
+            clusters.append([x])
+    if len(clusters) != len(_INFERRED_COLUMNS):
+        return None
+    centers = [sum(cluster) // len(cluster) for cluster in clusters]
+    boundaries: list[tuple[int, int]] = []
+    for i, x in enumerate(centers):
+        left = 0 if i == 0 else (centers[i - 1] + x) // 2
+        right = 1 << 30 if i == len(centers) - 1 else (x + centers[i + 1]) // 2
+        boundaries.append((left, right))
+    return ColumnLayout(list(_INFERRED_COLUMNS), boundaries)
+
 
 def _assign_numbers(
     row: DraftRow, layout: ColumnLayout, line: list[OcrToken], page_index: int
@@ -50,7 +89,7 @@ def _assign_numbers(
                     code="ocr.extra_token",
                     field=field_name,
                     severity="warning",
-                    message=f"列内多余数字 token {token.text!r} 已忽略",
+                    message=f"这一行识别到多余的数字「{token.text}」，已自动忽略",
                 )
             )
             continue
@@ -72,8 +111,8 @@ def _add_confidence_issues(row: DraftRow) -> None:
                     field=name,
                     severity=severity,  # type: ignore[arg-type]
                     message=(
-                        f"field {name} confidence {field.confidence:.2f} "
-                        f"below threshold {threshold:.2f}"
+                        f"{field_label(name)}识别不太确定"
+                        f"（可信度约 {field.confidence:.0%}），请仔细核对"
                     ),
                 )
             )
@@ -87,7 +126,7 @@ def _finalize(row: DraftRow) -> None:
                     code="ocr.field_missing",
                     field=name,
                     severity="blocking",
-                    message=f"required field {name} missing",
+                    message=f"没有识别出{field_label(name)}，请手动补填",
                 )
             )
     for name in ("holding_profit", "cumulative_profit"):
@@ -98,7 +137,7 @@ def _finalize(row: DraftRow) -> None:
                     code="ocr.sign_missing",
                     field=name,
                     severity="blocking",
-                    message=f"field {name} has no explicit +/− sign",
+                    message=f"{field_label(name)}没有识别到正负号，请确认是盈利还是亏损",
                 )
             )
     _add_confidence_issues(row)
@@ -119,15 +158,24 @@ def _is_garbled_fragment(row: DraftRow) -> bool:
 def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
     lines = group_into_lines(t for t in tokens if not is_noise(t))
     anchored = anchor_columns(lines, ANCHORS)
-    if anchored is None:
-        return [layout_unknown_row(page_index, "名称/金额、日收益、持有收益、累计收益")]
-    layout, header_index = anchored
+    layout_inferred = False
+    if anchored is not None:
+        layout, header_index = anchored
+        body = lines[header_index + 1 :]
+    else:
+        # 截图只截了列表中段、没含表头:按固定列序推断列区间,照常解析。
+        inferred = _infer_layout(lines)
+        if inferred is None:
+            return [layout_unknown_row(page_index, "名称/金额、日收益、持有收益、累计收益")]
+        layout = inferred
+        body = lines
+        layout_inferred = True
 
     rows: list[DraftRow] = []
     current: DraftRow | None = None
     state = "name"  # name -> tags -> numbers -> ratio -> name ...
 
-    for line in lines[header_index + 1 :]:
+    for line in body:
         money = [t for t in line if is_money(t.text)]
         texts = [t for t in line if not is_money(t.text) and not is_ratio(t.text)]
         ratio_line = any(t.text.strip().startswith("占比") for t in line)
@@ -135,9 +183,7 @@ def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
         if state == "tags":
             if texts and not money and not ratio_line:
                 assert current is not None
-                current.fields["platform_tags"] = make_field(
-                    "platform_tags", texts, page_index
-                )
+                current.fields["platform_tags"] = make_field("platform_tags", texts, page_index)
                 continue
             state = "numbers"  # 标签行可缺
 
@@ -159,4 +205,14 @@ def parse_alipay(tokens: list[OcrToken], page_index: int = 0) -> list[DraftRow]:
     rows = [row for row in rows if not _is_garbled_fragment(row)]
     for row in rows:
         _finalize(row)
+    if layout_inferred and rows:
+        rows[0].issues.append(
+            OcrIssue(
+                code="ocr.layout_inferred",
+                field="",
+                severity="warning",
+                message="没有识别到列表表头，已按支付宝默认列顺序"
+                "（金额/日收益/持有收益/累计收益）推断，请核对各列金额是否对得上",
+            )
+        )
     return rows

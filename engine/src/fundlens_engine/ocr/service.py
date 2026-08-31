@@ -19,9 +19,9 @@ from typing import Any, Literal
 from ..security import IMAGE_SUFFIXES as IMAGE_SUFFIXES
 from ..security import PathAccessError, validate_selected_files
 from .alipay_parser import parse_alipay
-from .backend import DraftRow, OcrBackend, OcrIssue
-from .layout import normalize_text
-from .ths_parser import parse_ths
+from .backend import DraftRow, OcrBackend, OcrIssue, field_label
+from .layout import ColumnLayout, normalize_text
+from .ths_parser import parse_ths, ths_column_layout
 
 Template = Literal["alipay", "ths"]
 
@@ -57,7 +57,7 @@ def _require(row: DraftRow, name: str) -> Decimal | None:
                 code="ocr.unparseable_number",
                 field=name,
                 severity="blocking",
-                message=f"field {name} raw text {field.raw_text!r} is not a number",
+                message=f"{field_label(name)}「{field.raw_text}」不是有效的数字，请修正",
             )
         )
     return value
@@ -106,8 +106,9 @@ def _normalize_ths(row: DraftRow) -> None:
                 field="derived_cost",
                 severity="blocking",
                 message=(
-                    f"derived cost {derived} differs from cost_price*quantity "
-                    f"{reference} beyond tolerance {tolerance}"
+                    f"按「当前金额 − 持有收益」推算的成本 {derived} "
+                    f"与「成本价 × 持仓数量」算出的 {reference} 对不上，"
+                    "请核对成本价和持仓数量"
                 ),
             )
         )
@@ -127,7 +128,7 @@ def _downgrade_corroborated_confidence(row: DraftRow) -> None:
         replace(
             issue,
             severity="warning",
-            message=issue.message + "（成本恒等式交叉验证一致，请人工确认）",
+            message=issue.message + "（与当前金额、持有收益交叉验证一致，请人工确认）",
         )
         if (
             issue.code == "ocr.low_confidence"
@@ -137,6 +138,50 @@ def _downgrade_corroborated_confidence(row: DraftRow) -> None:
         else issue
         for issue in row.issues
     ]
+
+
+_THS_DEDUPE_FIELDS = ("product_name", "current_value", "holding_profit", "quantity", "cost_price")
+
+
+def _ths_dedupe_key(row: DraftRow) -> tuple[str, ...] | None:
+    """五要素完全一致才视为同一持仓；任一缺失则不参与去重（保守）。"""
+    parts: list[str] = []
+    for name in _THS_DEDUPE_FIELDS:
+        field = row.fields.get(name)
+        if field is None:
+            return None
+        parts.append(normalize_text(field.raw_text).replace(",", "").replace(" ", "").lower())
+    return tuple(parts)
+
+
+def _dedupe_ths_rows(rows: list[DraftRow]) -> list[DraftRow]:
+    """滚动截屏跨页重叠时同一持仓会被重复识别；合并并保留首次出现的行。
+
+    保留行附 info 级 duplicate_merged 提示，合并行为对人工可见。
+    """
+    seen: dict[tuple[str, ...], DraftRow] = {}
+    kept: list[DraftRow] = []
+    for row in rows:
+        key = _ths_dedupe_key(row)
+        if key is None:
+            kept.append(row)
+            continue
+        if key not in seen:
+            seen[key] = row
+            kept.append(row)
+            continue
+        seen[key].issues.append(
+            OcrIssue(
+                code="ocr.duplicate_merged",
+                field="",
+                severity="info",
+                message=(
+                    f"第 {row.page_index + 1} 页识别到相同持仓"
+                    f"「{row.fields['product_name'].raw_text}」，已按首次出现合并去重"
+                ),
+            )
+        )
+    return kept
 
 
 def normalize_rows(rows: list[DraftRow], template: Template) -> list[DraftRow]:
@@ -183,12 +228,18 @@ def parse_screenshots(params: dict[str, Any], backend: OcrBackend) -> dict[str, 
         raise ValueError("ocr.invalid_image_path: paths must be a non-empty list")
 
     rows: list[DraftRow] = []
+    ths_layout: ColumnLayout | None = None
     for page_index, path in enumerate(_validate_image_paths(raw_paths)):
         tokens = backend.recognize(str(path))
         if template == "alipay":
             rows.extend(parse_alipay(tokens, page_index))
         else:
-            rows.extend(parse_ths(tokens, page_index))
+            found = ths_column_layout(tokens)
+            rows.extend(parse_ths(tokens, page_index, fallback_layout=ths_layout))
+            if found is not None:
+                ths_layout = found
+    if template == "ths":
+        rows = _dedupe_ths_rows(rows)
     normalize_rows(rows, template)
 
     return {

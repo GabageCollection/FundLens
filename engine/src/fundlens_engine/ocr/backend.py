@@ -7,6 +7,24 @@ from ..models import OcrField
 
 Severity = Literal["info", "warning", "blocking"]
 
+FIELD_LABELS = {
+    "product_name": "产品名称",
+    "current_value": "当前金额",
+    "holding_profit": "持有收益",
+    "cumulative_profit": "累计收益",
+    "cost_price": "成本价",
+    "quantity": "持仓数量",
+    "profit_ratio": "持仓收益率",
+    "latest_price": "最新价",
+    "platform_tags": "平台标签",
+    "derived_cost": "持有成本",
+}
+
+
+def field_label(name: str) -> str:
+    """字段内部名 → 面向用户的中文名；未知名原样返回。"""
+    return FIELD_LABELS.get(name, name)
+
 
 @dataclass(frozen=True)
 class OcrToken:

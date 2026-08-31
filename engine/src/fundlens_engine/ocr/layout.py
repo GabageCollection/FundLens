@@ -47,9 +47,18 @@ SIGNED_RE = re.compile(r"^[+＋\-－]")
 RATIO_RE = re.compile(r"^[+＋\-－]?[\d\.．]+%$")
 
 FULL_WIDTH = str.maketrans(
-    "０１２３４５６７８９＋－．，％　",
-    "0123456789+-.,% ",
+    "０１２３４５６７８９＋－．，％　／",
+    "0123456789+-.,% /",
 )
+
+# 表头排序箭头/指示符号：银河-同花顺持仓页「市值」列带排序图标，OCR 常把
+# 箭头并进表头文字（'市值⇅'、'成本/现价▲'），锚点前必须剥离。
+HEADER_GLYPHS = " ▲▼△▽↑↓↕⇅⇧⇩⯅⯆⏶⏷˄˅︿﹀"
+
+
+def header_key(text: str) -> str:
+    """表头匹配键：全角归一 + 剥离首尾排序箭头/空白。"""
+    return normalize_text(text).strip().strip(HEADER_GLYPHS).strip()
 
 
 def normalize_text(text: str) -> str:
@@ -77,7 +86,10 @@ def is_noise(token: OcrToken) -> bool:
     text = token.text.strip()
     if not text:
         return True
-    if text in NAV_LABELS:
+    # 导航/入口文案常带箭头尾巴（'行情 >'）；'查看已清仓股票 >' 是列表尾入口。
+    if text in NAV_LABELS or text.rstrip(">›»＞ ").strip() in NAV_LABELS:
+        return True
+    if "已清仓" in text:
         return True
     if TIME_RE.match(normalize_text(text)):
         return True
@@ -154,12 +166,12 @@ def anchor_columns(
     返回 (列布局, 表头行下标)；找不到返回 None。
     """
     for index, line in enumerate(lines):
-        texts = {t.text.strip() for t in line}
+        texts = {header_key(t.text) for t in line}
         if not all(texts & accepted for accepted in anchors.values()):
             continue
         centers: list[tuple[str, int]] = []
         for name, accepted in anchors.items():
-            token = next(t for t in line if t.text.strip() in accepted)
+            token = next(t for t in line if header_key(t.text) in accepted)
             centers.append((name, token.box[0] + token.box[2] // 2))
         centers.sort(key=lambda item: item[1])
         names = [name for name, _ in centers]
@@ -181,7 +193,10 @@ def layout_unknown_row(page_index: int, detail: str) -> DraftRow:
             code="ocr.layout_unknown",
             field="",
             severity="blocking",
-            message=f"未找到表头锚点，版式不支持：{detail}",
+            message=(
+                f"没有认出这张截图的表格格式：缺少「{detail}」等列标题，"
+                "请确认截图里包含完整的持仓列表（含表头）后重试"
+            ),
         )
     )
     return row
