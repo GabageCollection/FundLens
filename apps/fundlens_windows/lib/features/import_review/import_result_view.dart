@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fundlens_core/fundlens_core.dart';
 
 import '../../app/app_shell.dart';
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import 'import_review_controller.dart';
 
@@ -34,12 +35,7 @@ class _ResultBody extends StatelessWidget {
               Text(
                 '导入完成',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Noto Serif SC',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: FundLensTokens.ink,
-                ),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: FundLensTokens.space4),
               Card(
@@ -119,11 +115,7 @@ class _ResultBody extends StatelessWidget {
               Text(
                 '导入已写入本地数据库；如需回退可在结果页撤销，或从“历史快照”恢复。',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Noto Sans SC',
-                  fontSize: 12,
-                  color: FundLensTokens.muted,
-                ),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
@@ -180,21 +172,16 @@ class _ResultRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 14,
-              color: FundLensTokens.muted,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: FundLensTokens.muted),
           ),
           const Spacer(),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: mono ? 'IBM Plex Mono' : 'Noto Sans SC',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: FundLensTokens.ink,
-            ),
+            style: mono
+                ? FundLensTextStyles.of(context).financialNumberStrong
+                : FundLensTextStyles.of(context).bodyStrong,
           ),
         ],
       ),

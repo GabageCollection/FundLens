@@ -15,6 +15,7 @@ import '../../importing/tabular_import_parser.dart';
 import '../../security/selected_path_guard.dart';
 import '../../storage/holding_repository.dart';
 import '../../storage/snapshot_repository.dart';
+import 'dedupe_ocr_rows.dart';
 import 'import_check_summary_builder.dart';
 import 'import_draft_field_edit.dart';
 import 'import_draft_persistence.dart';
@@ -320,11 +321,7 @@ final class ImportReviewController extends ChangeNotifier {
       await body();
     } catch (e) {
       _setState(
-        ImportFailed(
-          '截图识别失败: $e',
-          true,
-          retry: () => _runOcrWithRetry(body),
-        ),
+        ImportFailed('截图识别失败: $e', true, retry: () => _runOcrWithRetry(body)),
       );
     }
   }
@@ -349,11 +346,7 @@ final class ImportReviewController extends ChangeNotifier {
       _setState(ImportFieldMapping(table, mapping));
     } catch (e) {
       _setState(
-        ImportFailed(
-          '文件解析失败: $e',
-          true,
-          retry: () => _parseTabular(file),
-        ),
+        ImportFailed('文件解析失败: $e', true, retry: () => _parseTabular(file)),
       );
     }
   }
@@ -382,9 +375,7 @@ final class ImportReviewController extends ChangeNotifier {
     try {
       files = await _picker.pickScreenshotFiles();
     } catch (e) {
-      _setState(
-        ImportFailed('截图识别失败: $e', true, retry: pickScreenshots),
-      );
+      _setState(ImportFailed('截图识别失败: $e', true, retry: pickScreenshots));
       return;
     }
     if (files.isEmpty) return;
@@ -409,6 +400,10 @@ final class ImportReviewController extends ChangeNotifier {
           totalSteps: canonicalPaths.length,
         ),
       );
+      // 响应级阻断问题的 holding_index 是本次单页调用内的行号,
+      // 合并进全局列表前必须加上此前已合并的行数偏移,
+      // 否则后续页的问题会错误归属到前几页的持仓卡片上。
+      final rowOffset = mergedRows.length;
       final response = await _engine.call('ocr.parse_screenshots', {
         'paths': [canonicalPaths[i]],
         'template': template,
@@ -418,13 +413,21 @@ final class ImportReviewController extends ChangeNotifier {
         row['page_index'] = i;
         mergedRows.add(row);
       }
-      mergedIssues.addAll(response['issues'] as List? ?? const []);
+      for (final rawIssue in response['issues'] as List? ?? const []) {
+        final issue = importAsMap(rawIssue);
+        final holdingIndex = (issue['holding_index'] as num?)?.toInt();
+        if (holdingIndex != null) {
+          issue['holding_index'] = holdingIndex + rowOffset;
+        }
+        mergedIssues.add(issue);
+      }
     }
     _tempScreenshotPaths = tempPaths;
-    final draft = _draftFromOcr({
-      'rows': mergedRows,
-      'issues': mergedIssues,
-    }, template);
+    // 滚动截屏相邻页重叠/识别受损的副本在此自动去除,不留给用户手工删。
+    final draft = _draftFromOcr(
+      dedupeOcrResponse({'rows': mergedRows, 'issues': mergedIssues}),
+      template,
+    );
     await _enterReview(draft, template: template);
   }
 
@@ -741,7 +744,6 @@ final class ImportReviewController extends ChangeNotifier {
     }
   }
 
-
   /// Step 4: commits the current plan, optionally creating a snapshot.
   /// Full mode with proposed removals requires [confirmedFullRemovals] — the
   /// UI obtains it through a second confirmation that lists the removal count.
@@ -836,7 +838,13 @@ final class ImportReviewController extends ChangeNotifier {
   /// Goes back one wizard step.
   Future<void> back() async {
     final state = _state;
-    if (state is ImportSourceSelect && _source != null) {
+    if (state is ImportCommitted) {
+      // 结果页「继续导入」:清理本次会话,从头开始新一轮导入。
+      await _resetReview();
+      await _draftStore.clear();
+      _source = null;
+      _setState(const ImportSourceSelect());
+    } else if (state is ImportSourceSelect && _source != null) {
       _source = null;
       _setState(const ImportSourceSelect());
     } else if (state is ImportCheck) {
@@ -878,5 +886,4 @@ final class ImportReviewController extends ChangeNotifier {
     _ocrRows = result.rows;
     return result.draft;
   }
-
 }

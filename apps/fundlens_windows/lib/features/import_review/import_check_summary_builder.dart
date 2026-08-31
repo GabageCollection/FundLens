@@ -14,10 +14,7 @@ ImportCheckSummary buildImportCheckSummary({
   required int duplicateCount,
 }) {
   final zero = DecimalValue.parse('0');
-  final insertValue = plan.inserts.fold(
-    zero,
-    (sum, h) => sum + h.currentValue,
-  );
+  final insertValue = plan.inserts.fold(zero, (sum, h) => sum + h.currentValue);
   final currentById = {for (final h in current) h.id: h};
   var updateDelta = zero;
   for (final update in plan.updates) {

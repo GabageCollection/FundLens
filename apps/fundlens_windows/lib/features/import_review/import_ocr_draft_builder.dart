@@ -44,7 +44,12 @@ OcrDraftResult buildDraftFromOcr(
     );
 
     for (final rawIssue in rawRow['issues'] as List? ?? const []) {
-      issues.add(importIssueFromJson(importAsMap(rawIssue)));
+      final issue = importIssueFromJson(importAsMap(rawIssue));
+      // 引擎把阻断问题同时放在行级 issues(无 holding_index)和响应级
+      // issues(带 holding_index)里;只保留响应级那份,行级阻断副本丢弃,
+      // 否则同一问题在「需要处理的数据问题」里显示两次。
+      if (issue.severity == IssueSeverity.blocking) continue;
+      issues.add(issue);
     }
 
     final normalized = importAsMap(rawRow['normalized']);
@@ -71,12 +76,18 @@ OcrDraftResult buildDraftFromOcr(
         ),
       );
     }
+    // 平台默认分类:同花顺全部场内基金(ETF/权益);支付宝按名称下方的
+    // 「稳健理财」「进阶理财」标签分桶,标签缺失保持未分类由人工确认。
+    final classification = classifyPlatformHolding(
+      platform,
+      fields['platform_tags']?.rawText,
+    );
     holdings.add(
       DraftHolding(
         sourcePlatform: platform,
         productName: fields['product_name']?.rawText ?? '',
-        instrumentType: InstrumentType.offExchangeFund,
-        assetClass: AssetClass.other,
+        instrumentType: classification.instrumentType,
+        assetClass: classification.assetClass,
         currentValue: currentValue ?? DecimalValue.parse('0'),
         quantity: amountOf('quantity'),
         costPrice: amountOf('cost_price'),

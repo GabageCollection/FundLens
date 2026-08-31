@@ -14,6 +14,10 @@ import 'package:fundlens_windows/theme/fundlens_theme.dart';
 
 final class FakeDataEngineClient implements DataEngineClient {
   final Map<String, Map<String, Object?>> responses = {};
+
+  /// 逐次响应队列:同一方法被多次调用(如逐页 OCR)时按调用顺序出队;
+  /// 队列用空后回退到 [responses]。
+  final Map<String, List<Map<String, Object?>>> responseQueues = {};
   final List<String> calls = [];
 
   @override
@@ -23,6 +27,10 @@ final class FakeDataEngineClient implements DataEngineClient {
     Duration timeout = const Duration(seconds: 30),
   }) {
     calls.add(method);
+    final queue = responseQueues[method];
+    if (queue != null && queue.isNotEmpty) {
+      return Future.value(queue.removeAt(0));
+    }
     final response = responses[method];
     if (response == null) {
       throw StateError('unexpected engine call: $method');

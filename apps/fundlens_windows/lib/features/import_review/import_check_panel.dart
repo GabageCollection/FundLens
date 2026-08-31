@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../importing/import_models.dart';
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../../widgets/confirm_dialog.dart';
 import 'data_issue_list.dart';
@@ -43,15 +44,7 @@ class _CheckBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '确认导入',
-              style: TextStyle(
-                fontFamily: 'Noto Serif SC',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: FundLensTokens.ink,
-              ),
-            ),
+            Text('确认导入', style: FundLensTextStyles.of(context).sectionTitle),
             const SizedBox(height: FundLensTokens.space4),
             _SummaryGrid(summary: summary),
             const SizedBox(height: FundLensTokens.space4),
@@ -155,23 +148,15 @@ class _SummaryTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 12,
-              color: FundLensTokens.muted,
-            ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: FundLensTokens.space1),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: mono ? 'IBM Plex Mono' : 'Noto Sans SC',
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? FundLensTokens.ink,
-            ),
+            style:
+                (mono
+                        ? FundLensTextStyles.of(context).financialEmphasis
+                        : FundLensTextStyles.of(context).sansEmphasis)
+                    .copyWith(color: valueColor ?? FundLensTokens.ink),
           ),
         ],
       ),
@@ -195,12 +180,7 @@ class _IssueSection extends StatelessWidget {
       children: [
         Text(
           '需要处理的数据问题',
-          style: TextStyle(
-            fontFamily: 'Noto Serif SC',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: FundLensTokens.ink,
-          ),
+          style: FundLensTextStyles.of(context).subsectionTitle,
         ),
         const SizedBox(height: FundLensTokens.space2),
         DataIssueList(controller: controller),
@@ -221,12 +201,7 @@ class _CandidateSection extends StatelessWidget {
       children: [
         Text(
           '选择匹配产品（跨平台疑似重复）',
-          style: TextStyle(
-            fontFamily: 'Noto Serif SC',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: FundLensTokens.ink,
-          ),
+          style: FundLensTextStyles.of(context).subsectionTitle,
         ),
         const SizedBox(height: FundLensTokens.space2),
         for (final entry in controller.candidateGroups.entries)
@@ -245,11 +220,7 @@ class _CandidateSection extends StatelessWidget {
                 children: [
                   Text(
                     '选择匹配产品: ${(controller.state as ImportCheck).draft.holdings[entry.key].productName}',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans SC',
-                      fontSize: 14,
-                      color: FundLensTokens.ink,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   RadioGroup<int>(
                     groupValue:
@@ -310,23 +281,11 @@ class _ResolutionSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '重复记录处理方式',
-          style: TextStyle(
-            fontFamily: 'Noto Serif SC',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: FundLensTokens.ink,
-          ),
-        ),
+        Text('重复记录处理方式', style: FundLensTextStyles.of(context).subsectionTitle),
         const SizedBox(height: FundLensTokens.space2),
         Text(
           '以下记录可能与现有持仓重复，请逐条选择处理方式。',
-          style: TextStyle(
-            fontFamily: 'Noto Sans SC',
-            fontSize: 12,
-            color: FundLensTokens.muted,
-          ),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: FundLensTokens.space2),
         for (final (index, name) in rows)
@@ -348,11 +307,7 @@ class _ResolutionSection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       name.isEmpty ? '持仓 ${index + 1}' : name,
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans SC',
-                        fontSize: 14,
-                        color: FundLensTokens.ink,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                   DropdownButton<DuplicateResolution>(
@@ -426,15 +381,7 @@ class _OptionsCardState extends State<_OptionsCard> {
           children: [
             Row(
               children: [
-                Text(
-                  '导入模式',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans SC',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: FundLensTokens.ink,
-                  ),
-                ),
+                Text('导入模式', style: FundLensTextStyles.of(context).bodyStrong),
                 const SizedBox(width: FundLensTokens.space4),
                 SegmentedButton<ImportMode>(
                   segments: const [
@@ -463,9 +410,7 @@ class _OptionsCardState extends State<_OptionsCard> {
                 ),
                 child: Text(
                   '全量导入将移除不再出现的 ${plan.removeIds.length} 条同平台持仓',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans SC',
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: FundLensTokens.warnText,
                   ),
                 ),
@@ -478,19 +423,11 @@ class _OptionsCardState extends State<_OptionsCard> {
                   setState(() => _createSnapshot = value ?? false),
               title: Text(
                 '导入完成后创建历史快照',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans SC',
-                  fontSize: 14,
-                  color: FundLensTokens.ink,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               subtitle: Text(
                 '快照冻结当前所有持仓，供后续对比资产变化',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans SC',
-                  fontSize: 12,
-                  color: FundLensTokens.muted,
-                ),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,

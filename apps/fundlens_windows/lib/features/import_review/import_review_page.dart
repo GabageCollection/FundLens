@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import '../../widgets/error_retry_view.dart';
 import '../../widgets/loading_view.dart';
@@ -71,8 +72,10 @@ class _ImportReviewPageState extends ConsumerState<ImportReviewPage> {
         ),
       ],
     );
+    // 向导第 3 步是「截图 + OCR 编辑」双栏布局,form 档(1120)在宽窗口下
+    // 两侧大片留白且双栏过挤,故与资产总览同级使用 standard 档(1440)。
     return PageScaffold(
-      tier: PageWidthTier.form,
+      tier: PageWidthTier.standard,
       crumb: '数据',
       title: '导入与识别',
       body: body,
@@ -155,10 +158,7 @@ class _StepChip extends StatelessWidget {
               ? Icon(Icons.check, size: 14, color: FundLensTokens.canvas)
               : Text(
                   '$index',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans SC',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                  style: FundLensTextStyles.of(context).auxStrong.copyWith(
                     color: active ? FundLensTokens.canvas : textColor,
                   ),
                 ),
@@ -166,12 +166,11 @@ class _StepChip extends StatelessWidget {
         const SizedBox(width: FundLensTokens.space2),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Noto Sans SC',
-            fontSize: 14,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-            color: textColor,
-          ),
+          style:
+              (active
+                      ? FundLensTextStyles.of(context).bodyStrong
+                      : Theme.of(context).textTheme.bodyMedium)
+                  ?.copyWith(color: textColor),
         ),
       ],
     );
@@ -203,11 +202,9 @@ class _ParsingBody extends StatelessWidget {
             state.currentStep != null && state.totalSteps != null
                 ? '正在识别第 ${state.currentStep}/${state.totalSteps} 张截图'
                 : '正在解析文件…',
-            style: TextStyle(
-              fontFamily: 'Noto Sans SC',
-              fontSize: 14,
-              color: FundLensTokens.muted,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: FundLensTokens.muted),
           ),
         ],
       ),

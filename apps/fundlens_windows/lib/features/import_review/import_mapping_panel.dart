@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../importing/tabular_import_parser.dart';
+import '../../theme/fundlens_theme.dart';
 import '../../theme/fundlens_tokens.dart';
 import 'import_review_controller.dart';
 
@@ -38,23 +39,11 @@ class _MappingBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '字段映射',
-              style: TextStyle(
-                fontFamily: 'Noto Serif SC',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: FundLensTokens.ink,
-              ),
-            ),
+            Text('字段映射', style: FundLensTextStyles.of(context).sectionTitle),
             const SizedBox(height: FundLensTokens.space2),
             Text(
               '已按常见表头自动识别下列映射，可手动修改；带“必填”的字段必须选择对应列。',
-              style: TextStyle(
-                fontFamily: 'Noto Sans SC',
-                fontSize: 12,
-                color: FundLensTokens.muted,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: FundLensTokens.space4),
             _MappingTable(
@@ -63,15 +52,7 @@ class _MappingBody extends StatelessWidget {
               onChanged: (mapping) => controller.setMapping(mapping),
             ),
             const SizedBox(height: FundLensTokens.space4),
-            Text(
-              '数据预览',
-              style: TextStyle(
-                fontFamily: 'Noto Serif SC',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: FundLensTokens.ink,
-              ),
-            ),
+            Text('数据预览', style: FundLensTextStyles.of(context).subsectionTitle),
             const SizedBox(height: FundLensTokens.space2),
             _PreviewTable(table: table),
             const SizedBox(height: FundLensTokens.space4),
@@ -130,21 +111,14 @@ class _MappingTable extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans SC',
-                            fontSize: 14,
-                            color: FundLensTokens.ink,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         if (required) ...[
                           const SizedBox(width: FundLensTokens.space1),
                           Text(
                             '必填',
-                            style: TextStyle(
-                              fontFamily: 'Noto Sans SC',
-                              fontSize: 11,
-                              color: FundLensTokens.accent,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: FundLensTokens.accent),
                           ),
                         ],
                       ],
@@ -211,14 +185,7 @@ class _PreviewTable extends StatelessWidget {
     final headings = table.headings;
     final preview = table.dataRows.take(8).toList();
     if (preview.isEmpty) {
-      return Text(
-        '文件中没有数据行',
-        style: TextStyle(
-          fontFamily: 'Noto Sans SC',
-          fontSize: 12,
-          color: FundLensTokens.muted,
-        ),
-      );
+      return Text('文件中没有数据行', style: Theme.of(context).textTheme.bodySmall);
     }
     return Card(
       elevation: 0,
@@ -234,49 +201,43 @@ class _PreviewTable extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Table(
           columnWidths: {
-            for (var i = 0; i < headings.length; i++) i: const FlexColumnWidth(),
+            for (var i = 0; i < headings.length; i++)
+              i: const FlexColumnWidth(),
           },
           border: TableBorder(
             horizontalInside: BorderSide(color: FundLensTokens.border),
           ),
           children: [
-          TableRow(
-            decoration: BoxDecoration(color: FundLensTokens.surfaceAlt),
-            children: [
-              for (final heading in headings)
-                Padding(
-                  padding: const EdgeInsets.all(FundLensTokens.space2),
-                  child: Text(
-                    heading.isEmpty ? '列' : heading,
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans SC',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: FundLensTokens.ink,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          for (final row in preview)
             TableRow(
+              decoration: BoxDecoration(color: FundLensTokens.surfaceAlt),
               children: [
-                for (var i = 0; i < headings.length; i++)
+                for (final heading in headings)
                   Padding(
                     padding: const EdgeInsets.all(FundLensTokens.space2),
                     child: Text(
-                      i < row.length ? row[i] : '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans SC',
-                        fontSize: 12,
-                        color: FundLensTokens.inkSoft,
-                      ),
+                      heading.isEmpty ? '列' : heading,
+                      style: FundLensTextStyles.of(context).auxStrong,
                     ),
                   ),
               ],
             ),
+            for (final row in preview)
+              TableRow(
+                children: [
+                  for (var i = 0; i < headings.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.all(FundLensTokens.space2),
+                      child: Text(
+                        i < row.length ? row[i] : '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: FundLensTokens.inkSoft,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
           ],
         ),
       ),

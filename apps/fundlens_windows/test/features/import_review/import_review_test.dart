@@ -74,10 +74,11 @@ Future<ImportReviewController> pumpScreenshotSession(
 }
 
 void main() {
-  testWidgets('导入页使用 form 档 PageScaffold', (tester) async {
+  testWidgets('导入页使用 standard 档 PageScaffold', (tester) async {
     await pumpImportHarness(tester);
     final scaffold = tester.widget<PageScaffold>(find.byType(PageScaffold));
-    expect(scaffold.tier, PageWidthTier.form);
+    // 第 3 步为截图 + OCR 编辑双栏,form 档(1120)宽窗口下两侧留白过多。
+    expect(scaffold.tier, PageWidthTier.standard);
     expect(find.text('导入与识别'), findsOneWidget);
     expect(find.text('选择数据来源'), findsOneWidget);
   });

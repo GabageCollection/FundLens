@@ -186,6 +186,19 @@ void main() {
     expect(records.saved?.inserted, 1);
   });
 
+  test('提交结果页「继续导入」回到来源选择', () async {
+    final controller = _controller();
+    await controller.selectSource(ImportSource.csv);
+    await controller.acceptDroppedFile(_csvFile('产品名称,当前金额\n基金A,100\n'));
+    await controller.applyMapping();
+    await controller.commit();
+    expect(controller.state, isA<ImportCommitted>());
+
+    await controller.back();
+
+    expect(controller.state, isA<ImportSourceSelect>());
+  });
+
   test('commit 可创建快照', () async {
     final snapshots = FakeSnapshotRepository();
     final controller = _controller(snapshots: snapshots);

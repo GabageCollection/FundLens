@@ -63,7 +63,8 @@ DraftFieldEditResult applyDraftFieldEdit(
     holdingProfit: field == 'holding_profit' || field == 'holdingProfit'
         ? amount
         : holding.holdingProfit,
-    cumulativeProfit: field == 'cumulative_profit' || field == 'cumulativeProfit'
+    cumulativeProfit:
+        field == 'cumulative_profit' || field == 'cumulativeProfit'
         ? amount
         : holding.cumulativeProfit,
     currency: holding.currency,
