@@ -31,7 +31,7 @@ def set_market_service(service: MarketService | None) -> None:
 
 
 def health(_: dict[str, Any]) -> dict[str, Any]:
-    return {"status": "ok", "engine_version": "1.2.0"}
+    return {"status": "ok", "engine_version": "1.3.0"}
 
 
 def ocr_parse_screenshots(params: dict[str, Any]) -> dict[str, Any]:

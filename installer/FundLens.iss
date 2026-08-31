@@ -17,9 +17,18 @@
 ;   ticking an explicit checkbox on a separate confirmation dialog.
 
 #define AppName "FundLens"
-#define AppVersion "1.2.0"
+#define AppVersion "1.3.0"
 #define AppPublisher "FundLens"
 #define ReleaseDir "..\apps\fundlens_windows\build\windows\x64\runner\Release"
+
+; Iteration builds pass /DFastCompress (tools/build_windows_release.ps1
+; -FastCompress) to trade compression ratio for speed; release builds keep
+; the default lzma2 (max).
+#ifdef FastCompress
+  #define CompressionMethod "lzma2/fast"
+#else
+  #define CompressionMethod "lzma2"
+#endif
 
 [Setup]
 AppId={{7C4E2A91-3B6D-4F58-9E21-5D8C0A6B4F73}
@@ -33,7 +42,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 OutputDir=..\dist\installer
 OutputBaseFilename=FundLens-Setup
-Compression=lzma2
+Compression={#CompressionMethod}
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
